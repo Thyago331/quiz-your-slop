@@ -16,13 +16,32 @@ export function localDaEvidencia(ev: Evidencia): string {
   return `${ev.caminho}:${faixa}`;
 }
 
+type EvidenciaNaTelaProps = {
+  evidencia: Evidencia;
+  /** Com ele, o `caminho:linha` vira botão que abre o arquivo no explorador de código. */
+  onAbrir?: (evidencia: Evidencia) => void;
+};
+
 /** A Evidência em pergaminho: onde está e o trecho de código, com os números das linhas. */
-export function EvidenciaNaTela({ evidencia }: { evidencia: Evidencia }) {
+export function EvidenciaNaTela({ evidencia, onAbrir }: EvidenciaNaTelaProps) {
   const linhas = evidencia.trecho.split(/\r?\n/);
+  const local = localDaEvidencia(evidencia);
   return (
     <figure className="evidencia">
       <figcaption>
-        📜 <code>{localDaEvidencia(evidencia)}</code>
+        📜{' '}
+        {onAbrir ? (
+          <button
+            type="button"
+            className="evidencia-abrir"
+            title="Abrir no explorador de código"
+            onClick={() => onAbrir(evidencia)}
+          >
+            <code>{local}</code>
+          </button>
+        ) : (
+          <code>{local}</code>
+        )}
       </figcaption>
       <pre className="codigo">
         {linhas.map((linha, k) => (

@@ -4,7 +4,6 @@ import { progresso, resultadoDaExpedicao, tituloDoXp, type Aventura } from '@qui
 import { ENTRADAS, LIGACOES, REGIOES, TERRITORIOS } from '@quiz/taverna';
 import {
   Barra,
-  Batalha,
   CLASSES,
   EscolhaDeClasse,
   Janela,
@@ -20,6 +19,7 @@ import {
   type RegiaoNoMapa,
 } from '@quiz/ui';
 import { COLUNAS, CONSTRUCOES, ILHAS, LINHAS } from './disposicao';
+import { BatalhaComExplorador, ExploradorDaTaverna } from './ExploradorDaTaverna';
 import {
   ESTADO_INICIAL,
   desafiosParaPartir,
@@ -63,7 +63,7 @@ export function Tutorial() {
     );
   } else if (expedicao && expedicao.fase !== 'encerrada') {
     tela = (
-      <Batalha
+      <BatalhaComExplorador
         expedicao={expedicao}
         estados={aventura.mapa.estados}
         nomeRegiao={nomeDaRegiao(expedicao.regiaoId)}
@@ -259,6 +259,8 @@ function TelaDoMapa({ estado, aventura, selecionada, onSelecionar, despachar }: 
         chega ao menu.
         <LegendaMapa />
       </Janela>
+
+      <ExploradorDaTaverna estados={mapa.estados} />
     </>
   );
 }

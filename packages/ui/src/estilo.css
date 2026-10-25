@@ -515,6 +515,171 @@
   user-select: none;
 }
 
+.evidencia-abrir {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.evidencia-abrir:hover code {
+  color: var(--px-ouro);
+}
+
+/* Explorador de código: árvore + visualizador (protótipo variante D, spec §9) */
+.explorador {
+  min-width: 0;
+  container-type: inline-size;
+}
+.explorador-corpo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+.explorador-arvore {
+  max-height: 220px;
+  overflow-y: auto;
+}
+@container (min-width: 560px) {
+  .explorador-corpo {
+    grid-template-columns: 180px minmax(0, 1fr);
+  }
+  .explorador-arvore {
+    max-height: min(70vh, 640px);
+  }
+}
+.explorador-visor {
+  min-width: 0;
+}
+.pixel .explorador-territorio {
+  font-family: var(--px-fonte-texto);
+  font-size: 20px;
+  color: var(--px-apagado);
+  margin: 8px 0 2px;
+}
+.explorador-grupo:first-child .explorador-territorio {
+  margin-top: 0;
+}
+.explorador-nos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.explorador-nos .explorador-nos {
+  padding-left: 12px;
+}
+.explorador-pasta {
+  display: inline-block;
+  color: var(--px-apagado);
+  font-size: 19px;
+}
+.explorador-arquivo {
+  display: block;
+  width: 100%;
+  font-family: var(--px-fonte-texto);
+  font-size: 19px;
+  background: none;
+  border: 0;
+  color: var(--px-texto);
+  padding: 0 4px 0 18px;
+  text-align: left;
+  position: relative;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.explorador-arquivo:hover,
+.explorador-arquivo[aria-current='true'] {
+  color: var(--px-ouro);
+}
+.explorador-arquivo[aria-current='true']::before {
+  content: '▶';
+  position: absolute;
+  left: 2px;
+}
+.explorador-nevoa {
+  filter: blur(3px);
+  color: var(--px-nevoa);
+  user-select: none;
+  pointer-events: none;
+  cursor: default;
+}
+.explorador-caminho {
+  color: var(--px-apagado);
+  overflow-wrap: anywhere;
+}
+.explorador-aviso {
+  color: var(--px-nevoa);
+}
+.explorador-codigo {
+  position: relative;
+  font-size: 13px;
+  max-height: min(70vh, 640px);
+  overflow: auto;
+}
+.explorador-linhas {
+  display: inline-block;
+  min-width: 100%;
+}
+.codigo-linha--destaque {
+  background: #4a3a00;
+}
+.codigo-linha--destaque .codigo-numero {
+  color: var(--px-ouro);
+}
+.tok-palavra {
+  color: var(--px-dependencia);
+}
+.tok-texto {
+  color: var(--px-ouro);
+}
+.tok-numero {
+  color: var(--px-desatualizada);
+}
+.tok-comentario {
+  color: var(--px-apagado);
+  font-style: italic;
+}
+.tok-tipo,
+.tok-tag {
+  color: var(--px-codigo);
+}
+.tok-funcao {
+  color: var(--px-texto);
+}
+.tok-atributo,
+.tok-propriedade {
+  color: #a8e6a3;
+}
+
+/* Palco com o explorador ao lado; no celular, uma aba de cada vez */
+.palco {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  align-items: start;
+  gap: 4px;
+}
+.palco-abas {
+  display: none;
+}
+.palco-codigo,
+.palco-principal {
+  min-width: 0;
+}
+@media (max-width: 999px) {
+  .palco {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .palco-abas {
+    display: flex;
+    margin: 0 8px 4px;
+  }
+  .palco[data-aba='principal'] .palco-codigo,
+  .palco[data-aba='codigo'] .palco-principal {
+    display: none;
+  }
+}
+
 /* Resumo da Expedição */
 .resumo {
   max-width: 820px;

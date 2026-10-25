@@ -11,6 +11,7 @@ import {
   VIDAS_DO_GUARDIAO,
   type Contestacao,
   type Desafio,
+  type Evidencia,
   type Expedicao,
   type FormatoDesafio,
   type MapaAventura,
@@ -91,6 +92,8 @@ type BatalhaProps = {
   onContestar?: (argumento: string) => void;
   /** O bônus que a tela anuncia no GOLPE CRÍTICO. */
   xpCacadorDeSlop?: number;
+  /** Com ele, cada Evidência abre o arquivo no explorador de código. */
+  onAbrirEvidencia?: (evidencia: Evidencia) => void;
 };
 
 /** O que o GOLPE CRÍTICO ensina: vale para toda isca, não só para a do Tutorial. */
@@ -109,6 +112,7 @@ export function Batalha({
   onAvancar,
   onContestar,
   xpCacadorDeSlop = CALIBRAGEM_PADRAO.xpCacadorDeSlop,
+  onAbrirEvidencia,
 }: BatalhaProps) {
   const [contestando, setContestando] = useState<number | null>(null);
   const desafio = desafioAtual(expedicao);
@@ -196,9 +200,18 @@ export function Batalha({
               <Texto>{desafio.explicacao}</Texto>
             </p>
             {desafio.evidencias.map((ev) => (
-              <EvidenciaNaTela key={`${ev.caminho}:${ev.linha_inicio}`} evidencia={ev} />
+              <EvidenciaNaTela
+                key={`${ev.caminho}:${ev.linha_inicio}`}
+                evidencia={ev}
+                onAbrir={onAbrirEvidencia}
+              />
             ))}
-            {resposta.contestacao && <VereditoDaContestacao contestacao={resposta.contestacao} />}
+            {resposta.contestacao && (
+              <VereditoDaContestacao
+                contestacao={resposta.contestacao}
+                onAbrirEvidencia={onAbrirEvidencia}
+              />
+            )}
             {escrevendo ? (
               <FormularioDeContestacao
                 onEnviar={(argumento) => {
@@ -229,7 +242,13 @@ export function Batalha({
 }
 
 /** O veredito da Contestação: GOLPE CRÍTICO com o código de verdade, ou gabarito mantido. */
-function VereditoDaContestacao({ contestacao }: { contestacao: Contestacao }) {
+function VereditoDaContestacao({
+  contestacao,
+  onAbrirEvidencia,
+}: {
+  contestacao: Contestacao;
+  onAbrirEvidencia?: (evidencia: Evidencia) => void;
+}) {
   if (contestacao.veredito === 'mantido') {
     return (
       <div className="contestacao contestacao--mantida">
@@ -247,7 +266,11 @@ function VereditoDaContestacao({ contestacao }: { contestacao: Contestacao }) {
         <Texto>{contestacao.explicacao}</Texto>
       </p>
       {contestacao.evidencias.map((ev) => (
-        <EvidenciaNaTela key={`${ev.caminho}:${ev.linha_inicio}`} evidencia={ev} />
+        <EvidenciaNaTela
+          key={`${ev.caminho}:${ev.linha_inicio}`}
+          evidencia={ev}
+          onAbrir={onAbrirEvidencia}
+        />
       ))}
       <p className="texto-ouro">{TEXTO_CACADOR_DE_SLOP}</p>
     </div>

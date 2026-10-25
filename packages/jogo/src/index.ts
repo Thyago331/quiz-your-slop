@@ -24,6 +24,17 @@ export {
   type ResultadoEvidencia,
   type ResultadoOpcaoApontar,
 } from './evidencia.ts';
+export {
+  NOME_OUTROS_ARQUIVOS,
+  arvoreDoExplorador,
+  caminhosVisiveis,
+  mascarar,
+  type ArquivoNoExplorador,
+  type EntradaDoExplorador,
+  type GrupoDoExplorador,
+  type NoExplorador,
+  type PastaNoExplorador,
+} from './explorador.ts';
 export { passoDoFluxo, type PassoNaTela } from './fluxo.ts';
 export {
   iniciarMapa,

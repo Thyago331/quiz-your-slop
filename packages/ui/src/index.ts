@@ -8,6 +8,13 @@ export {
 } from './Batalha.tsx';
 export { EvidenciaNaTela, Texto, localDaEvidencia } from './Codigo.tsx';
 export { CLASSES, EscolhaDeClasse, type ClasseNaTela } from './EscolhaDeClasse.tsx';
+export {
+  ArvoreDeArquivos,
+  ExploradorDeCodigo,
+  PalcoComCodigo,
+  VisualizadorDeCodigo,
+  type ArquivoAberto,
+} from './Explorador.tsx';
 export { Janela } from './Janela.tsx';
 export {
   LegendaMapa,
@@ -21,5 +28,13 @@ export {
 } from './MapaMundi.tsx';
 export { Menu, type ItemMenu } from './Menu.tsx';
 export { OrdemDoFluxo, type PassoOrdenavel } from './OrdemDoFluxo.tsx';
+export {
+  linguagemDe,
+  realcar,
+  tokenizar,
+  type Linguagem,
+  type TipoToken,
+  type Token,
+} from './realce.ts';
 export { Pixels, Sprite } from './Sprite.tsx';
 export { PALETA, SPRITES, type NomeSprite } from './sprites.ts';

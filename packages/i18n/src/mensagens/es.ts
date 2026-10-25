@@ -136,7 +136,16 @@ export const es: Mensagens = {
       semDetalhe: 'El Máster todavía va a detallar esta Región.',
       partir: '⚔ Partir en Expedición',
       jaRevelada: 'Región revelada: su Guardián ya cayó.',
-      semExpedicao: 'Esta Región todavía no tiene Expedición.',
+      desatualizada:
+        'Región desactualizada: el código cambió desde que se reveló. Una nueva Expedición, sobre lo que cambió, la revela de nuevo.',
+      mudou: '⟳ El código cambió desde que se reveló',
+      mudouResumo:
+        '{arquivos} archivos · +{adicionadas} −{removidas} líneas ({porcentagem}% de la Región)',
+      alterado: '✎ {caminho} (+{adicionadas} −{removidas})',
+      binario: '✎ {caminho} (binario)',
+      apagado: '✘ borrado: {caminho}',
+      renomeado: '➜ renombrado: {de} → {para}',
+      novo: '✚ nuevo: {caminho}',
       detalharDeNovo: 'Pedir el detalle de nuevo',
       xp: 'XP {xp} · {titulo}',
       voltar: 'Volver al menú',
@@ -158,6 +167,9 @@ export const es: Mensagens = {
       voltar: '◀ Volver al mapa',
       detalhando: 'El Máster está detallando {regiao}… ({n} de {total})',
       detalhada: '✔ {regiao} detallada',
+      sobreMudancas: '⟳ Expedición sobre lo que cambió: {n} archivos cambiados, con el diff',
+      semDiff:
+        '⟳ El cambio es demasiado grande para el diff: el Máster relee toda la Región ({n} archivos cambiados)',
       detalheFalhou:
         '✘ El Máster no pudo detallar {regiao}; sigue desbloqueada y puedes pedirlo de nuevo desde el mapa.',
     },

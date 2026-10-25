@@ -135,7 +135,16 @@ export const en: Mensagens = {
       semDetalhe: 'The Master will still detail this Region.',
       partir: '⚔ Set out on an Expedition',
       jaRevelada: 'Revealed Region: its Guardian has already fallen.',
-      semExpedicao: 'This Region has no Expedition yet.',
+      desatualizada:
+        'Outdated Region: the code changed since it was revealed. A new Expedition, about what changed, reveals it again.',
+      mudou: '⟳ The code changed since it was revealed',
+      mudouResumo:
+        '{arquivos} files · +{adicionadas} −{removidas} lines ({porcentagem}% of the Region)',
+      alterado: '✎ {caminho} (+{adicionadas} −{removidas})',
+      binario: '✎ {caminho} (binary)',
+      apagado: '✘ deleted: {caminho}',
+      renomeado: '➜ renamed: {de} → {para}',
+      novo: '✚ new: {caminho}',
       detalharDeNovo: 'Ask for the details again',
       xp: 'XP {xp} · {titulo}',
       voltar: 'Back to the menu',
@@ -157,6 +166,9 @@ export const en: Mensagens = {
       voltar: '◀ Back to the map',
       detalhando: 'The Master is detailing {regiao}… ({n} of {total})',
       detalhada: '✔ {regiao} detailed',
+      sobreMudancas: '⟳ Expedition about what changed: {n} changed files, with the diff',
+      semDiff:
+        '⟳ The change is too large for the diff: the Master rereads the whole Region ({n} changed files)',
       detalheFalhou:
         '✘ The Master could not detail {regiao}; it stays unlocked and you can ask again from the map.',
     },

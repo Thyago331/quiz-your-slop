@@ -28,8 +28,11 @@ import type { LigacaoPreparada } from './preparacao.ts';
 export const IAS_DO_MESTRE = ['claude_code', 'codex'] as const;
 export type IaDoMestre = (typeof IAS_DO_MESTRE)[number];
 
-/** v2 (#35): XP, estatísticas e Ligações (as reveladas e as escondidas até a vitória). */
-export const VERSAO_DA_AVENTURA = 2;
+/**
+ * v2 (#35): XP, estatísticas e Ligações (as reveladas e as escondidas até a vitória).
+ * v3 (#38): o commit da revelação de cada região (`revelada_em`), para a Região desatualizada.
+ */
+export const VERSAO_DA_AVENTURA = 3;
 
 /** Um repositório do Projeto e o commit em que estava quando a Aventura foi criada. */
 export type RepositorioDaAventura = Repositorio & { commit: string };
@@ -42,6 +45,11 @@ export type RegiaoDoProjeto = {
   /** A lista completa, depois de `detalhar_regiao`; vazia antes. */
   arquivos: string[];
   arquivos_semente: string[];
+  /**
+   * Repositório → commit em que a região foi revelada pela última vez (spec §6): a detecção da
+   * Região desatualizada compara com ele. Só em região revelada ou desatualizada.
+   */
+  revelada_em?: Record<string, string>;
 };
 
 /** Uma Ligação já no mapa: quem fala com quem, como, e onde isso está no código. */
@@ -329,7 +337,7 @@ const DA_V2 = ['xp', 'estatisticas', 'ligacoes', 'ligacoes_escondidas'] as const
 
 const ESQUEMA_DA_AVENTURA_SALVA: Esquema = objeto(
   {
-    versao: { type: 'integer', enum: [1, VERSAO_DA_AVENTURA] },
+    versao: { type: 'integer', enum: [1, 2, VERSAO_DA_AVENTURA] },
     id: texto,
     criada_em: texto,
     atualizada_em: texto,
@@ -347,14 +355,18 @@ const ESQUEMA_DA_AVENTURA_SALVA: Esquema = objeto(
     regioes: {
       type: 'array',
       minItems: 1,
-      items: objeto({
-        id: texto,
-        nome: texto,
-        resumo: texto,
-        territorio_id: texto,
-        arquivos: textos,
-        arquivos_semente: textos,
-      }),
+      items: objeto(
+        {
+          id: texto,
+          nome: texto,
+          resumo: texto,
+          territorio_id: texto,
+          arquivos: textos,
+          arquivos_semente: textos,
+          revelada_em: { type: 'object', additionalProperties: texto },
+        },
+        ['revelada_em'],
+      ),
     },
     mapa: objeto({
       ligacoes: { type: 'array', items: objeto({ id: texto, origem: texto, destino: texto }) },
@@ -384,7 +396,13 @@ const ESQUEMA_DA_AVENTURA_SALVA: Esquema = objeto(
   ['aviso_classe', ...DA_V2],
 );
 
-/** O que voltou do disco, se for uma Aventura inteira e coerente; senão, undefined. A v1 sobe para a v2. */
+/**
+ * O que voltou do disco, se for uma Aventura inteira e coerente; senão, undefined. Versões antigas
+ * sobem para a atual: a v1 ganha os campos da v2 zerados; na v1 e na v2, região já revelada (ou
+ * desatualizada) sem `revelada_em` ganha o commit de criação de cada repositório — o único que
+ * elas guardavam. Se o código mudou entre a criação e a revelação, a detecção pode marcá-la
+ * desatualizada antes da hora: uma Expedição a mais, nunca uma mudança perdida.
+ */
 export function lerAventuraSalva(conteudo: string): AventuraNoProjeto | undefined {
   let valor: unknown;
   try {
@@ -398,8 +416,14 @@ export function lerAventuraSalva(conteudo: string): AventuraNoProjeto | undefine
   const presentes = DA_V2.filter((k) => k in lida).length;
   // A v1 não tem nenhum dos campos novos; a v2 tem todos.
   if (presentes !== (lida.versao === 1 ? 0 : DA_V2.length)) return undefined;
+  const daCriacao = Object.fromEntries(lida.repositorios.map((r) => [r.nome, r.commit]));
+  const conhecida = (id: string) =>
+    ['revelada', 'desatualizada'].includes(lida.mapa.estados[id] ?? '');
   const a: AventuraNoProjeto = {
     ...lida,
+    regioes: lida.regioes.map((r) =>
+      r.revelada_em || !conhecida(r.id) ? r : { ...r, revelada_em: daCriacao },
+    ),
     versao: VERSAO_DA_AVENTURA,
     xp: lida.xp ?? 0,
     estatisticas: lida.estatisticas ?? ESTATISTICAS_ZERADAS,

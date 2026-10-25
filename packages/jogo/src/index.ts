@@ -183,6 +183,20 @@ export {
   type OpcoesDaPreparacao,
 } from './preparacao.ts';
 export {
+  ARVORE_VAZIA,
+  arquivosAlterados,
+  detectarDesatualizadas,
+  lerCommits,
+  lerMudancas,
+  mudancasParaOMestre,
+  type ArquivoAlterado,
+  type ComandoGitDaLeitura,
+  type LeituraDoRepositorio,
+  type LeiturasDasRegioes,
+  type MudancaDaRegiao,
+  type RodarGit,
+} from './desatualizacao.ts';
+export {
   concluirNaAventura,
   detalharVizinhas,
   podePartir,
@@ -191,4 +205,5 @@ export {
   type EventoDasVizinhas,
   type ExpedicaoConcluida,
   type OpcoesDaExpedicaoNoProjeto,
+  type Revelacao,
 } from './expedicaoNoProjeto.ts';

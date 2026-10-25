@@ -19,7 +19,8 @@ pub enum ComandoGit {
     /// `git rev-parse HEAD`: o commit atual (e se a pasta é um repositório com commits).
     /// (Variante com chaves vazias: assim campos extras também são recusados.)
     RevParseHead {},
-    /// `git diff --numstat <de> <ate> -- <caminhos>`: linhas mudadas por arquivo.
+    /// `git diff --numstat -z --find-renames <de> <ate> -- <caminhos>`: linhas mudadas por arquivo;
+    /// com `-z`, um renomeado sai `a\td\t\0antigo\0novo\0` (sem aspas nem `{a => b}`).
     DiffNumstat {
         de: String,
         ate: String,
@@ -71,7 +72,7 @@ impl ComandoGit {
                 caminhos.iter().try_for_each(|c| validar_caminho(c))?;
                 junta(&["diff", "--no-ext-diff", "--no-textconv", "--no-color"]);
                 if matches!(self, ComandoGit::DiffNumstat { .. }) {
-                    junta(&["--numstat"]);
+                    junta(&["--numstat", "-z", "--find-renames"]);
                 }
                 junta(&[de, ate, "--"]);
                 junta(&caminhos.iter().map(String::as_str).collect::<Vec<_>>());
@@ -129,6 +130,8 @@ mod testes {
                 "--no-textconv",
                 "--no-color",
                 "--numstat",
+                "-z",
+                "--find-renames",
                 "a1b2c3d",
                 "HEAD",
                 "--",
@@ -253,6 +256,24 @@ mod testes {
             },
         )
         .unwrap();
-        assert_eq!(numstat, "1\t0\ta.ts\n");
+        assert_eq!(numstat, "1\t0\ta.ts\0");
+
+        // Renomeado (mesmo conteúdo) aparece como par antigo/novo, e um caminho só o mostra apagado.
+        let dois = rodar(r, &ComandoGit::RevParseHead {}).unwrap();
+        git(&["mv", "a.ts", "b.ts"]);
+        git(&["commit", "-q", "-m", "tres"]);
+        let numstat = |caminhos: Vec<String>| {
+            rodar(
+                r,
+                &ComandoGit::DiffNumstat {
+                    de: dois.trim().into(),
+                    ate: "HEAD".into(),
+                    caminhos,
+                },
+            )
+            .unwrap()
+        };
+        assert_eq!(numstat(vec![".".into()]), "0\t0\t\0a.ts\0b.ts\0");
+        assert_eq!(numstat(vec!["a.ts".into()]), "0\t2\ta.ts\0");
     }
 }

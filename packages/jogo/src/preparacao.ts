@@ -55,6 +55,8 @@ export type ExpedicaoPreparada = {
   desafios: Desafio[];
   /** Presente quando as Ligações ficaram conhecidas nesta preparação (pode ser vazia). */
   ligacoes?: LigacaoPreparada[];
+  /** Região desatualizada: a lista nova de arquivos, só com os que existem no Projeto. */
+  arquivos_atualizados?: string[];
   descartados: Descarte[];
   /** Quantos pedidos ao Mestre (o primeiro e as reposições). */
   pedidos: number;
@@ -152,11 +154,21 @@ const ligacao = objeto({
   evidencias,
 });
 
-/** Com as Ligações já conhecidas, o campo some do schema (se vier, é ignorado). */
-export function esquemaPrepararExpedicao(ligacoesConhecidas: boolean): Esquema {
+/**
+ * Com as Ligações já conhecidas, o campo some do schema (se vier, é ignorado). Numa Região
+ * desatualizada (`comMudancas`), `arquivos_atualizados` é obrigatório.
+ */
+export function esquemaPrepararExpedicao(
+  ligacoesConhecidas: boolean,
+  comMudancas = false,
+): Esquema {
   const ligacoes: Esquema = { type: 'array', items: ligacao };
   return objeto(
-    { desafios: { type: 'array', minItems: 1, items: desafio }, ligacoes },
+    {
+      desafios: { type: 'array', minItems: 1, items: desafio },
+      ligacoes,
+      ...(comMudancas && { arquivos_atualizados: { type: 'array', minItems: 1, items: texto } }),
+    },
     ligacoesConhecidas ? ['ligacoes'] : [],
   );
 }
@@ -183,6 +195,16 @@ const EVIDENCIAS = `Evidence ("evidencias", at least 1 per Challenge): the code 
 
 const LIGACOES = `- "ligacoes": every concrete communication between this Region and another part of the Project — "tipo": "chamada" (HTTP/gRPC/GraphQL call), "consulta" (database query), "evento" (queue/topic) or "dependencia" (direct import of another part); "descricao": short, e.g. "POST /orders creates the order"; "destino": {"regiao_id": "<id from mapa>"} when the other side is a Region in "mapa", or {"nova": {...}} describing a Region not in the map yet (a functional responsibility, not a folder: "nome", a 1–2 sentence "resumo" without internal jargon, "territorio_id" from "territorios" — or null with "territorio_novo" {"nome", "raizes"} — and 1–5 existing "arquivos_semente" outside this Region); "evidencias": where the communication happens in the code. An empty list if the Region talks to nothing else.`;
 
+/** Região desatualizada (spec §6): a Expedição é sobre o que mudou desde a revelação. */
+const MUDANCAS = (comDiff: boolean) =>
+  [
+    `This Region was revealed before and its code has changed since then. "mudancas.arquivos_alterados" lists the changed, deleted, renamed and new files${comDiff ? ', and "mudancas.diff" is the `git diff` from the commit of the revelation to HEAD' : ''}.`,
+    comDiff
+      ? 'Focus the Challenges on what changed: new or removed behavior, moved responsibilities, new files. Every answer must hold in the CURRENT code (Evidence from the files as they are now).'
+      : 'The diff was too large to send: read the changed files and treat this as a new Region, with Challenges about its current code.',
+    `- "arquivos_atualizados": the complete, current list of this Region's files — keep the ones that still belong to it, drop deleted ones, add new files that now belong to it. Only existing files of the Project.`,
+  ].join('\n');
+
 export type OpcoesDoPrompt = {
   varios: boolean;
   /** Formatos que ainda faltam para a mistura mínima. */
@@ -203,6 +225,7 @@ export function montarPromptDaExpedicao(
     entrada.ligacoes_conhecidas
       ? `- Do not return "ligacoes": the Game already knows this Region's Links.`
       : LIGACOES,
+    ...(entrada.mudancas ? [MUDANCAS(entrada.mudancas.diff !== undefined)] : []),
   ].join('\n');
   const mistura = opcoes.faltando?.length
     ? `Mix: this answer must include at least one Challenge of each format: ${opcoes.faltando.map((f) => `"${f}"`).join(', ')}.`
@@ -261,7 +284,11 @@ type LigacaoCrua = {
   destino: { regiao_id?: string; nova?: RegiaoNova };
   evidencias: Evidencia[];
 };
-type SaidaCrua = { desafios: DesafioCru[]; ligacoes?: LigacaoCrua[] };
+type SaidaCrua = {
+  desafios: DesafioCru[];
+  ligacoes?: LigacaoCrua[];
+  arquivos_atualizados?: string[];
+};
 
 /** O que a conferência precisa: os caminhos, os arquivos lidos e os ids válidos. */
 type Contexto = {
@@ -556,6 +583,7 @@ export async function prepararExpedicao(
   const vistos = new Set(entrada.desafios_anteriores.map(normalizarEnunciado));
   let conhecidas = entrada.ligacoes_conhecidas;
   let ligacoes: LigacaoPreparada[] | undefined;
+  let arquivosAtualizados: string[] | undefined;
   let temLigacoes = conhecidas && (opcoes.temLigacoes ?? false);
   let recentes: Descarte[] = [];
   let pedidos = 0;
@@ -585,7 +613,7 @@ export async function prepararExpedicao(
             ...(extra > 0 && { faltando, descartados: recentes }),
             problemas,
           }),
-        esquemaPrepararExpedicao(conhecidas),
+        esquemaPrepararExpedicao(conhecidas, entrada.mudancas !== undefined),
         (valor) => ({ ok: true, valor: valor as SaidaCrua }),
         opcoes.aoAcompanhar,
       );
@@ -596,6 +624,16 @@ export async function prepararExpedicao(
     }
 
     recentes = [];
+    // A primeira lista com algum arquivo que existe vale; caminho malformado é só descartado.
+    if (entrada.mudancas && !arquivosAtualizados && saida.arquivos_atualizados) {
+      const certos = conferirCaminhos(
+        saida.arquivos_atualizados,
+        'arquivos_atualizados',
+        opcoes,
+        [],
+      );
+      if (certos.length > 0) arquivosAtualizados = certos;
+    }
     if (!conhecidas && saida.ligacoes) {
       const certas: LigacaoPreparada[] = [];
       for (const [k, l] of saida.ligacoes.entries()) {
@@ -644,5 +682,11 @@ export async function prepararExpedicao(
     temLigacoes,
     ...(opcoes.aleatorio && { aleatorio: opcoes.aleatorio }),
   });
-  return { desafios, ...(ligacoes && { ligacoes }), descartados, pedidos };
+  return {
+    desafios,
+    ...(ligacoes && { ligacoes }),
+    ...(arquivosAtualizados && { arquivos_atualizados: arquivosAtualizados }),
+    descartados,
+    pedidos,
+  };
 }

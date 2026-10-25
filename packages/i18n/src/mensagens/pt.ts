@@ -139,7 +139,16 @@ export const pt = {
       semDetalhe: 'O Mestre ainda vai detalhar esta região.',
       partir: '⚔ Partir em Expedição',
       jaRevelada: 'Região revelada: o Guardião daqui já caiu.',
-      semExpedicao: 'Esta região ainda não tem Expedição.',
+      desatualizada:
+        'Região desatualizada: o código mudou desde a revelação. Uma nova Expedição, sobre o que mudou, a revela de novo.',
+      mudou: '⟳ O código mudou desde a revelação',
+      mudouResumo:
+        '{arquivos} arquivos · +{adicionadas} −{removidas} linhas ({porcentagem}% da região)',
+      alterado: '✎ {caminho} (+{adicionadas} −{removidas})',
+      binario: '✎ {caminho} (binário)',
+      apagado: '✘ apagado: {caminho}',
+      renomeado: '➜ renomeado: {de} → {para}',
+      novo: '✚ novo: {caminho}',
       detalharDeNovo: 'Pedir o detalhe de novo',
       xp: 'XP {xp} · {titulo}',
       voltar: 'Voltar ao menu',
@@ -161,6 +170,9 @@ export const pt = {
       voltar: '◀ Voltar ao mapa',
       detalhando: 'O Mestre está detalhando {regiao}… ({n} de {total})',
       detalhada: '✔ {regiao} detalhada',
+      sobreMudancas: '⟳ Expedição sobre o que mudou: {n} arquivos alterados, com o diff',
+      semDiff:
+        '⟳ A mudança é grande demais para o diff: o Mestre relê a região inteira ({n} arquivos alterados)',
       detalheFalhou:
         '✘ O Mestre não conseguiu detalhar {regiao}; ela fica desbloqueada e dá para pedir de novo no mapa.',
     },

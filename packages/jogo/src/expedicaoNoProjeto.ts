@@ -22,7 +22,7 @@ import {
 import type { Idioma } from './idioma.ts';
 import { revelar } from './mapa.ts';
 import type { ArquivosDoProjeto } from './caminhos.ts';
-import type { EventoDoMestre, Transporte } from './mestre.ts';
+import type { EntradaPrepararExpedicao, EventoDoMestre, Transporte } from './mestre.ts';
 import {
   DESAFIOS_POR_EXPEDICAO,
   prepararExpedicao,
@@ -40,24 +40,35 @@ export type OpcoesDaExpedicaoNoProjeto = {
   aleatorio?: Aleatorio;
   aoAcompanhar?: (evento: EventoDoMestre) => void;
   aoPreparar?: (evento: EventoDaPreparacao) => void;
+  /** Região desatualizada: o que mudou desde a revelação (`mudancasParaOMestre`). */
+  mudancas?: EntradaPrepararExpedicao['mudancas'];
 };
 
-/** Só região desbloqueada e já detalhada tem Expedição (desatualizada fica para o ticket dela). */
+/** Tem Expedição a região desbloqueada ou desatualizada, já detalhada. */
 export function podePartir(aventura: AventuraNoProjeto, regiaoId: string): boolean {
   const regiao = aventura.regioes.find((r) => r.id === regiaoId);
-  return aventura.mapa.estados[regiaoId] === 'desbloqueada' && (regiao?.arquivos.length ?? 0) > 0;
+  const estado = aventura.mapa.estados[regiaoId];
+  return (
+    (estado === 'desbloqueada' || estado === 'desatualizada') && (regiao?.arquivos.length ?? 0) > 0
+  );
 }
 
 /**
  * Prepara a Expedição numa região: o Mestre recebe o mapa conhecido, os enunciados já vistos ali e
- * se as Ligações já são conhecidas. As Ligações que chegam ficam escondidas na Aventura.
+ * se as Ligações já são conhecidas. As Ligações que chegam ficam escondidas na Aventura. Numa
+ * Região desatualizada, `mudancas` vai junto, e volta a lista nova de arquivos (aplicada na vitória).
  */
 export async function prepararNaAventura(
   transporte: Transporte,
   aventura: AventuraNoProjeto,
   regiaoId: string,
   opcoes: OpcoesDaExpedicaoNoProjeto,
-): Promise<{ aventura: AventuraNoProjeto; desafios: Desafio[]; descartados: Descarte[] }> {
+): Promise<{
+  aventura: AventuraNoProjeto;
+  desafios: Desafio[];
+  descartados: Descarte[];
+  arquivos_atualizados?: string[];
+}> {
   const conhecidas = regioesConhecidas(aventura);
   const regiao = conhecidas.find((r) => r.id === regiaoId);
   if (!regiao) throw new Error(`Região fora do mapa conhecido: ${regiaoId}`);
@@ -71,6 +82,7 @@ export async function prepararNaAventura(
       classe: aventura.classe,
       desafios_anteriores: [...(aventura.vistos[regiaoId] ?? [])],
       ligacoes_conhecidas: guardadas !== undefined,
+      ...(opcoes.mudancas && { mudancas: opcoes.mudancas }),
       quantidade: DESAFIOS_POR_EXPEDICAO,
       territorios: aventura.territorios,
     },
@@ -95,6 +107,7 @@ export async function prepararNaAventura(
     aventura: comLigacoes,
     desafios: preparada.desafios,
     descartados: preparada.descartados,
+    ...(preparada.arquivos_atualizados && { arquivos_atualizados: preparada.arquivos_atualizados }),
   };
 }
 
@@ -199,14 +212,63 @@ export type ExpedicaoConcluida = {
   novas: string[];
 };
 
+/** O que a vitória grava na região: o commit (HEAD na preparação) e, se desatualizada, os arquivos. */
+export type Revelacao = {
+  /** Repositório → commit. */
+  commits: Record<string, string>;
+  /** `arquivos_atualizados` da preparação (Região desatualizada). */
+  arquivos?: readonly string[];
+};
+
+/**
+ * Revelar de novo uma Região desatualizada (spec §6): as Ligações que ela tinha trazido saem, e as
+ * novas (já conferidas na preparação) entram no lugar ao trazer as escondidas. Só troca se as novas
+ * vieram; as que outras regiões trouxeram ficam. Nenhuma região volta à Névoa: quem só era
+ * alcançável por uma Ligação que sumiu continua no estado em que estava.
+ */
+function trocarLigacoes(aventura: AventuraNoProjeto, regiaoId: string): AventuraNoProjeto {
+  if (aventura.ligacoes_escondidas[regiaoId] === undefined) return aventura;
+  const sai = new Set(aventura.ligacoes.filter((l) => l.origem === regiaoId).map((l) => l.id));
+  if (sai.size === 0) return aventura;
+  const ligacoes = aventura.ligacoes.filter((l) => !sai.has(l.id));
+  return {
+    ...aventura,
+    ligacoes,
+    mapa: {
+      ...aventura.mapa,
+      ligacoes: aventura.mapa.ligacoes.filter((l) => !sai.has(l.id)),
+      ligacoesConhecidas: aventura.mapa.ligacoesConhecidas.filter((id) => !sai.has(id)),
+    },
+  };
+}
+
+/** O commit da revelação e, numa desatualizada, a lista nova de arquivos. */
+function gravarRevelacao(
+  aventura: AventuraNoProjeto,
+  regiaoId: string,
+  revelacao: Revelacao | undefined,
+): AventuraNoProjeto {
+  const daCriacao = Object.fromEntries(aventura.repositorios.map((r) => [r.nome, r.commit]));
+  const regioes = aventura.regioes.map((r) => {
+    if (r.id !== regiaoId) return r;
+    const commits =
+      revelacao && Object.keys(revelacao.commits).length > 0 ? revelacao.commits : undefined;
+    const arquivos = revelacao?.arquivos?.length ? [...revelacao.arquivos] : r.arquivos;
+    return { ...r, arquivos, revelada_em: commits ?? r.revelada_em ?? daCriacao };
+  });
+  return { ...aventura, regioes };
+}
+
 /**
  * Fim da Expedição: guarda os enunciados jogados (a próxima tentativa traz outros), soma XP e
- * estatísticas e, na vitória, revela a região com as vizinhas — sem nova chamada ao Mestre.
+ * estatísticas e, na vitória, revela a região com as vizinhas — sem nova chamada ao Mestre — e
+ * grava o commit da revelação. Vencer numa desatualizada a revela de novo, com arquivos e
+ * Ligações atualizados.
  */
 export function concluirNaAventura(
   aventura: AventuraNoProjeto,
   expedicao: Expedicao,
-  opcoes: { gerarId: GerarId; agora: string; calibragem?: Calibragem },
+  opcoes: { gerarId: GerarId; agora: string; calibragem?: Calibragem; revelacao?: Revelacao },
 ): ExpedicaoConcluida {
   const resultado = resultadoDaExpedicao(expedicao, opcoes.calibragem ?? CALIBRAGEM_PADRAO);
   const { regiaoId } = expedicao;
@@ -221,6 +283,8 @@ export function concluirNaAventura(
   };
   if (!resultado.venceu) return { aventura: atual, resultado, descobertas: [], novas: [] };
 
+  if (atual.mapa.estados[regiaoId] === 'desatualizada') atual = trocarLigacoes(atual, regiaoId);
+  atual = gravarRevelacao(atual, regiaoId, opcoes.revelacao);
   const trazidas = trazerLigacoes(atual, regiaoId, opcoes.gerarId);
   atual = trazidas.aventura;
   const mapa = revelar(atual.mapa, regiaoId);

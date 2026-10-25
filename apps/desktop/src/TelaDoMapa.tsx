@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { podePartir, porcentagemDoProgresso, tituloDoXp, type AventuraNoProjeto } from '@quiz/jogo';
+import {
+  podePartir,
+  porcentagemDoProgresso,
+  tituloDoXp,
+  type AventuraNoProjeto,
+  type MudancaDaRegiao,
+} from '@quiz/jogo';
 import { emMaiusculas, formatar, nomeDoTitulo } from '@quiz/i18n';
 import {
   Barra,
@@ -22,6 +28,8 @@ export const nomeDoProjeto = (aventura: AventuraNoProjeto) =>
 
 type TelaDoMapaProps = {
   aventura: AventuraNoProjeto;
+  /** Região → o que mudou desde a revelação (a detecção ao abrir a Aventura). */
+  mudancas?: Readonly<Record<string, MudancaDaRegiao>>;
   /** O XP do Jogador, somado em todas as Aventuras. */
   xp: number;
   /** O detalhe das vizinhas em andamento: enquanto houver, ninguém parte em Expedição. */
@@ -36,6 +44,7 @@ type TelaDoMapaProps = {
 /** O mapa do Projeto: Territórios como ilhas, as regiões fora da Névoa e as Ligações reveladas. */
 export function TelaDoMapa({
   aventura,
+  mudancas = {},
   xp,
   detalhes,
   inicial,
@@ -72,7 +81,8 @@ export function TelaDoMapa({
   };
   const semDetalhe = regiao !== undefined && estado !== 'nevoa' && regiao.arquivos.length === 0;
   const situacao =
-    estado === 'revelada' ? t.jaRevelada : estado === 'desatualizada' ? t.semExpedicao : undefined;
+    estado === 'revelada' ? t.jaRevelada : estado === 'desatualizada' ? t.desatualizada : undefined;
+  const mudanca = regiao && estado === 'desatualizada' ? mudancas[regiao.id] : undefined;
 
   return (
     <main className="tela-mapa">
@@ -109,6 +119,7 @@ export function TelaDoMapa({
                 {m.jogo.estados[estado]}
               </p>
               <p>{regiao.resumo}</p>
+              {mudanca && <AvisoDeMudanca mudanca={mudanca} />}
               {regiao.arquivos.length > 0 ? (
                 <>
                   <p className="tela-mapa-apagado">
@@ -161,5 +172,46 @@ export function TelaDoMapa({
         </Janela>
       </div>
     </main>
+  );
+}
+
+/** O aviso da Região desatualizada: arquivos e linhas alterados, e o que foi apagado, renomeado ou criado. */
+function AvisoDeMudanca({ mudanca }: { mudanca: MudancaDaRegiao }) {
+  const t = useMensagens().ui.aventura;
+  const { adicionadas, removidas, linhasNaRevelacao } = mudanca;
+  const arquivos =
+    mudanca.alterados.length +
+    mudanca.apagados.length +
+    mudanca.renomeados.length +
+    mudanca.novos.length;
+  const porcentagem =
+    linhasNaRevelacao > 0 ? Math.round(((adicionadas + removidas) / linhasNaRevelacao) * 100) : 100;
+  const itens = [
+    ...mudanca.alterados.map((a) =>
+      a.adicionadas === null || a.removidas === null
+        ? formatar(t.binario, { caminho: a.caminho })
+        : formatar(t.alterado, {
+            caminho: a.caminho,
+            adicionadas: a.adicionadas,
+            removidas: a.removidas,
+          }),
+    ),
+    ...mudanca.apagados.map((caminho) => formatar(t.apagado, { caminho })),
+    ...mudanca.renomeados.map((r) => formatar(t.renomeado, r)),
+    ...mudanca.novos.map((caminho) => formatar(t.novo, { caminho })),
+  ];
+  return (
+    <section className="tela-mapa-mudou" role="status" aria-label={t.mudou}>
+      <p>{t.mudou}</p>
+      <p>{formatar(t.mudouResumo, { arquivos, adicionadas, removidas, porcentagem })}</p>
+      <ul className="tela-mapa-arquivos">
+        {itens.slice(0, 8).map((item) => (
+          <li key={item}>
+            <code>{item}</code>
+          </li>
+        ))}
+        {itens.length > 8 && <li>…</li>}
+      </ul>
+    </section>
   );
 }

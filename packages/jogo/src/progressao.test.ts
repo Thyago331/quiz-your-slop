@@ -12,6 +12,11 @@ describe('calibragem padrão (spec §3)', () => {
       { nome: 'Unslopper', xpMinimo: 600 },
     ]);
   });
+
+  it('região desatualizada com ≥ 20% das linhas mudadas; diff de até 40 KB vai ao Mestre (§6)', () => {
+    expect(CALIBRAGEM_PADRAO.limiarDesatualizada).toBe(0.2);
+    expect(CALIBRAGEM_PADRAO.limiteDoDiff).toBe(40_000);
+  });
 });
 
 describe('tituloDoXp', () => {

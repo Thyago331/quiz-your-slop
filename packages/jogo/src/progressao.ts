@@ -1,5 +1,5 @@
-// XP e Títulos (spec §3). Os números são calibragem, não regra: ficam num objeto que o Jogo pode
-// trocar sem mexer na lógica.
+// XP, Títulos (spec §3) e o limiar da Região desatualizada (spec §6). Os números são calibragem,
+// não regra: ficam num objeto que o Jogo pode trocar sem mexer na lógica.
 
 export type Titulo = { nome: string; xpMinimo: number };
 
@@ -9,6 +9,10 @@ export type Calibragem = {
   xpCacadorDeSlop: number;
   /** Em ordem crescente de xpMinimo; o primeiro começa em 0. */
   titulos: readonly Titulo[];
+  /** Fração das linhas da região (no commit da revelação) que, mudada, a deixa desatualizada. */
+  limiarDesatualizada: number;
+  /** Bytes do `git diff` que ainda vão ao Mestre; acima disso, só a lista de arquivos alterados. */
+  limiteDoDiff: number;
 };
 
 export const CALIBRAGEM_PADRAO: Calibragem = {
@@ -20,6 +24,8 @@ export const CALIBRAGEM_PADRAO: Calibragem = {
     { nome: 'Arqueólogo de Código', xpMinimo: 300 },
     { nome: 'Unslopper', xpMinimo: 600 },
   ],
+  limiarDesatualizada: 0.2,
+  limiteDoDiff: 40_000,
 };
 
 export type TituloDoXp = { atual: Titulo; proximo: Titulo | null };

@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   aventuraMaisRecente,
   detalharVizinhas,
   lerAventuraSalva,
   porcentagemDoProgresso,
   type AventuraNoProjeto,
+  type MudancaDaRegiao,
 } from '@quiz/jogo';
 import { AUTONIMO, ETIQUETA, formatar, MENSAGENS } from '@quiz/i18n';
 import { IdiomaDaInterface, TelaInicial } from '@quiz/ui';
+import { detectarNoProjeto } from './desatualizacao.ts';
 import { ITEM_DA_CONTA, ResumoDaConta, TelaDeEntrada, itemDaConta, useConta } from './Conta.tsx';
 import { idiomaSalvo, salvarIdioma } from './idioma.ts';
 import { NovaAventura } from './NovaAventura.tsx';
@@ -50,6 +52,13 @@ export function Jogo() {
     linhas: [],
   });
   const voltarAoMapa = useCallback(() => setExpedicao(null), []);
+  // O que mudou em cada região desde a revelação, por Aventura (lido do git ao abrir o mapa).
+  const [mudancas, setMudancas] = useState<Record<string, Record<string, MudancaDaRegiao>>>({});
+  const detectadas = useRef(new Set<string>());
+  const aventurasAgora = useRef(aventuras);
+  useEffect(() => {
+    aventurasAgora.current = aventuras;
+  }, [aventuras]);
 
   /** Toda mudança de uma Aventura vai para o disco na hora (o estado inteiro mora no arquivo). */
   const atualizar = useCallback((aventura: AventuraNoProjeto) => {
@@ -106,6 +115,21 @@ export function Jogo() {
       vivo = false;
     };
   }, []);
+
+  // Ao abrir uma Aventura, uma vez por sessão: a detecção da Região desatualizada (só git, sem IA).
+  const abertaId = tela === 'continuar' ? recente?.id : undefined;
+  useEffect(() => {
+    const aberta = aventurasAgora.current.find((a) => a.id === abertaId);
+    if (!aberta || detectadas.current.has(aberta.id)) return;
+    detectadas.current.add(aberta.id);
+    const agora = () => aventurasAgora.current.find((a) => a.id === aberta.id) ?? aberta;
+    void detectarNoProjeto(aberta, agora)
+      .then((r) => {
+        if (r.aventura !== agora()) atualizar(r.aventura);
+        setMudancas((atuais) => ({ ...atuais, [aberta.id]: r.mudancas }));
+      })
+      .catch(() => undefined);
+  }, [abertaId, atualizar]);
 
   useEffect(() => {
     document.documentElement.lang = ETIQUETA[idioma];
@@ -187,6 +211,7 @@ export function Jogo() {
       <TelaDoMapa
         key={recente.id}
         aventura={recente}
+        mudancas={mudancas[recente.id] ?? {}}
         xp={xpTotal}
         detalhes={detalhes}
         {...(ultimaRegiao && { inicial: ultimaRegiao })}

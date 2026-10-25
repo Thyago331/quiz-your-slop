@@ -163,6 +163,16 @@
   padding: 0 0 0 18px;
   word-break: break-all;
 }
+/* Aviso da Região desatualizada */
+.tela-mapa-mudou {
+  margin: 10px 0;
+  padding: 8px 12px;
+  color: var(--px-desatualizada);
+  box-shadow: 0 0 0 3px var(--px-desatualizada);
+}
+.tela-mapa-mudou p {
+  margin: 0 0 6px;
+}
 
 /* Expedição no Projeto */
 .tela-expedicao {

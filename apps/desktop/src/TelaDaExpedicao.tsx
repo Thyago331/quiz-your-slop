@@ -9,6 +9,8 @@ import {
   contestarDesafio,
   desafioAtual,
   iniciarExpedicao,
+  lerCommits,
+  mudancasParaOMestre,
   prepararNaAventura,
   regioesDoExplorador,
   responderDesafio,
@@ -16,8 +18,10 @@ import {
   type ArquivosDoProjeto,
   type AventuraNoProjeto,
   type Expedicao,
+  type EntradaPrepararExpedicao,
   type ExpedicaoConcluida,
   type OpcaoApontar,
+  type Revelacao,
 } from '@quiz/jogo';
 import { emMaiusculas, formatar, nomeDoTitulo } from '@quiz/i18n';
 import {
@@ -34,6 +38,7 @@ import {
   type ArquivoAberto,
   type PedidoDeContestacao,
 } from '@quiz/ui';
+import { gitDoProjeto } from './desatualizacao.ts';
 import { ListaDeLinhas, type Linha } from './Linhas.tsx';
 import { leitorDoProjeto, lerArquivosDoProjeto, transporteClaudeCode } from './mestre.ts';
 import { mensagemDoErro } from './NovaAventura.tsx';
@@ -83,6 +88,8 @@ export function TelaDaExpedicao({
   const [todos, setTodos] = useState<string[]>([]);
   // Os arquivos commitados, lidos na preparação: a Contestação confere caminhos com eles.
   const arquivosDoProjeto = useRef<ArquivosDoProjeto | undefined>(undefined);
+  // O HEAD na preparação (o código que o Mestre leu) e, se desatualizada, a lista nova de arquivos.
+  const revelacao = useRef<Revelacao | undefined>(undefined);
   // Cada preparação tem um número: voltar no meio faz a resposta antiga ser ignorada.
   const geracao = useRef(0);
   const iniciou = useRef(false);
@@ -110,6 +117,19 @@ export function TelaDaExpedicao({
       const arquivos = await lerArquivosDoProjeto(atual.current.repositorios);
       arquivosDoProjeto.current = arquivos;
       if (vale()) setTodos([...arquivos.arquivos]);
+      const commits = await lerCommits(atual.current.repositorios, gitDoProjeto).catch(() => ({}));
+      // Região desatualizada: a Expedição é sobre o que mudou (o diff, ou só a lista se for grande).
+      let mudancas: EntradaPrepararExpedicao['mudancas'];
+      if (atual.current.mapa.estados[regiaoId] === 'desatualizada') {
+        mudancas = await mudancasParaOMestre(atual.current, regiaoId, gitDoProjeto).catch(
+          (): NonNullable<typeof mudancas> => ({ arquivos_alterados: [] }),
+        );
+        const n = mudancas.arquivos_alterados.length;
+        mostrar({
+          tipo: 'andamento',
+          texto: formatar(mudancas.diff === undefined ? t.semDiff : t.sobreMudancas, { n }),
+        });
+      }
       const r = await prepararNaAventura(
         transporteClaudeCode(atual.current.repositorios),
         atual.current,
@@ -119,6 +139,7 @@ export function TelaDaExpedicao({
           lerArquivo: leitor.ler,
           arquivos,
           gerarId: () => crypto.randomUUID(),
+          ...(mudancas && { mudancas }),
           aoAcompanhar: (e) =>
             mostrar(
               e.tipo === 'tentativa'
@@ -151,6 +172,10 @@ export function TelaDaExpedicao({
         },
       );
       if (!vale()) return;
+      revelacao.current = {
+        commits,
+        ...(r.arquivos_atualizados && { arquivos: r.arquivos_atualizados }),
+      };
       onAtualizada(r.aventura);
       setFase({ tipo: 'batalha', expedicao: iniciarExpedicao(regiaoId, r.desafios) });
     } catch (e) {
@@ -210,6 +235,7 @@ export function TelaDaExpedicao({
     const concluida = concluirNaAventura(atual.current, proxima, {
       gerarId: () => crypto.randomUUID(),
       agora: new Date().toISOString(),
+      ...(revelacao.current && { revelacao: revelacao.current }),
     });
     onAtualizada(concluida.aventura);
     setFase({ tipo: 'resumo', concluida, xpAntes });

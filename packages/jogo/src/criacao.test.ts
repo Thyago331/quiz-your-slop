@@ -234,7 +234,7 @@ describe('lerAventuraSalva', () => {
     for (const ruim of [
       'não é json',
       JSON.stringify({ ...a, id: 'tutorial' }),
-      JSON.stringify({ ...a, versao: 3 }),
+      JSON.stringify({ ...a, versao: 4 }),
       // v2 sem um dos campos novos, ou v1 com eles: nenhum dos dois existe.
       JSON.stringify({ ...a, xp: undefined }),
       JSON.stringify({ ...a, versao: 1 }),
@@ -258,6 +258,27 @@ describe('lerAventuraSalva', () => {
     expect([xp, ligacoes, ligacoes_escondidas, estatisticas.expedicoes]).toEqual([0, [], {}, 0]);
     const v1 = JSON.stringify({ ...resto, versao: 1 });
     expect(lerAventuraSalva(v1)).toEqual(a);
+  });
+
+  it('sobe a v2 para a v3: região revelada ganha o commit de criação como o da revelação', () => {
+    const a = nova();
+    const id = a.regioes[0]!.id;
+    const v2 = { ...a, versao: 2, mapa: { ...a.mapa, estados: { [id]: 'revelada' } } };
+    const lida = lerAventuraSalva(JSON.stringify(v2));
+    expect(lida?.versao).toBe(3);
+    expect(lida?.regioes[0]?.revelada_em).toEqual({ 'loja-front': 'abc123', 'loja-api': 'abc123' });
+    // Desbloqueada não tem revelação; a v3 guarda a sua.
+    expect(
+      lerAventuraSalva(JSON.stringify({ ...a, versao: 2 }))?.regioes[0]?.revelada_em,
+    ).toBeUndefined();
+    const v3 = {
+      ...v2,
+      versao: 3,
+      regioes: [{ ...a.regioes[0]!, revelada_em: { 'loja-front': 'f1' } }],
+    };
+    expect(lerAventuraSalva(JSON.stringify(v3))?.regioes[0]?.revelada_em).toEqual({
+      'loja-front': 'f1',
+    });
   });
 
   it('o Continuar abre a mexida por último', () => {

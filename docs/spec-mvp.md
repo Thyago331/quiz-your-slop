@@ -127,6 +127,10 @@ Detalhe: [Como o Mestre decide que uma região mudou o suficiente para ficar des
     - um arquivo foi apagado/renomeado; ou
     - surgiu arquivo novo nas pastas da região.
   - Só conta o que foi commitado.
+  - Definições (#38):
+    - "Linhas mudaram" = adicionadas + removidas nos arquivos da região ÷ linhas da região no commit da revelação (`numstat` da árvore vazia até esse commit). Arquivo binário conta 0 nos dois lados.
+    - "Pastas da região" = a pasta de cada arquivo dela, sem as subpastas; arquivo novo é o que não existia nelas no commit da revelação.
+    - Commit da revelação: o HEAD de cada repositório quando a Expedição vencedora foi preparada. Aventuras salvas antes disso usam o commit de criação.
 - **Expedição sobre o que mudou**: o Jogo envia o `git diff` da região ao Mestre; se for grande demais, envia só a lista de arquivos alterados e a Expedição é tratada como região nova.
 - **Revelar de novo**:
   - Redetalha arquivos e Ligações e atualiza o commit.

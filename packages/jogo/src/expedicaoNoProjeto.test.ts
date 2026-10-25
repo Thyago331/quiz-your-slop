@@ -72,6 +72,7 @@ function aventura(): AventuraNoProjeto {
         territorio_id: 't-web',
         arquivos: ['web/App.tsx'],
         arquivos_semente: ['web/App.tsx'],
+        revelada_em: { loja: 'abc' },
       },
     ],
     mapa: { ...a.mapa, estados: { ...a.mapa.estados, 'r-tela': 'revelada' } },
@@ -313,6 +314,28 @@ describe('Expedição no Projeto', () => {
     expect(dividida.mapa.ligacoes).toEqual([{ id: 'l1', origem: 'r-tela', destino: 's-2' }]);
   });
 
+  it('a vitória grava o commit da revelação (o HEAD da preparação)', async () => {
+    const { transporte } = mestre([{ desafios: cinco, ligacoes: [] }], () => ({}));
+    const preparada = await prepararNaAventura(transporte, aventura(), ROTAS, opcoes());
+    const jogada = jogar(iniciarExpedicao(ROTAS, preparada.desafios), 5);
+    const agora = '2026-10-25T14:00:00.000Z';
+    const vitoria = concluirNaAventura(preparada.aventura, jogada, {
+      gerarId: contador('n'),
+      agora,
+      revelacao: { commits: { loja: 'f00' } },
+    });
+    expect(vitoria.aventura.regioes[0]?.revelada_em).toEqual({ loja: 'f00' });
+    // Sem o HEAD, fica o commit da criação; derrota não grava nada.
+    const semHead = concluirNaAventura(preparada.aventura, jogada, { gerarId: contador(), agora });
+    expect(semHead.aventura.regioes[0]?.revelada_em).toEqual({ loja: 'abc' });
+    const derrota = concluirNaAventura(
+      preparada.aventura,
+      jogar(iniciarExpedicao(ROTAS, preparada.desafios), 1),
+      { gerarId: contador(), agora, revelacao: { commits: { loja: 'f00' } } },
+    );
+    expect(derrota.aventura.regioes[0]?.revelada_em).toBeUndefined();
+  });
+
   it('o explorador mostra as regiões conhecidas e o resto de cada Território na Névoa', () => {
     const a = aventura();
     const entrada = regioesDoExplorador(a, Object.keys(ARQUIVOS), ['src/db.ts']);
@@ -329,5 +352,151 @@ describe('Expedição no Projeto', () => {
     grupos.forEach((g) => visitar(g.filhos));
     expect(visiveis.sort()).toEqual(['src/db.ts', 'src/rotas/pedidos.ts', 'web/App.tsx']);
     expect(nevoa).toBe(1);
+  });
+});
+
+describe('Região desatualizada (spec §6)', () => {
+  /** Rotas revelada e depois desatualizada; trouxe o Banco (só alcançável por ela) e a Tela a liga. */
+  function desatualizada(): AventuraNoProjeto {
+    const a = aventura();
+    return {
+      ...a,
+      regioes: [
+        { ...a.regioes[0]!, revelada_em: { loja: 'velho' } },
+        a.regioes[1]!,
+        {
+          id: 'r-banco',
+          nome: 'Banco',
+          resumo: 'Guarda pedidos.',
+          territorio_id: 't-api',
+          arquivos: ['src/db.ts'],
+          arquivos_semente: ['src/db.ts'],
+        },
+      ],
+      ligacoes: [
+        {
+          id: 'l-banco',
+          origem: ROTAS,
+          destino: 'r-banco',
+          tipo: 'consulta',
+          descricao: 'x',
+          evidencias: [],
+        },
+        {
+          id: 'l-tela',
+          origem: 'r-tela',
+          destino: ROTAS,
+          tipo: 'evento',
+          descricao: 'y',
+          evidencias: [],
+        },
+      ],
+      mapa: {
+        ligacoes: [
+          { id: 'l-banco', origem: ROTAS, destino: 'r-banco' },
+          { id: 'l-tela', origem: 'r-tela', destino: ROTAS },
+        ],
+        estados: { [ROTAS]: 'desatualizada', 'r-tela': 'revelada', 'r-banco': 'desbloqueada' },
+        ligacoesConhecidas: ['l-banco', 'l-tela'],
+      },
+    };
+  }
+  const mudancas = {
+    diff: 'diff --git a/src/rotas/pedidos.ts b/src/rotas/pedidos.ts',
+    arquivos_alterados: ['src/rotas/pedidos.ts'],
+  };
+
+  it('a Expedição recebe o que mudou, pede Ligações novas e a lista nova de arquivos', async () => {
+    const a = desatualizada();
+    expect(podePartir(a, ROTAS)).toBe(true);
+    const { transporte, contextos, pedidos } = mestre(
+      [
+        {
+          desafios: cinco,
+          ligacoes: [ligacaoTela],
+          arquivos_atualizados: [
+            'src/rotas/pedidos.ts',
+            'src/servicos/pedidos.ts',
+            'nao/existe.ts',
+          ],
+        },
+      ],
+      () => ({}),
+    );
+    const preparada = await prepararNaAventura(transporte, a, ROTAS, { ...opcoes(), mudancas });
+    const [ctx] = contextos('preparar_expedicao') as EntradaPrepararExpedicao[];
+    expect(ctx!.mudancas).toEqual(mudancas);
+    expect(ctx!.ligacoes_conhecidas).toBe(false);
+    expect(pedidos[0]!.schema.required).toEqual(['desafios', 'ligacoes', 'arquivos_atualizados']);
+    expect(pedidos[0]!.prompt).toContain('Focus the Challenges on what changed');
+    expect(preparada.arquivos_atualizados).toEqual([
+      'src/rotas/pedidos.ts',
+      'src/servicos/pedidos.ts',
+    ]);
+
+    // Revelar de novo: commit, arquivos e Ligações atualizados; nada volta à Névoa.
+    const vitoria = concluirNaAventura(
+      preparada.aventura,
+      jogar(iniciarExpedicao(ROTAS, preparada.desafios), 5),
+      {
+        gerarId: contador('n'),
+        agora: '2026-10-26T10:00:00.000Z',
+        revelacao: { commits: { loja: 'novo' }, arquivos: preparada.arquivos_atualizados! },
+      },
+    );
+    const b = vitoria.aventura;
+    const rotas = b.regioes.find((r) => r.id === ROTAS)!;
+    expect(rotas.revelada_em).toEqual({ loja: 'novo' });
+    expect(rotas.arquivos).toEqual(['src/rotas/pedidos.ts', 'src/servicos/pedidos.ts']);
+    expect(b.mapa.estados).toEqual({
+      [ROTAS]: 'revelada',
+      'r-tela': 'revelada',
+      'r-banco': 'desbloqueada',
+    });
+    // A Ligação que Rotas tinha trazido (Banco) sumiu; a da Tela fica; a nova entra.
+    expect(b.ligacoes.map((l) => [l.origem, l.destino, l.tipo])).toEqual([
+      ['r-tela', ROTAS, 'evento'],
+      [ROTAS, 'r-tela', 'chamada'],
+    ]);
+    expect(b.mapa.ligacoes.map((l) => l.id)).toEqual(b.ligacoes.map((l) => l.id));
+    expect([...b.mapa.ligacoesConhecidas].sort()).toEqual(b.ligacoes.map((l) => l.id).sort());
+    expect(vitoria.descobertas).toEqual([]);
+    expect(lerAventuraSalva(JSON.stringify(b))).toEqual(b);
+  });
+
+  it('diff grande demais: o Mestre trata como região nova; sem Ligações novas, as antigas ficam', async () => {
+    const a = desatualizada();
+    const { transporte, pedidos } = mestre(
+      [
+        {
+          desafios: cinco,
+          ligacoes: [{ ...ligacaoTela, destino: { regiao_id: 'nao-existe' } }],
+          arquivos_atualizados: ['nao/existe.ts'],
+        },
+      ],
+      () => ({}),
+    );
+    const preparada = await prepararNaAventura(transporte, a, ROTAS, {
+      ...opcoes(),
+      mudancas: { arquivos_alterados: ['src/rotas/pedidos.ts'] },
+    });
+    expect(pedidos[0]!.prompt).toContain('treat this as a new Region');
+    // Nenhum arquivo da lista existe: a lista antiga fica.
+    expect(preparada.arquivos_atualizados).toBeUndefined();
+    expect(preparada.aventura.ligacoes_escondidas[ROTAS]).toBeUndefined();
+    const vitoria = concluirNaAventura(
+      preparada.aventura,
+      jogar(iniciarExpedicao(ROTAS, preparada.desafios), 5),
+      {
+        gerarId: contador('n'),
+        agora: '2026-10-26T10:00:00.000Z',
+        revelacao: { commits: { loja: 'novo' } },
+      },
+    );
+    expect(vitoria.aventura.ligacoes.map((l) => l.id)).toEqual(['l-banco', 'l-tela']);
+    expect(vitoria.aventura.regioes.find((r) => r.id === ROTAS)?.arquivos).toEqual([
+      'src/rotas/pedidos.ts',
+    ]);
+    expect(vitoria.aventura.mapa.estados[ROTAS]).toBe('revelada');
   });
 });

@@ -94,9 +94,10 @@ export const en: Mensagens = {
         encontrado: '· found {versao}',
         ausente: '· not found',
         semModoRestrito: '· no read-only mode (missing {opcoes}): refused',
-        emBreve: '· coming soon',
+        escolhido: '◆',
+        naoEscolhido: '◇',
         nenhum:
-          'Install Claude Code and log in to play on your Project. Meanwhile, the Tutorial is in the menu.',
+          'Install Claude Code or Codex CLI and log in to play on your Project. Meanwhile, the Tutorial is in the menu.',
         soLer: '🛡 The Master can only READ.',
         explicacao:
           'Nothing will be edited, no command other than reading will run, and there is no network access beyond your AI provider. Your code is read by your AI and goes to its provider ({provedor}), as in your normal use.',
@@ -150,6 +151,17 @@ export const en: Mensagens = {
       voltar: 'Back to the menu',
       acoes: 'Actions',
       ajuda: '← ↑ → ↓ choose the Region · Esc goes back to the menu',
+      trocarMestre: '⇄ Change Master ({mestre})',
+      troca: {
+        titulo: 'Change Master',
+        atual: 'The Master of this Adventure: {mestre}.',
+        memoria:
+          'The Adventure memory lives in the Game: the map, the Revealed Regions, the Links and the XP stay the same. Only the next calls go to the other Master.',
+        marcaAtual: '· current',
+        confirmar: 'Change to {mestre} ▶',
+        voltar: '◀ Back to the map',
+        trocado: '✔ The Master is now {mestre}.',
+      },
     },
     expedicao: {
       preparando: 'The Master is preparing the Expedition…',

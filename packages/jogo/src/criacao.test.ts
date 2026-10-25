@@ -1,16 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { arquivosDoProjeto, nomearRepositorios } from './caminhos.ts';
-import { desembrulharClaudeCode } from './claudeCode.ts';
+import { adaptadorDoMestre } from './adaptador.ts';
+import { cliDeMentira } from './cliDeMentira.ts';
 import {
+  IAS_DO_MESTRE,
   aplicarDetalhe,
   aventuraMaisRecente,
   detalharNaAventura,
   lerAventuraSalva,
   montarAventura,
   regioesConhecidas,
+  trocarMestre,
   type AventuraNoProjeto,
 } from './criacao.ts';
-import { criarAventura, type PedidoAoMestre, type SaidaCriarAventura } from './mestre.ts';
+import { criarAventura, type SaidaCriarAventura } from './mestre.ts';
 
 // Projeto de dois repositórios: os caminhos levam o prefixo.
 const repositorios = nomearRepositorios(['/p/loja-front', '/p/loja-api']).map((r) => ({
@@ -144,46 +147,28 @@ describe('aplicarDetalhe', () => {
 });
 
 /**
- * A CLI de mentira, ponta a ponta: o transporte devolve o stdout do `claude -p` (envelope JSON) e o
- * Jogo desembrulha, confere, tenta de novo e monta a Aventura que vai para o disco.
+ * A CLI de mentira, ponta a ponta, para os dois Mestres: o transporte devolve o que a CLI imprime
+ * (envelope do `claude -p`, última mensagem do `codex exec`) e o Jogo desembrulha, confere, tenta de
+ * novo e monta a Aventura que vai para o disco.
  */
-describe('Mestre de mentira, da Leitura ao arquivo local', () => {
-  const envelope = (saida: unknown) =>
-    JSON.stringify({
-      type: 'result',
-      subtype: 'success',
-      is_error: false,
-      result: '',
-      structured_output: saida,
-    });
-
+describe.each(IAS_DO_MESTRE)('Mestre %s de mentira, da Leitura ao arquivo local', (ia) => {
   it('cria, detalha (com uma resposta inválida no meio) e volta igual do disco', async () => {
-    const respostas: Record<string, string[]> = {
-      criar_aventura: [
-        JSON.stringify({
-          type: 'result',
-          subtype: 'error_max_structured_output_retries',
-          is_error: true,
-        }),
-        envelope(saidaCriar),
-      ],
+    const { rodar, recebidos } = cliDeMentira(ia, {
+      criar_aventura: ['falha', saidaCriar],
       detalhar_regiao: [
-        envelope({ resumo: 'sem arquivos', arquivos: [] }),
-        envelope({
+        // Passa no schema (até no estrito do Codex), mas nenhum arquivo existe: o Jogo recusa.
+        { resumo: 'sem arquivos', arquivos: ['loja-api:src/sumiu.ts'] },
+        {
           resumo: 'Recebe, valida e grava pedidos.',
           arquivos: [
             'loja-api:src/orders/route.ts',
             'loja-api:src/orders/service.ts',
             'loja-api:src/sumiu.ts',
           ],
-        }),
+        },
       ],
-    };
-    const pedidos: PedidoAoMestre[] = [];
-    const transporte = async (pedido: PedidoAoMestre) => {
-      pedidos.push(pedido);
-      return desembrulharClaudeCode(respostas[pedido.chamada]!.shift()!);
-    };
+    });
+    const transporte = adaptadorDoMestre(ia, rodar);
 
     const saida = await criarAventura(
       transporte,
@@ -198,7 +183,7 @@ describe('Mestre de mentira, da Leitura ao arquivo local', () => {
     const criada = montarAventura({
       id: ID,
       agora: '2026-10-25T12:00:00.000Z',
-      mestre: 'claude_code',
+      mestre: ia,
       classe: 'backend',
       repositorios,
       saida,
@@ -211,19 +196,39 @@ describe('Mestre de mentira, da Leitura ao arquivo local', () => {
       gerarId,
     });
 
-    expect(pedidos.map((p) => p.chamada)).toEqual([
+    expect(recebidos.map((p) => /Call: (\w+)/.exec(p.prompt)?.[1])).toEqual([
       'criar_aventura',
       'criar_aventura',
       'detalhar_regiao',
       'detalhar_regiao',
     ]);
-    expect(pedidos.every((p) => p.prompt.includes('"idioma": "en"'))).toBe(true);
-    expect(pedidos[3]?.prompt).toContain('$.arquivos: menos de 1 itens');
+    expect(recebidos.every((p) => p.ia === ia && p.prompt.includes('"idioma": "en"'))).toBe(true);
+    expect(recebidos[3]?.prompt).toContain('arquivos: nenhum arquivo existe no Projeto');
     expect(detalhada.regioes[0]?.arquivos).toEqual([
       'loja-api:src/orders/route.ts',
       'loja-api:src/orders/service.ts',
     ]);
+    expect(detalhada.mestre).toBe(ia);
     expect(lerAventuraSalva(JSON.stringify(detalhada))).toEqual(detalhada);
+  });
+});
+
+describe('trocarMestre', () => {
+  it('só a IA muda (e a data); o resto da Aventura fica, e o arquivo continua válido', () => {
+    const a = nova();
+    const trocada = trocarMestre(a, 'codex', '2026-10-26T09:00:00.000Z');
+    const { mestre, atualizada_em, ...resto } = trocada;
+    const { mestre: antes, atualizada_em: quando, ...restoAntes } = a;
+    expect([antes, quando]).toEqual(['claude_code', '2026-10-25T12:00:00.000Z']);
+    expect([mestre, atualizada_em]).toEqual(['codex', '2026-10-26T09:00:00.000Z']);
+    expect(resto).toEqual(restoAntes);
+    expect(lerAventuraSalva(JSON.stringify(trocada))).toEqual(trocada);
+    expect(aventuraMaisRecente([a, trocada])).toBe(trocada);
+  });
+
+  it('o mesmo Mestre não muda nada', () => {
+    const a = nova();
+    expect(trocarMestre(a, 'claude_code', '2026-10-26T09:00:00.000Z')).toBe(a);
   });
 });
 

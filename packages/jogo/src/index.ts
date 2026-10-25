@@ -146,6 +146,8 @@ export {
   type Transporte,
 } from './mestre.ts';
 export { desembrulharClaudeCode } from './claudeCode.ts';
+export { desembrulharCodex, esquemaEstrito, tirarNulosOpcionais } from './codex.ts';
+export { adaptadorDoMestre, type RodarCli } from './adaptador.ts';
 export {
   IAS_DO_MESTRE,
   VERSAO_DA_AVENTURA,
@@ -155,6 +157,7 @@ export {
   lerAventuraSalva,
   montarAventura,
   regioesConhecidas,
+  trocarMestre,
   type AventuraNoProjeto,
   type GerarId,
   type IaDoMestre,

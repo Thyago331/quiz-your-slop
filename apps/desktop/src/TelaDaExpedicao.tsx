@@ -40,7 +40,7 @@ import {
 } from '@quiz/ui';
 import { gitDoProjeto } from './desatualizacao.ts';
 import { ListaDeLinhas, type Linha } from './Linhas.tsx';
-import { leitorDoProjeto, lerArquivosDoProjeto, transporteClaudeCode } from './mestre.ts';
+import { leitorDoProjeto, lerArquivosDoProjeto, transporteDoMestre } from './mestre.ts';
 import { mensagemDoErro } from './NovaAventura.tsx';
 import { useEsc } from './TelaProvisoria.tsx';
 
@@ -131,7 +131,7 @@ export function TelaDaExpedicao({
         });
       }
       const r = await prepararNaAventura(
-        transporteClaudeCode(atual.current.repositorios),
+        transporteDoMestre(atual.current.mestre, atual.current.repositorios),
         atual.current,
         regiaoId,
         {
@@ -206,7 +206,7 @@ export function TelaDaExpedicao({
     try {
       const resposta = expedicao.respostas[expedicao.atual]?.resposta ?? [];
       const reavaliacao = await contestar(
-        transporteClaudeCode(atual.current.repositorios),
+        transporteDoMestre(atual.current.mestre, atual.current.repositorios),
         { idioma, desafio: desafioAtual(expedicao), resposta_jogador: [...resposta], argumento },
         {
           repositorios: atual.current.repositorios,

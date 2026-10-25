@@ -38,6 +38,7 @@ type TelaDoMapaProps = {
   inicial?: string;
   onPartir: (regiaoId: string) => void;
   onDetalhar: (regiaoId: string) => void;
+  onTrocarMestre: () => void;
   onVoltar: () => void;
 };
 
@@ -50,6 +51,7 @@ export function TelaDoMapa({
   inicial,
   onPartir,
   onDetalhar,
+  onTrocarMestre,
   onVoltar,
 }: TelaDoMapaProps) {
   const idioma = useIdioma();
@@ -156,10 +158,17 @@ export function TelaDoMapa({
                         detalhes.ocupado || !selecionada || !podePartir(aventura, selecionada),
                     },
                   ]),
+              {
+                id: 'trocar-mestre',
+                rotulo: formatar(t.trocarMestre, { mestre: m.ui.nova.mestre[aventura.mestre] }),
+                // Um detalhe em andamento ainda é do Mestre atual.
+                desabilitado: detalhes.ocupado,
+              },
               { id: 'voltar', rotulo: t.voltar },
             ]}
             onEscolher={(id) => {
               if (id === 'voltar') onVoltar();
+              else if (id === 'trocar-mestre') onTrocarMestre();
               else if (selecionada && id === 'partir') partir(selecionada);
               else if (selecionada && id === 'detalhar') onDetalhar(selecionada);
             }}

@@ -100,7 +100,11 @@ fn sem_janela_de_console(_: &mut Command) {}
 /// Os nomes de arquivo que `nome` pode ter no PATH: no Windows, as CLIs instaladas pelo npm são
 /// `.cmd` (o `Command` só acharia `.exe` sozinho).
 pub fn nomes_executaveis(nome: &str) -> Vec<String> {
-    if cfg!(windows) {
+    nomes_para(nome, cfg!(windows))
+}
+
+fn nomes_para(nome: &str, windows: bool) -> Vec<String> {
+    if windows {
         ["exe", "cmd", "bat"]
             .iter()
             .map(|ext| format!("{nome}.{ext}"))
@@ -113,11 +117,10 @@ pub fn nomes_executaveis(nome: &str) -> Vec<String> {
 /// O primeiro executável chamado `nome` nas pastas do PATH.
 pub fn achar_no_path(nome: &str) -> Option<PathBuf> {
     let path = std::env::var_os("PATH")?;
-    achar_em(nome, std::env::split_paths(&path))
+    achar_em(&nomes_executaveis(nome), std::env::split_paths(&path))
 }
 
-fn achar_em(nome: &str, pastas: impl Iterator<Item = PathBuf>) -> Option<PathBuf> {
-    let nomes = nomes_executaveis(nome);
+fn achar_em(nomes: &[String], pastas: impl Iterator<Item = PathBuf>) -> Option<PathBuf> {
     pastas
         .flat_map(|pasta| nomes.iter().map(move |n| pasta.join(n)).collect::<Vec<_>>())
         .find(|candidato| candidato.is_file())
@@ -146,10 +149,47 @@ mod testes {
         let nome = &nomes_executaveis("codex")[0];
         std::fs::write(b.join(nome), "").unwrap();
         assert_eq!(
-            achar_em("codex", [a.clone(), b.clone()].into_iter()),
+            achar_em(
+                &nomes_executaveis("codex"),
+                [a.clone(), b.clone()].into_iter()
+            ),
             Some(b.join(nome))
         );
-        assert_eq!(achar_em("claude", [a, b].into_iter()), None);
+        assert_eq!(
+            achar_em(&nomes_executaveis("claude"), [a, b].into_iter()),
+            None
+        );
+    }
+
+    /// No Windows, o npm instala o Codex como `codex.cmd`; um `codex.exe` na mesma pasta vence.
+    #[test]
+    fn no_windows_acha_o_codex_cmd_do_npm() {
+        let base = std::env::temp_dir().join(format!("quiz-path-win-{}", std::process::id()));
+        let (npm, nativo) = (base.join("npm"), base.join("nativo"));
+        std::fs::create_dir_all(&npm).unwrap();
+        std::fs::create_dir_all(&nativo).unwrap();
+        std::fs::write(npm.join("codex.cmd"), "").unwrap();
+        // Sem extensão (o script de shell do npm) não serve no Windows.
+        std::fs::write(npm.join("codex"), "").unwrap();
+        let nomes = nomes_para("codex", true);
+        assert_eq!(nomes, ["codex.exe", "codex.cmd", "codex.bat"]);
+        assert_eq!(
+            achar_em(&nomes, [npm.clone()].into_iter()),
+            Some(npm.join("codex.cmd"))
+        );
+        std::fs::write(npm.join("codex.exe"), "").unwrap();
+        assert_eq!(
+            achar_em(&nomes, [npm.clone()].into_iter()),
+            Some(npm.join("codex.exe"))
+        );
+        // Fora do Windows, só o nome puro.
+        assert_eq!(
+            achar_em(
+                &nomes_para("codex", false),
+                [nativo, npm.clone()].into_iter()
+            ),
+            Some(npm.join("codex"))
+        );
     }
 
     #[cfg(unix)]

@@ -15,7 +15,7 @@ export type Esquema = {
   minItems?: number;
   maxItems?: number;
   minLength?: number;
-  enum?: readonly (string | number)[];
+  enum?: readonly (string | number | null)[];
   minimum?: number;
   maximum?: number;
 };
@@ -39,7 +39,7 @@ export function conferirEsquema(esquema: Esquema, valor: unknown, caminho = '$')
     return [`${caminho}: esperava ${tipos.join(' ou ')}, veio ${real}`];
   }
   const problemas: string[] = [];
-  if (esquema.enum && !esquema.enum.includes(valor as string | number)) {
+  if (esquema.enum && !esquema.enum.includes(valor as string | number | null)) {
     problemas.push(`${caminho}: fora de ${esquema.enum.join(', ')}`);
   }
   if (typeof valor === 'string' && esquema.minLength !== undefined) {

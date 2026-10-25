@@ -131,7 +131,11 @@ fn rodar_com(programa: &Path, pedido: &PedidoMestre) -> Resultado<String> {
     let saida = processo::executar(programa, &args, &raiz, Some(&pedido.prompt), LIMITE)?;
     match pedido.ia {
         Ia::ClaudeCode => Ok(saida.stdout),
-        Ia::Codex => Ok(fs::read_to_string(&arquivos.resposta)?),
+        // Sem última mensagem, a resposta é vazia: o Jogo recusa e tenta de novo.
+        Ia::Codex => match fs::read_to_string(&arquivos.resposta) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(String::new()),
+            r => Ok(r?),
+        },
     }
 }
 
@@ -194,6 +198,14 @@ pub fn opcoes_exigidas(ia: Ia) -> Vec<String> {
     opcoes
 }
 
+/// Os valores do modo restrito que a ajuda precisa listar (no Codex, o sandbox somente leitura).
+fn valores_exigidos(ia: Ia) -> &'static [&'static str] {
+    match ia {
+        Ia::ClaudeCode => &[],
+        Ia::Codex => &["read-only"],
+    }
+}
+
 /// Os argumentos fixos da ajuda onde as opções aparecem (no Codex, a do subcomando `exec`).
 fn argumentos_da_ajuda(ia: Ia) -> &'static [&'static str] {
     match ia {
@@ -245,6 +257,7 @@ fn avaliar(ia: Ia, versao: String, ajuda: &str) -> Deteccao {
         .collect();
     let faltando: Vec<String> = opcoes_exigidas(ia)
         .into_iter()
+        .chain(valores_exigidos(ia).iter().map(|v| (*v).to_owned()))
         .filter(|o| !conhecidas.contains(&o.as_str()))
         .collect();
     if faltando.is_empty() {
@@ -576,5 +589,161 @@ mod testes {
                 versao: "9.9.9 (Claude Code)".into()
             }
         );
+    }
+
+    /// Recorte da ajuda real do `codex exec --help` (v0.149.1).
+    const AJUDA_CODEX: &str = "Usage: codex exec [OPTIONS] [PROMPT]
+  -c, --config <key=value>
+  -s, --sandbox <SANDBOX_MODE>
+          [possible values: read-only, workspace-write, danger-full-access]
+  -C, --cd <DIR>
+      --add-dir <DIR>
+      --ephemeral
+      --ignore-rules
+      --output-schema <FILE>
+      --color <COLOR>
+  -o, --output-last-message <FILE>";
+
+    #[test]
+    fn codex_precisa_do_sandbox_somente_leitura_e_do_output_schema() {
+        assert_eq!(
+            avaliar(Ia::Codex, "codex-cli 0.149.1".into(), AJUDA_CODEX),
+            Deteccao::Pronta {
+                versao: "codex-cli 0.149.1".into()
+            }
+        );
+        let sem_schema = AJUDA_CODEX.replace("--output-schema", "--json");
+        assert_eq!(
+            avaliar(Ia::Codex, "codex-cli 0.1.0".into(), &sem_schema),
+            Deteccao::SemModoRestrito {
+                versao: "codex-cli 0.1.0".into(),
+                faltando: vec!["--output-schema".into()]
+            }
+        );
+        let sem_read_only = AJUDA_CODEX.replace("read-only, ", "");
+        assert_eq!(
+            avaliar(Ia::Codex, "x".into(), &sem_read_only),
+            Deteccao::SemModoRestrito {
+                versao: "x".into(),
+                faltando: vec!["read-only".into()]
+            }
+        );
+        // O --add-dir do Codex é de escrita: não está entre as opções exigidas.
+        assert!(!opcoes_exigidas(Ia::Codex).contains(&"--add-dir".to_owned()));
+    }
+
+    /// Um script de shell de mentira, numa pasta só dele.
+    #[cfg(unix)]
+    fn script(nome: &str, corpo: &str) -> PathBuf {
+        use std::os::unix::fs::PermissionsExt;
+        static N: AtomicU32 = AtomicU32::new(0);
+        let n = N.fetch_add(1, Ordering::Relaxed);
+        let pasta = std::env::temp_dir().join(format!("quiz-cli-{}-{n}", std::process::id()));
+        let _ = fs::remove_dir_all(&pasta);
+        fs::create_dir_all(&pasta).unwrap();
+        let caminho = pasta.join(nome);
+        fs::write(&caminho, format!("#!/bin/sh\n{corpo}")).unwrap();
+        fs::set_permissions(&caminho, fs::Permissions::from_mode(0o755)).unwrap();
+        caminho
+    }
+
+    /// Repete enquanto outro teste estiver num fork() com o script aberto ("Text file busy").
+    #[cfg(unix)]
+    fn sem_busy<T>(mut f: impl FnMut() -> Resultado<T>) -> Resultado<T> {
+        loop {
+            match f() {
+                Err(Erro::Io(e)) if e.contains("busy") => std::thread::yield_now(),
+                r => break r,
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn detecta_o_codex_pela_ajuda_do_exec() {
+        let falso = script(
+            "codex",
+            &format!(
+                "if [ \"$1\" = --version ]; then echo 'codex-cli 0.149.1'; exit 0; fi\n\
+                 [ \"$1 $2\" = 'exec --help' ] || exit 2\n\
+                 cat <<'FIM'\n{AJUDA_CODEX}\nFIM\n"
+            ),
+        );
+        assert_eq!(
+            sem_busy(|| detectar_com(&falso, Ia::Codex)).unwrap(),
+            Deteccao::Pronta {
+                versao: "codex-cli 0.149.1".into()
+            }
+        );
+    }
+
+    /// O schema vai num arquivo temporário que existe durante a chamada e some depois.
+    #[cfg(unix)]
+    #[test]
+    fn o_schema_temporario_do_codex_some_depois_da_chamada() {
+        let falso = script(
+            "codex",
+            "while [ $# -gt 0 ]; do\n\
+               case \"$1\" in\n\
+                 --output-schema) schema=\"$2\" ;;\n\
+                 --output-last-message) saida=\"$2\" ;;\n\
+               esac\n\
+               shift\n\
+             done\n\
+             cat >/dev/null\n\
+             { echo \"$schema\"; cat \"$schema\"; } > \"$saida\"\n",
+        );
+        let raiz = std::env::temp_dir();
+        let schema = serde_json::json!({ "type": "object", "required": [] });
+        let resposta =
+            sem_busy(|| rodar_com(&falso, &pedido(Ia::Codex, &raiz, schema.clone()))).unwrap();
+        let (caminho, conteudo) = resposta.split_once('\n').unwrap();
+        assert_eq!(conteudo.trim(), schema.to_string());
+        let caminho = Path::new(caminho);
+        assert!(caminho.ends_with("schema.json"), "{caminho:?}");
+        assert!(!caminho.exists());
+        assert!(!caminho.parent().unwrap().exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_pasta_temporaria_some_mesmo_quando_o_codex_falha() {
+        let falso = script(
+            "codex",
+            "while [ $# -gt 0 ]; do\n\
+               [ \"$1\" = --output-schema ] && echo \"$2\" >&2\n\
+               shift\n\
+             done\n\
+             exit 1\n",
+        );
+        let raiz = std::env::temp_dir();
+        let schema = serde_json::json!({ "type": "object" });
+        let erro =
+            sem_busy(|| rodar_com(&falso, &pedido(Ia::Codex, &raiz, schema.clone()))).unwrap_err();
+        let Erro::Falhou { stderr, .. } = erro else {
+            panic!("{erro:?}")
+        };
+        assert!(stderr.trim().ends_with("schema.json"), "{stderr}");
+        assert!(!Path::new(stderr.trim()).exists(), "{stderr}");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn codex_sem_ultima_mensagem_devolve_vazio() {
+        let falso = script("codex", "cat >/dev/null\n");
+        let raiz = std::env::temp_dir();
+        let schema = serde_json::json!({ "type": "object" });
+        let r = sem_busy(|| rodar_com(&falso, &pedido(Ia::Codex, &raiz, schema.clone())));
+        assert_eq!(r.unwrap(), "");
+    }
+
+    /// As CLIs instaladas nesta máquina: `cargo test -- --ignored detecta_as_clis_de_verdade`.
+    #[test]
+    #[ignore = "precisa do Claude Code e do Codex instalados"]
+    fn detecta_as_clis_de_verdade() {
+        for ia in [Ia::ClaudeCode, Ia::Codex] {
+            let d = detectar(ia).unwrap();
+            assert!(matches!(d, Deteccao::Pronta { .. }), "{ia:?}: {d:?}");
+        }
     }
 }

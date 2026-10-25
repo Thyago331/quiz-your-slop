@@ -97,9 +97,10 @@ export const pt = {
         encontrado: '· encontrado {versao}',
         ausente: '· não encontrado',
         semModoRestrito: '· sem modo somente leitura (faltam {opcoes}): recusado',
-        emBreve: '· em breve',
+        escolhido: '◆',
+        naoEscolhido: '◇',
         nenhum:
-          'Instale o Claude Code e faça login nele para jogar no seu Projeto. Enquanto isso, o Tutorial está no menu.',
+          'Instale o Claude Code ou o Codex CLI e faça login para jogar no seu Projeto. Enquanto isso, o Tutorial está no menu.',
         soLer: '🛡 O Mestre só pode LER.',
         explicacao:
           'Nada será editado, nenhum comando além de leitura será executado, sem acesso à rede além do provedor da sua IA. O seu código é lido pela sua IA e vai para o provedor dela ({provedor}), como no seu uso normal.',
@@ -154,6 +155,17 @@ export const pt = {
       voltar: 'Voltar ao menu',
       acoes: 'Ações',
       ajuda: '← ↑ → ↓ escolhem a região · Esc volta ao menu',
+      trocarMestre: '⇄ Trocar Mestre ({mestre})',
+      troca: {
+        titulo: 'Trocar Mestre',
+        atual: 'O Mestre desta Aventura: {mestre}.',
+        memoria:
+          'A memória da Aventura fica no Jogo: o mapa, as regiões reveladas, as Ligações e o XP continuam iguais. Só as próximas chamadas vão para o outro Mestre.',
+        marcaAtual: '· atual',
+        confirmar: 'Trocar para {mestre} ▶',
+        voltar: '◀ Voltar ao mapa',
+        trocado: '✔ Agora o Mestre é {mestre}.',
+      },
     },
     expedicao: {
       preparando: 'O Mestre prepara a Expedição…',

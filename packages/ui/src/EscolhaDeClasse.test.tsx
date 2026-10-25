@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { CLASSES, EscolhaDeClasse } from './EscolhaDeClasse.tsx';
+import { CLASSES } from './classes.ts';
+import { EscolhaDeClasse } from './EscolhaDeClasse.tsx';
 
 function montar() {
   const onEscolher = vi.fn();

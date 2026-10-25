@@ -1,5 +1,6 @@
 import * as jogador from './0001-jogador.ts';
 import * as listaDeEspera from './0002-lista-de-espera.ts';
+import * as progresso from './0003-progresso.ts';
 
 export type Migracao = { nome: string; sql: string };
 
@@ -8,4 +9,5 @@ export type Migracao = { nome: string; sql: string };
 export const MIGRACOES: readonly Migracao[] = [
   { nome: '0001-jogador', sql: jogador.sql },
   { nome: '0002-lista-de-espera', sql: listaDeEspera.sql },
+  { nome: '0003-progresso', sql: progresso.sql },
 ];

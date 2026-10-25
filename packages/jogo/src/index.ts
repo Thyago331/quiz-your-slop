@@ -81,3 +81,18 @@ export {
   type Titulo,
   type TituloDoXp,
 } from './progressao.ts';
+export {
+  ESTATISTICAS_ZERADAS,
+  ID_AVENTURA_TUTORIAL,
+  MAXIMO_DE_AVENTURAS,
+  ehIdDeAventura,
+  lerEnvio,
+  mesclarProgresso,
+  montarEnvio,
+  porcentagemDoProgresso,
+  somarExpedicao,
+  type AventuraEnviada,
+  type EnvioDeProgresso,
+  type EstatisticasDoJogador,
+  type LeituraDoEnvio,
+} from './envio.ts';

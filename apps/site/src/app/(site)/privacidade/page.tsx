@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Janela } from '@quiz/ui';
 import { metadadosDaPagina } from '@/seo/metadados';
 import { REPOSITORIO } from '@/seo/site';
@@ -29,6 +30,9 @@ export default function Privacidade() {
       <Janela titulo={NUNCA.titulo}>
         <p id="nunca" className={estilo.nunca}>
           ✘ {NUNCA.texto}
+        </p>
+        <p>
+          <Link href="/perfil#enviado">▶ {NUNCA.link}</Link>
         </p>
       </Janela>
       {SECOES.map((secao) => (

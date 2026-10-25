@@ -3,38 +3,7 @@ import type { Classe } from '@quiz/jogo';
 import { Janela } from './Janela.tsx';
 import { Menu } from './Menu.tsx';
 import { Sprite } from './Sprite.tsx';
-import type { NomeSprite } from './sprites.ts';
-
-export type ClasseNaTela = {
-  id: Classe;
-  nome: string;
-  descricao: string;
-  sprite: NomeSprite;
-  /** Linha extra embaixo da descrição (o Tutorial mostra a região de entrada). */
-  detalhe?: string;
-};
-
-/** As Classes como o protótipo as apresenta (variante D, passo 3 da Nova Aventura). */
-export const CLASSES: readonly ClasseNaTela[] = [
-  {
-    id: 'backend',
-    nome: 'Cavaleiro do Backend',
-    descricao: 'Contratos, dados, regras e efeitos colaterais. Começa na rota principal.',
-    sprite: 'cavaleiro',
-  },
-  {
-    id: 'frontend',
-    nome: 'Mago do Frontend',
-    descricao: 'Estado, telas e interação. Começa na página inicial.',
-    sprite: 'mago',
-  },
-  {
-    id: 'fullstack',
-    nome: 'Bardo Fullstack',
-    descricao: 'A travessia front ↔ back. Começa onde a tela chama a API.',
-    sprite: 'bardo',
-  },
-];
+import type { ClasseNaTela } from './classes.ts';
 
 type EscolhaDeClasseProps = {
   classes: readonly ClasseNaTela[];

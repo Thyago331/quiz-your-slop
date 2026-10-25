@@ -4,6 +4,8 @@ import { DESAFIOS } from '@quiz/taverna';
 import {
   ESTADO_INICIAL,
   desafiosParaPartir,
+  envioDoTutorial,
+  estadoSalvo,
   podePartir,
   tutorial,
   type AcaoTutorial,
@@ -189,6 +191,81 @@ describe('estado do Tutorial', () => {
       batalhar(backend, [true, true, true, true]),
     );
     expect(fim).toMatchObject({ xp: 80, aventura: null, expedicao: null });
+    expect(fim.estatisticas).toEqual({ expedicoes: 1, acertos: 4, contestacoes_vencidas: 0 });
+  });
+
+  it('cada Expedição encerrada soma às estatísticas do Jogador', () => {
+    const uma = rodar(
+      [{ tipo: 'voltarAoMapa' }],
+      batalhar(backend, [true, false, true, false, false]),
+    );
+    expect(uma.estatisticas).toEqual({ expedicoes: 1, acertos: 2, contestacoes_vencidas: 0 });
+    const duas = batalhar(uma, [true, true, true, true]);
+    expect(duas.estatisticas).toEqual({ expedicoes: 2, acertos: 6, contestacoes_vencidas: 0 });
+  });
+
+  describe('guardar e retomar', () => {
+    const jogado = rodar([{ tipo: 'voltarAoMapa' }], batalhar(backend, [true, true, true, true]));
+
+    it('o estado salvo em JSON volta igual, no mapa', () => {
+      const salvo = JSON.parse(JSON.stringify(jogado));
+      expect(estadoSalvo(salvo)).toEqual({
+        ...jogado,
+        descobertas: [],
+      });
+    });
+
+    it('uma Expedição em curso não volta: retoma no mapa', () => {
+      const meio = batalhar(backend, [true, false]);
+      const salvo = JSON.parse(JSON.stringify(meio));
+      expect(estadoSalvo(salvo)).toMatchObject({ xp: 0, expedicao: null, descobertas: [] });
+      expect(estadoSalvo(salvo)?.aventura).toEqual(meio.aventura);
+    });
+
+    it('lixo ou um mapa de outra Taverna é ignorado', () => {
+      for (const salvo of [null, 'x', { xp: -1 }, { ...jogado, estatisticas: undefined }])
+        expect(estadoSalvo(salvo)).toBeNull();
+      const outroMapa = {
+        ...jogado,
+        aventura: {
+          ...jogado.aventura,
+          mapa: { ...jogado.aventura!.mapa, estados: { a: 'nevoa' } },
+        },
+      };
+      expect(estadoSalvo(outroMapa)).toBeNull();
+    });
+
+    it('o progresso do servidor só faz o XP e as estatísticas subirem; o mapa fica', () => {
+      const servidor = {
+        ...envioDoTutorial(jogado),
+        xp: 300,
+        titulo: 'Arqueólogo de Código',
+        estatisticas: { expedicoes: 9, acertos: 2, contestacoes_vencidas: 1 },
+      };
+      const depois = tutorial(jogado, { tipo: 'sincronizar', servidor });
+      expect(depois.xp).toBe(300);
+      expect(depois.estatisticas).toEqual({ expedicoes: 9, acertos: 4, contestacoes_vencidas: 1 });
+      expect(depois.aventura).toBe(jogado.aventura);
+      const menor = { ...servidor, xp: 0, titulo: 'Comitador Cego' };
+      expect(tutorial(jogado, { tipo: 'sincronizar', servidor: menor }).xp).toBe(80);
+    });
+  });
+
+  it('o envio do Tutorial: id fixo, Progresso em % e Classe', () => {
+    expect(envioDoTutorial(ESTADO_INICIAL)).toEqual({
+      xp: 0,
+      titulo: 'Comitador Cego',
+      estatisticas: { expedicoes: 0, acertos: 0, contestacoes_vencidas: 0 },
+      aventuras: [],
+    });
+    const venceu = batalhar(backend, [true, true, true, true]);
+    // API de Pedidos revelada e todas as outras seis fora da Névoa: 1 de 7.
+    expect(envioDoTutorial(venceu)).toEqual({
+      xp: 80,
+      titulo: 'Comitador Cego',
+      estatisticas: { expedicoes: 1, acertos: 4, contestacoes_vencidas: 0 },
+      aventuras: [{ id: 'tutorial', progresso: 14, classe: 'backend' }],
+    });
   });
 
   it('o estado inteiro sobrevive a JSON, para ser guardado depois', () => {

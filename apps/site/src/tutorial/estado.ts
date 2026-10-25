@@ -1,6 +1,9 @@
-// O estado do Tutorial num objeto só, serializável: XP do Jogador, a Aventura e a Expedição em
-// curso. Por enquanto vive em memória; guardá-lo no servidor é um passo seguinte.
+// O estado do Tutorial num objeto só, serializável: XP e estatísticas do Jogador, a Aventura e a
+// Expedição em curso. O estado inteiro fica neste navegador (localStorage); ao servidor só vai o
+// resumo sem conteúdo de envioDoTutorial (spec §8) — o mapa retoma só neste aparelho.
 import {
+  ESTATISTICAS_ZERADAS,
+  ID_AVENTURA_TUTORIAL,
   ARGUMENTO_MAXIMO,
   avancar,
   concluirExpedicao,
@@ -10,13 +13,17 @@ import {
   escolherDesafios,
   iniciarAventura,
   iniciarExpedicao,
+  montarEnvio,
   podeContestar,
   responderDesafio,
   resultadoDaExpedicao,
+  somarExpedicao,
   type Aleatorio,
   type Aventura,
   type Classe,
   type Desafio,
+  type EnvioDeProgresso,
+  type EstatisticasDoJogador,
   type EstruturaMapa,
   type Expedicao,
   type MapaAventura,
@@ -35,6 +42,8 @@ export const ESTRUTURA: EstruturaMapa = {
 export type EstadoTutorial = {
   /** Do Jogador, não da Aventura: recomeçar o Tutorial não o apaga. */
   xp: number;
+  /** Também do Jogador: Expedições, acertos e Contestações vencidas. */
+  estatisticas: EstatisticasDoJogador;
   /** null enquanto o Jogador escolhe a Classe. */
   aventura: Aventura | null;
   /** A Expedição em curso; encerrada, ela fica até o Jogador sair do resumo. */
@@ -45,6 +54,7 @@ export type EstadoTutorial = {
 
 export const ESTADO_INICIAL: EstadoTutorial = {
   xp: 0,
+  estatisticas: ESTATISTICAS_ZERADAS,
   aventura: null,
   expedicao: null,
   descobertas: [],
@@ -59,7 +69,9 @@ export type AcaoTutorial =
   | { tipo: 'contestar'; argumento: string }
   | { tipo: 'avancar' }
   | { tipo: 'voltarAoMapa' }
-  | { tipo: 'recomecar' };
+  | { tipo: 'recomecar' }
+  /** O progresso do servidor (de outro aparelho, talvez): XP e estatísticas só sobem. */
+  | { tipo: 'sincronizar'; servidor: EnvioDeProgresso };
 
 export const temDesafios = (regiaoId: string) => (DESAFIOS[regiaoId]?.length ?? 0) > 0;
 
@@ -136,9 +148,11 @@ export function tutorial(estado: EstadoTutorial, acao: AcaoTutorial): EstadoTuto
       const seguinte = avancar(expedicao);
       if (seguinte.fase !== 'encerrada') return { ...estado, expedicao: seguinte };
       const depois = concluirExpedicao(aventura, seguinte);
+      const resultado = resultadoDaExpedicao(seguinte);
       return {
         ...estado,
-        xp: estado.xp + resultadoDaExpedicao(seguinte).xp,
+        xp: estado.xp + resultado.xp,
+        estatisticas: somarExpedicao(estado.estatisticas, resultado),
         aventura: depois,
         expedicao: seguinte,
         descobertas: saidasDaNevoa(aventura.mapa, depois.mapa),
@@ -147,6 +161,63 @@ export function tutorial(estado: EstadoTutorial, acao: AcaoTutorial): EstadoTuto
     case 'voltarAoMapa':
       return expedicao?.fase === 'encerrada' ? { ...estado, expedicao: null } : estado;
     case 'recomecar':
-      return { ...ESTADO_INICIAL, xp: estado.xp };
+      return { ...ESTADO_INICIAL, xp: estado.xp, estatisticas: estado.estatisticas };
+    case 'sincronizar': {
+      const { xp, estatisticas: e } = acao.servidor;
+      const atual = estado.estatisticas;
+      return {
+        ...estado,
+        xp: Math.max(estado.xp, xp),
+        estatisticas: {
+          expedicoes: Math.max(atual.expedicoes, e.expedicoes),
+          acertos: Math.max(atual.acertos, e.acertos),
+          contestacoes_vencidas: Math.max(atual.contestacoes_vencidas, e.contestacoes_vencidas),
+        },
+      };
+    }
   }
+}
+
+/** O que vai ao servidor: XP, Título, estatísticas e a Aventura do Tutorial como id fixo + % + Classe. */
+export function envioDoTutorial(estado: EstadoTutorial): EnvioDeProgresso {
+  return montarEnvio({
+    xp: estado.xp,
+    estatisticas: estado.estatisticas,
+    aventuras: estado.aventura ? [{ id: ID_AVENTURA_TUTORIAL, aventura: estado.aventura }] : [],
+  });
+}
+
+const contagem = (n: unknown): n is number =>
+  typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
+const ESTADOS_NO_MAPA = new Set(['nevoa', 'desbloqueada', 'revelada', 'desatualizada']);
+const CLASSES_DO_JOGO = new Set(['backend', 'frontend', 'fullstack']);
+
+/**
+ * O estado guardado neste navegador, se ainda servir: o mapa precisa ter as mesmas regiões da
+ * Taverna. Volta sempre ao mapa (sem Expedição em curso), porque o banco de Desafios pode ter
+ * mudado desde então. Qualquer coisa estranha vira null e o Tutorial começa do zero.
+ */
+export function estadoSalvo(salvo: unknown): EstadoTutorial | null {
+  if (typeof salvo !== 'object' || salvo === null) return null;
+  const s = salvo as Partial<Record<keyof EstadoTutorial, unknown>>;
+  const e = s.estatisticas as Partial<EstatisticasDoJogador> | undefined;
+  if (!contagem(s.xp) || !e || !contagem(e.expedicoes) || !contagem(e.acertos)) return null;
+  if (!contagem(e.contestacoes_vencidas)) return null;
+  const estatisticas: EstatisticasDoJogador = {
+    expedicoes: e.expedicoes,
+    acertos: e.acertos,
+    contestacoes_vencidas: e.contestacoes_vencidas,
+  };
+  const base = { ...ESTADO_INICIAL, xp: s.xp, estatisticas };
+  if (s.aventura === null) return base;
+  const a = s.aventura as Partial<Aventura> | undefined;
+  const estados = a?.mapa?.estados as Record<string, unknown> | undefined;
+  const regioes = estados ? Object.keys(estados) : [];
+  const mesmoMapa =
+    regioes.length === ESTRUTURA.regioes.length &&
+    ESTRUTURA.regioes.every((id) => ESTADOS_NO_MAPA.has(String(estados?.[id])));
+  if (!a || !CLASSES_DO_JOGO.has(String(a.classe)) || !mesmoMapa) return null;
+  const listas = Array.isArray(a.mapa?.ligacoes) && Array.isArray(a.mapa?.ligacoesConhecidas);
+  if (!listas || typeof a.vistos !== 'object' || !a.vistos) return null;
+  return { ...base, aventura: a as Aventura };
 }

@@ -7,7 +7,8 @@ export {
   textoDoPasso,
 } from './Batalha.tsx';
 export { EvidenciaNaTela, Texto, localDaEvidencia } from './Codigo.tsx';
-export { CLASSES, EscolhaDeClasse, type ClasseNaTela } from './EscolhaDeClasse.tsx';
+export { CLASSES, type ClasseNaTela } from './classes.ts';
+export { EscolhaDeClasse } from './EscolhaDeClasse.tsx';
 export {
   ArvoreDeArquivos,
   ExploradorDeCodigo,

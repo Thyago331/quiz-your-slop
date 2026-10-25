@@ -1,6 +1,15 @@
 'use client';
-import { useReducer, useState } from 'react';
-import { progresso, resultadoDaExpedicao, tituloDoXp, type Aventura } from '@quiz/jogo';
+import { useEffect, useReducer, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  lerEnvio,
+  mesclarProgresso,
+  porcentagemDoProgresso,
+  progresso,
+  resultadoDaExpedicao,
+  tituloDoXp,
+  type Aventura,
+  type EnvioDeProgresso,
+} from '@quiz/jogo';
 import { ENTRADAS, LIGACOES, REGIOES, TERRITORIOS } from '@quiz/taverna';
 import {
   Barra,
@@ -23,6 +32,8 @@ import { BatalhaComExplorador, ExploradorDaTaverna } from './ExploradorDaTaverna
 import {
   ESTADO_INICIAL,
   desafiosParaPartir,
+  envioDoTutorial,
+  estadoSalvo,
   podePartir,
   temDesafios,
   tutorial,
@@ -44,9 +55,107 @@ const CLASSES_DO_TUTORIAL = CLASSES.map((c) => ({
   detalhe: `Entrada: ${nomeDaRegiao(ENTRADAS[c.id])}`,
 }));
 
+// O estado inteiro do Tutorial (mapa incluído) fica só neste navegador. Ao servidor vai só o
+// resumo de envioDoTutorial; por isso o Perfil acompanha o Jogador em qualquer aparelho, mas o mapa
+// retoma só aqui.
+const CHAVE_LOCAL = 'quiz-your-slop:tutorial:v1';
+const API = '/api/progresso';
+
+function lerLocal(): unknown {
+  try {
+    const texto = localStorage.getItem(CHAVE_LOCAL);
+    return texto ? JSON.parse(texto) : null;
+  } catch {
+    return null;
+  }
+}
+
+function gravarLocal(estado: EstadoTutorial) {
+  try {
+    localStorage.setItem(CHAVE_LOCAL, JSON.stringify(estado));
+  } catch {
+    // Sem armazenamento (aba anônima, cota): o Tutorial segue, só não retoma o mapa.
+  }
+}
+
+async function pedirProgresso(init?: RequestInit): Promise<EnvioDeProgresso | null> {
+  try {
+    const resposta = await fetch(API, { cache: 'no-store', ...init });
+    if (!resposta.ok) return null;
+    const lido = lerEnvio(await resposta.json());
+    return lido.ok ? lido.envio : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Traz o XP e as estatísticas do servidor e, a cada mudança do resumo (fim de Expedição, escolha
+ * da Classe), envia o que mudou. Guarda o estado inteiro neste navegador. Sem servidor, joga igual.
+ */
+function useProgressoSalvo(estado: EstadoTutorial, despachar: (acao: AcaoTutorial) => void) {
+  const [sincronizado, setSincronizado] = useState(false);
+  // O progresso como o servidor o tem (resposta do último GET/PUT).
+  const doServidor = useRef<EnvioDeProgresso | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    void pedirProgresso().then((servidor) => {
+      if (!vivo) return;
+      doServidor.current = servidor;
+      if (servidor) despachar({ tipo: 'sincronizar', servidor });
+      setSincronizado(true);
+    });
+    return () => {
+      vivo = false;
+    };
+  }, [despachar]);
+
+  useEffect(() => gravarLocal(estado), [estado]);
+
+  useEffect(() => {
+    if (!sincronizado) return;
+    const envio = envioDoTutorial(estado);
+    const antes = doServidor.current;
+    if (antes && JSON.stringify(mesclarProgresso(antes, envio)) === JSON.stringify(antes)) return;
+    // Otimista: outra mudança logo depois não reenvia o mesmo; se falhar, a próxima tenta de novo.
+    doServidor.current = mesclarProgresso(antes, envio);
+    void pedirProgresso({
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(envio),
+    }).then((servidor) => {
+      doServidor.current = servidor ?? antes;
+    });
+  }, [estado, sincronizado]);
+}
+
+const nada = () => () => {};
+
+/** O estado salvo só existe no navegador: no HTML do servidor, o Tutorial ainda está abrindo. */
 export function Tutorial() {
-  const [estado, despachar] = useReducer(tutorial, ESTADO_INICIAL);
+  const noNavegador = useSyncExternalStore(
+    nada,
+    () => true,
+    () => false,
+  );
+  return noNavegador ? (
+    <TutorialRetomado />
+  ) : (
+    <main className={estilos.tela}>
+      <Janela>Abrindo a Taverna…</Janela>
+    </main>
+  );
+}
+
+function TutorialRetomado() {
+  const [estado, despachar] = useReducer(
+    tutorial,
+    null,
+    () => estadoSalvo(lerLocal()) ?? ESTADO_INICIAL,
+  );
   const [selecionada, setSelecionada] = useState<string | null>(null);
+  useProgressoSalvo(estado, despachar);
   const { aventura, expedicao } = estado;
   const classe = CLASSES.find((c) => c.id === aventura?.classe);
 
@@ -111,8 +220,7 @@ function Hud({ estado, nomeClasse }: { estado: EstadoTutorial; nomeClasse?: stri
   const { atual, proximo } = tituloDoXp(xp);
   const passo = proximo ? (xp - atual.xpMinimo) / (proximo.xpMinimo - atual.xpMinimo) : 1;
   const mapa = aventura && progresso(aventura.mapa);
-  const porcento =
-    mapa && mapa.conhecidas > 0 ? Math.round((100 * mapa.reveladas) / mapa.conhecidas) : 0;
+  const porcento = aventura ? porcentagemDoProgresso(aventura.mapa) : 0;
   return (
     <Janela className={estilos.hud}>
       <div>

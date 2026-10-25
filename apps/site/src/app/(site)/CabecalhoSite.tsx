@@ -4,7 +4,7 @@ import { SITE } from '@/textos/site';
 import { sair } from '../acoes';
 import estilo from './Site.module.css';
 
-/** A marca, as páginas públicas e quem está jogando (nome e avatar do GitHub) com o Sair. */
+/** A marca, as páginas públicas e quem está jogando (nome e avatar do GitHub), o Perfil e o Sair. */
 export async function CabecalhoSite() {
   const sessao = await auth();
   return (
@@ -28,6 +28,7 @@ export async function CabecalhoSite() {
               <img src={sessao.user.image} alt="" width={32} height={32} />
             )}
             <span>{sessao.user.name ?? sessao.user.login}</span>
+            <Link href="/perfil">{SITE.perfil}</Link>
             <form action={sair}>
               <button type="submit" className="menu-item">
                 {SITE.sair}

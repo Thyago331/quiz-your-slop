@@ -9,6 +9,7 @@ export const SITE = {
   ],
   rotuloNavegacao: 'Páginas do site',
   entrar: 'Entrar com GitHub',
+  perfil: 'Perfil',
   sair: 'Sair',
   rodape: ['Seu código nunca sai da sua máquina.', 'Jogo de código aberto'],
   repositorio: 'GitHub',

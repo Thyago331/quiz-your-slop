@@ -20,18 +20,19 @@ export const SOBE = {
   itens: [
     'A sua conta: o id, o login, o nome, o avatar e o e-mail do GitHub.',
     'O seu XP, o seu Título e estatísticas: Expedições, acertos e Contestações vencidas.',
-    'Para cada Aventura: um código sem significado, a porcentagem revelada (Progresso da ' +
-      'Aventura) e a Classe.',
+    'Para cada Aventura: um código sem significado (no Tutorial, simplesmente "tutorial"), a ' +
+      'porcentagem revelada (Progresso da Aventura) e a Classe.',
   ],
-  exemploRotulo: 'Um envio de progresso inteiro é assim:',
+  exemploRotulo:
+    'Um envio de progresso inteiro é assim (a conta não vai nele: o servidor sabe quem é você pela ' +
+    'sessão):',
   exemplo: {
-    jogador: 'thyago331',
     xp: 140,
     titulo: 'Leitor de Diff',
     estatisticas: { expedicoes: 12, acertos: 47, contestacoes_vencidas: 2 },
     aventuras: [
-      { id: 'a7f3c2e1', progresso: 25, classe: 'fullstack' },
-      { id: '9b04d6aa', progresso: 43, classe: 'backend' },
+      { id: 'tutorial', progresso: 25, classe: 'fullstack' },
+      { id: '9b04d6aa-3c1e-4f2b-8a7d-5e6f0c1b2a39', progresso: 43, classe: 'backend' },
     ],
   },
 } as const;
@@ -41,8 +42,9 @@ export const NUNCA = {
   texto:
     'O mapa (nomes de Regiões, Territórios e Ligações), caminhos de arquivo, Desafios, gabaritos, ' +
     'Evidências, trechos de código e o nome ou caminho das suas pastas. O estado completo de cada ' +
-    'Aventura é um arquivo local. O Jogo desktop tem a tela "O que é enviado", com o JSON exato ' +
-    'do último envio — e é de código aberto.',
+    'Aventura é um arquivo local (no Tutorial, fica guardado neste navegador). O seu Perfil tem a ' +
+    'tela "O que é enviado", com o JSON exato do último envio — e o Jogo é de código aberto.',
+  link: 'Ver o que foi enviado da sua conta',
 };
 
 export const SECOES: readonly Secao[] = [

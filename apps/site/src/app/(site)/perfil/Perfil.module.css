@@ -1,0 +1,54 @@
+/* A ficha de personagem do protótipo (variante D, ?tela=perfil): retrato à esquerda, ficha ao lado. */
+.ficha {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+  margin: 0 0 14px;
+}
+.ficha > :global(.janela) {
+  margin: 8px;
+}
+.retrato {
+  text-align: center;
+}
+.login {
+  font-size: 11px;
+  margin: 10px 0 4px;
+  overflow-wrap: anywhere;
+}
+.escada {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  list-style: none;
+  padding: 0 !important;
+  margin: 0 0 10px;
+}
+.escada li + li::before {
+  content: '→ ';
+  color: var(--px-apagado);
+}
+.apagado {
+  color: #6b6b88;
+}
+.estatisticas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 18px;
+  list-style: none;
+  padding: 0 !important;
+  margin: 0 0 16px;
+}
+.aventuras {
+  list-style: none;
+  padding: 0 !important;
+}
+.aventuras li + li {
+  margin-top: 6px;
+}
+@media (max-width: 760px) {
+  .ficha {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

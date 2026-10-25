@@ -33,12 +33,15 @@ const desafio = (id: string): Desafio => ({
 });
 const inicio = iniciarExpedicao('api', ['d1', 'd2', 'd3', 'd4', 'd5'].map(desafio));
 
+const estados = { api: 'desbloqueada', livro: 'nevoa', cofre: 'revelada' } as const;
+
 function montar(expedicao = inicio) {
   const onResponder = vi.fn();
   const onAvancar = vi.fn();
   render(
     <Batalha
       expedicao={expedicao}
+      estados={estados}
       nomeRegiao="API de Pedidos"
       heroi="cavaleiro"
       onResponder={onResponder}
@@ -97,6 +100,96 @@ describe('Batalha', () => {
     const ultimo = [0, 1, 2, 3].reduce((e) => avancar(responderDesafio(e, ['a'])), inicio);
     montar(responderDesafio(ultimo, ['a']));
     expect(screen.getByRole('menuitem', { name: 'Fim da batalha' })).toBeTruthy();
+  });
+});
+
+describe('Batalha — Apontar no código', () => {
+  const apontar: Desafio = {
+    ...desafio('a1'),
+    formato: 'apontar',
+    enunciado: 'Onde o imposto do rei é aplicado?',
+    opcoes: [
+      { id: 'a', caminho: 'api/src/routes/orders.ts', simbolo: 'createOrderHandler' },
+      { id: 'b', caminho: 'api/src/orders/service.ts', simbolo: 'validateOrder' },
+      { id: 'c', caminho: 'shared/money.ts' },
+    ],
+    gabarito: ['b'],
+  };
+  const expedicao = iniciarExpedicao('api', [apontar]);
+
+  it('as opções são arquivo → função, como código', () => {
+    montar(expedicao);
+    const opcoes = screen.getAllByRole('menuitem');
+    expect(opcoes.map((b) => b.textContent)).toEqual([
+      'api/src/routes/orders.ts → createOrderHandler',
+      'api/src/orders/service.ts → validateOrder',
+      'shared/money.ts',
+    ]);
+    expect(opcoes[1]?.querySelectorAll('code')).toHaveLength(2);
+  });
+
+  it('apontar um lugar é a resposta', async () => {
+    const user = userEvent.setup();
+    const { onResponder } = montar(expedicao);
+    await user.click(screen.getByRole('menuitem', { name: /validateOrder/ }));
+    expect(onResponder).toHaveBeenCalledWith(['b']);
+  });
+
+  it('na correção o lugar certo fica marcado', () => {
+    montar(responderDesafio(expedicao, ['c']));
+    expect(screen.getAllByRole('listitem').map((li) => li.textContent)).toEqual([
+      '· api/src/routes/orders.ts → createOrderHandler',
+      '✔ api/src/orders/service.ts → validateOrder',
+      '✘ shared/money.ts',
+    ]);
+  });
+});
+
+describe('Batalha — Traçar o fluxo', () => {
+  const fluxo: Desafio = {
+    ...desafio('t1'),
+    formato: 'tracar_fluxo',
+    enunciado: 'Ordene o que acontece depois que `POST /orders` chega:',
+    opcoes: [
+      { id: 'cobra', texto: '`charge()` cobra', regiao_id: 'cofre', ligacao: 'dependencia' },
+      { id: 'recebe', texto: 'o handler recebe', regiao_id: 'api' },
+      { id: 'grava', texto: 'INSERT grava', regiao_id: 'livro', ligacao: 'consulta' },
+    ],
+    gabarito: ['recebe', 'cobra', 'grava'],
+  };
+  const expedicao = iniciarExpedicao('api', [fluxo]);
+
+  it('passo em região na Névoa mostra só o tipo da Ligação; os outros, o nome', () => {
+    montar(expedicao);
+    expect(screen.getAllByRole('menuitem').map((b) => b.textContent)).toEqual([
+      'charge() cobra',
+      'o handler recebe',
+      '??? (Consulta → região desconhecida)',
+      '⚔ ATACAR (confirmar a ordem)',
+      '↺ Recomeçar a ordem',
+    ]);
+    expect(screen.queryByText(/INSERT grava/)).toBeNull();
+  });
+
+  it('montar a ordem e atacar responde com a ordem', async () => {
+    const user = userEvent.setup();
+    const { onResponder } = montar(expedicao);
+    await user.click(screen.getByRole('menuitem', { name: 'o handler recebe' }));
+    await user.click(screen.getByRole('menuitem', { name: 'charge() cobra' }));
+    await user.click(screen.getByRole('menuitem', { name: /região desconhecida/ }));
+    await user.click(screen.getByRole('menuitem', { name: /ATACAR/ }));
+    expect(onResponder).toHaveBeenCalledWith(['recebe', 'cobra', 'grava']);
+  });
+
+  it('na correção mostra a ordem certa, marcando o que ficou fora do lugar, sem tirar a Névoa', () => {
+    montar(responderDesafio(expedicao, ['cobra', 'recebe', 'grava']));
+    const certa = screen.getByRole('list', { name: 'Ordem certa' });
+    expect([...certa.querySelectorAll('li')].map((li) => li.textContent)).toEqual([
+      '✘ o handler recebe',
+      '✘ charge() cobra',
+      '✔ ??? (Consulta → região desconhecida)',
+    ]);
+    expect(screen.getByRole('status').textContent).toMatch(/desviou/);
   });
 });
 

@@ -1,4 +1,4 @@
-import { conferirEvidencia } from '@quiz/jogo';
+import { conferirEvidencia, conferirOpcaoApontar, type OpcaoApontar } from '@quiz/jogo';
 import { describe, expect, it } from 'vitest';
 import { ARQUIVOS } from './arquivos.gerado.ts';
 import { DESAFIOS } from './desafios.ts';
@@ -37,6 +37,52 @@ describe('Desafios da Taverna', () => {
       expect(desafio.gabarito, desafio.id).toHaveLength(1);
       expect(desafio.opcoes.length, desafio.id).toBeGreaterThanOrEqual(3);
     }
+  });
+
+  it('Apontar no código aponta para arquivos e símbolos que existem no código da Taverna', () => {
+    for (const desafio of todos.filter((d) => d.formato === 'apontar')) {
+      expect(desafio.gabarito.length, desafio.id).toBeGreaterThanOrEqual(1);
+      expect(desafio.opcoes.length, desafio.id).toBeGreaterThan(desafio.gabarito.length);
+      for (const opcao of desafio.opcoes as OpcaoApontar[]) {
+        const onde = `${desafio.id} → ${opcao.caminho} ${opcao.simbolo ?? ''}`;
+        expect(conferirOpcaoApontar(ler, opcao), onde).toEqual({ ok: true });
+      }
+    }
+  });
+
+  it('Traçar o fluxo: o gabarito ordena todos os passos, que aparecem fora de ordem', () => {
+    const regioes = new Set(REGIOES.map((r) => r.id));
+    for (const desafio of todos.filter((d) => d.formato === 'tracar_fluxo')) {
+      const opcoes = desafio.opcoes.map((o) => o.id);
+      expect([...desafio.gabarito].sort(), desafio.id).toEqual([...opcoes].sort());
+      expect(desafio.gabarito, desafio.id).not.toEqual(opcoes);
+      for (const opcao of desafio.opcoes) {
+        expect('regiao_id' in opcao, desafio.id).toBe(true);
+        if ('regiao_id' in opcao && opcao.regiao_id !== null) {
+          expect(regioes, desafio.id).toContain(opcao.regiao_id);
+        }
+      }
+    }
+  });
+
+  it('passo de fluxo fora da região diz por qual Ligação o caminho sai (é o que a Névoa mostra)', () => {
+    for (const [regiaoId, desafios] of Object.entries(DESAFIOS)) {
+      for (const desafio of desafios.filter((d) => d.formato === 'tracar_fluxo')) {
+        for (const opcao of desafio.opcoes) {
+          if ('regiao_id' in opcao && opcao.regiao_id !== regiaoId) {
+            expect(opcao.ligacao, `${desafio.id} → ${opcao.id}`).toBeDefined();
+          }
+        }
+      }
+    }
+  });
+
+  it('a API de Pedidos tem os três Formatos, com Apontar e Traçar o fluxo de sobra', () => {
+    const api = DESAFIOS['api-pedidos'] ?? [];
+    const quantos = (formato: string) => api.filter((d) => d.formato === formato).length;
+    expect(quantos('multipla_escolha')).toBeGreaterThan(0);
+    expect(quantos('apontar')).toBeGreaterThanOrEqual(2);
+    expect(quantos('tracar_fluxo')).toBeGreaterThanOrEqual(2);
   });
 
   it('a API de Pedidos tem Desafios para uma Expedição inteira, do mais fácil ao mais difícil', () => {

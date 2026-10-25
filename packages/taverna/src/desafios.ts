@@ -1,8 +1,8 @@
 // Banco de Desafios do Tutorial, escritos à mão no formato `Desafio` do contrato (spec §9).
 // Como o mapa, os textos estão em português e concentrados aqui para a tradução vir depois; os
 // trechos das Evidências são cópia exata de codigo/ (o teste confere).
-// Por enquanto só a API de Pedidos tem Desafios, todos de Múltipla escolha; as outras regiões e os
-// outros Formatos de Desafio chegam nos próximos passos do Tutorial.
+// Por enquanto só a API de Pedidos tem Desafios; as outras regiões chegam nos próximos passos do
+// Tutorial. Nos de Traçar o fluxo, as opções vêm fora de ordem: é a ordem em que aparecem na tela.
 import type { Desafio } from '@quiz/jogo';
 
 /** Desafio do Tutorial: sempre com id, para a Aventura lembrar quais o Jogador já viu. */
@@ -256,6 +256,246 @@ const API_DE_PEDIDOS: readonly DesafioTaverna[] = [
           '      amount: order.total,\n' +
           '      memo: `Taverna do Slop order ${order.id} (${formatGold(order.total)})`,\n' +
           '    });',
+      },
+    ],
+  },
+  {
+    id: 'api-pedidos-onde-publica',
+    formato: 'apontar',
+    enunciado: 'Em qual função a API publica o evento `order.paid` para a cozinha?',
+    dificuldade: 2,
+    opcoes: [
+      { id: 'a', caminho: 'api/src/orders/service.ts', simbolo: 'createOrder' },
+      { id: 'b', caminho: 'api/src/routes/orders.ts', simbolo: 'createOrderHandler' },
+      { id: 'c', caminho: 'api/src/events/publisher.ts', simbolo: 'publishOrderPaid' },
+      { id: 'd', caminho: 'api/src/server.ts', simbolo: 'router' },
+    ],
+    gabarito: ['c'],
+    explicacao:
+      '`createOrder()` só chama; quem fala com o Redis é `publishOrderPaid()`, no `publisher.ts`: ' +
+      'ela publica o evento no canal `order.paid` e confere quantos ouviram.',
+    evidencias: [
+      {
+        caminho: 'api/src/events/publisher.ts',
+        linha_inicio: 10,
+        linha_fim: 12,
+        trecho:
+          'export async function publishOrderPaid(event: OrderPaidEvent): Promise<void> {\n' +
+          "  if (redis.status === 'wait') await redis.connect();\n" +
+          '  const receivers = await redis.publish(ORDER_PAID_CHANNEL, JSON.stringify(event));',
+      },
+    ],
+  },
+  {
+    id: 'api-pedidos-imposto-do-rei',
+    formato: 'apontar',
+    enunciado: 'Em qual função o "imposto do rei" é aplicado?',
+    dificuldade: 3,
+    opcoes: [
+      { id: 'a', caminho: 'api/src/routes/orders.ts', simbolo: 'createOrderHandler' },
+      { id: 'b', caminho: 'api/src/orders/service.ts', simbolo: 'validateOrder' },
+      { id: 'c', caminho: 'api/src/orders/coupons.ts', simbolo: 'applyCoupon' },
+      { id: 'd', caminho: 'shared/money.ts', simbolo: 'formatGold' },
+    ],
+    gabarito: ['b'],
+    explicacao:
+      'Apesar do nome, `validateOrder()` não só confere: no fim ela calcula `order.tax` com ' +
+      '`KINGS_TAX_RATE` e escreve o total no próprio pedido. Nome enganoso — leia o corpo, não a ' +
+      'assinatura.',
+    evidencias: [
+      {
+        caminho: 'api/src/orders/service.ts',
+        linha_inicio: 18,
+        linha_fim: 18,
+        trecho: 'export function validateOrder(order: DraftOrder): void {',
+      },
+      {
+        caminho: 'api/src/orders/service.ts',
+        linha_inicio: 29,
+        linha_fim: 30,
+        trecho:
+          '  order.tax = order.subtotal * KINGS_TAX_RATE;\n' +
+          '  order.total = order.subtotal + order.tax;',
+      },
+    ],
+  },
+  {
+    id: 'api-pedidos-onde-nasce-o-400',
+    formato: 'apontar',
+    enunciado:
+      'Aponte uma função que recusa um pedido malformado com 400, antes de qualquer cobrança.',
+    dificuldade: 3,
+    opcoes: [
+      { id: 'a', caminho: 'api/src/events/publisher.ts', simbolo: 'publishOrderPaid' },
+      { id: 'b', caminho: 'api/src/routes/orders.ts', simbolo: 'parseCreateOrder' },
+      { id: 'c', caminho: 'api/src/orders/coupons.ts', simbolo: 'findCoupon' },
+      { id: 'd', caminho: 'api/src/orders/service.ts', simbolo: 'validateOrder' },
+    ],
+    gabarito: ['b', 'd'],
+    explicacao:
+      'Duas respostas valem: `parseCreateOrder` recusa corpo sem `orderRef`, `customerName` ou ' +
+      '`lines`; `validateOrder()` recusa nome vazio, pedido vazio e quantidade fora de 1–20. As ' +
+      'duas lançam `badRequest` antes de `chargeOrder()`.',
+    evidencias: [
+      {
+        caminho: 'api/src/routes/orders.ts',
+        linha_inicio: 7,
+        linha_fim: 12,
+        trecho:
+          'function parseCreateOrder(body: unknown): CreateOrderRequest {\n' +
+          "  if (typeof body !== 'object' || body === null) {\n" +
+          "    throw badRequest('Expected a JSON object');\n" +
+          '  }\n' +
+          '  const { orderRef, customerName, lines } = body as Record<string, unknown>;\n' +
+          "  if (typeof orderRef !== 'string' || orderRef.length === 0) {",
+      },
+      {
+        caminho: 'api/src/orders/service.ts',
+        linha_inicio: 18,
+        linha_fim: 22,
+        trecho:
+          'export function validateOrder(order: DraftOrder): void {\n' +
+          '  if (order.customerName.trim().length === 0) {\n' +
+          "    throw badRequest('Every order needs a name to call out');\n" +
+          '  }\n' +
+          "  if (order.lines.length === 0) throw badRequest('The order is empty');",
+      },
+    ],
+  },
+  {
+    id: 'api-pedidos-fluxo-post-orders',
+    formato: 'tracar_fluxo',
+    enunciado: 'Ordene o que acontece depois que `POST /orders` chega à API:',
+    dificuldade: 4,
+    opcoes: [
+      {
+        id: 'cobra',
+        texto: '`chargeOrder()` cobra o total do pedido',
+        regiao_id: 'api-pedidos',
+      },
+      {
+        id: 'publica',
+        texto: 'A cozinha recebe o evento `order.paid`',
+        regiao_id: 'fogao',
+        ligacao: 'evento',
+      },
+      {
+        id: 'recebe',
+        texto: '`createOrderHandler` recebe o pedido e confere o corpo',
+        regiao_id: 'api-pedidos',
+      },
+      {
+        id: 'grava',
+        texto: '`INSERT INTO orders` grava o pedido como `paid`',
+        regiao_id: 'livro-registros',
+        ligacao: 'consulta',
+      },
+      {
+        id: 'imposto',
+        texto: '`validateOrder()` aplica o imposto do rei',
+        regiao_id: 'api-pedidos',
+      },
+    ],
+    gabarito: ['recebe', 'imposto', 'cobra', 'grava', 'publica'],
+    explicacao:
+      'O handler confere o corpo e chama `createOrder()`, que valida (e aplica o imposto), cobra, ' +
+      'grava o pedido já pago e só então publica o evento. Os dois últimos passos saem da região ' +
+      'por uma Consulta e por um Evento: revele a API de Pedidos para ver aonde eles vão.',
+    evidencias: [
+      {
+        caminho: 'api/src/routes/orders.ts',
+        linha_inicio: 32,
+        linha_fim: 34,
+        trecho:
+          'export const createOrderHandler: Handler = async (req) => {\n' +
+          '  const request = parseCreateOrder(req.body);\n' +
+          '  const order = await createOrder(request);',
+      },
+      {
+        caminho: 'api/src/orders/service.ts',
+        linha_inicio: 75,
+        linha_fim: 82,
+        trecho:
+          '  validateOrder(order);\n' +
+          '\n' +
+          '  const receipt = await chargeOrder(order);\n' +
+          '  console.log(`Vault receipt ${receipt.receiptId} for order ${order.id}`);\n' +
+          '\n' +
+          "  const saved = await insertOrder({ ...order, status: 'paid' });\n" +
+          '\n' +
+          '  await publishOrderPaid({',
+      },
+    ],
+  },
+  {
+    id: 'api-pedidos-fluxo-antes-de-cobrar',
+    formato: 'tracar_fluxo',
+    enunciado: 'Ordene o que `createOrder()` faz com o pedido antes de cobrar:',
+    dificuldade: 5,
+    opcoes: [
+      {
+        id: 'valida',
+        texto: '`validateOrder()` confere as quantidades e calcula o total',
+        regiao_id: 'api-pedidos',
+      },
+      {
+        id: 'soma',
+        texto: '`sumLines()`, do Grimório, soma o subtotal',
+        regiao_id: 'grimorio',
+        ligacao: 'dependencia',
+      },
+      {
+        id: 'busca',
+        texto: '`findItemsByIds()` busca no banco os itens e seus preços',
+        regiao_id: 'livro-registros',
+        ligacao: 'consulta',
+      },
+      {
+        id: 'cobra',
+        texto: '`chargeOrder()` cobra o total',
+        regiao_id: 'api-pedidos',
+      },
+      {
+        id: 'confere',
+        texto: '`priceLines()` recusa item desconhecido ou fora do cardápio',
+        regiao_id: 'api-pedidos',
+      },
+    ],
+    gabarito: ['busca', 'confere', 'soma', 'valida', 'cobra'],
+    explicacao:
+      '`priceLines()` primeiro busca os itens no banco e só depois confere cada linha (400 para ' +
+      'item desconhecido, 409 para fora do cardápio). Com as linhas prontas, o subtotal sai de ' +
+      '`sumLines()`; `validateOrder()` vem depois e escreve o total que `chargeOrder()` cobra.',
+    evidencias: [
+      {
+        caminho: 'api/src/orders/service.ts',
+        linha_inicio: 33,
+        linha_fim: 36,
+        trecho:
+          'async function priceLines(request: CreateOrderRequest): Promise<OrderLine[]> {\n' +
+          '  const ids = request.lines.map((line) => line.itemId);\n' +
+          '  const items = await findItemsByIds(ids);\n' +
+          '  const byId = new Map(items.map((item) => [item.id, item]));',
+      },
+      {
+        caminho: 'api/src/orders/service.ts',
+        linha_inicio: 64,
+        linha_fim: 77,
+        trecho:
+          'export async function createOrder(request: CreateOrderRequest): Promise<Order> {\n' +
+          '  const lines = await priceLines(request);\n' +
+          '  const order: DraftOrder = {\n' +
+          '    id: request.orderRef,\n' +
+          '    customerName: request.customerName,\n' +
+          '    lines,\n' +
+          '    subtotal: sumLines(lines),\n' +
+          '    tax: 0,\n' +
+          '    total: 0,\n' +
+          '  };\n' +
+          '\n' +
+          '  validateOrder(order);\n' +
+          '\n' +
+          '  const receipt = await chargeOrder(order);',
       },
     ],
   },

@@ -65,6 +65,7 @@ export function Tutorial() {
     tela = (
       <Batalha
         expedicao={expedicao}
+        estados={aventura.mapa.estados}
         nomeRegiao={nomeDaRegiao(expedicao.regiaoId)}
         heroi={classe?.sprite ?? 'heroi'}
         onResponder={(resposta) => despachar({ tipo: 'responder', resposta })}

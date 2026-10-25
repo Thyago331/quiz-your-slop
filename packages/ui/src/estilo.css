@@ -405,6 +405,43 @@
   color: var(--px-erro);
   text-decoration: line-through;
 }
+/* Apontar no código: as opções são lugares do código */
+.menu--codigo .menu-item code,
+.lugar-no-codigo code {
+  font-size: 16px;
+}
+.menu--codigo .menu-item[data-cursor='true'] code {
+  color: var(--px-ouro);
+}
+
+/* Traçar o fluxo: a ordem escolhida e o monte de passos */
+.fluxo-ordem,
+.opcoes-corrigidas.fluxo-ordem {
+  list-style: decimal;
+  margin: 4px 0 8px;
+  padding-left: 2.4em;
+}
+.fluxo-vazia {
+  margin: 4px 0 8px 1em;
+}
+.fluxo-acoes {
+  margin-top: 8px;
+}
+/* Dois menus na tela: só o que tem o foco mostra o cursor ▶. */
+.fluxo .menu:not(:focus-within) .menu-item[data-cursor='true']:not(:hover) {
+  color: var(--px-texto);
+}
+.fluxo .menu:not(:focus-within) .menu-item[data-cursor='true']::before {
+  content: none;
+}
+.passo--nevoa {
+  color: var(--px-nevoa);
+  font-style: italic;
+  letter-spacing: 1px;
+}
+.opcao--fora {
+  color: var(--px-erro);
+}
 
 /* Evidência em pergaminho: código em monoespaçada normal (spec §13) */
 .evidencia {

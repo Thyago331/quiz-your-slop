@@ -16,10 +16,13 @@ export type {
 } from './contrato.ts';
 export {
   conferirEvidencia,
+  conferirOpcaoApontar,
   type LerArquivo,
   type MotivoEvidenciaInvalida,
   type ResultadoEvidencia,
+  type ResultadoOpcaoApontar,
 } from './evidencia.ts';
+export { passoDoFluxo, type PassoNaTela } from './fluxo.ts';
 export {
   iniciarMapa,
   progresso,
@@ -49,6 +52,7 @@ export {
   type Aleatorio,
   type Expedicao,
   type FaseExpedicao,
+  type OpcoesDaEscolha,
   type RespostaDada,
   type ResultadoExpedicao,
 } from './expedicao.ts';

@@ -33,9 +33,64 @@ describe('corrigir — Múltipla escolha', () => {
   });
 });
 
-describe('corrigir — formatos ainda sem correção', () => {
-  it('recusa Apontar no código e Traçar o fluxo em vez de corrigir errado', () => {
-    expect(() => corrigir({ ...multipla, formato: 'apontar' }, ['b'])).toThrow(/apontar/);
-    expect(() => corrigir({ ...multipla, formato: 'tracar_fluxo' }, ['b'])).toThrow(/tracar_fluxo/);
+const apontar: Desafio = {
+  id: 'd2',
+  formato: 'apontar',
+  enunciado: 'Onde um pedido inválido vira 400?',
+  dificuldade: 3,
+  opcoes: [
+    { id: 'a', caminho: 'api/src/routes/orders.ts', simbolo: 'parseCreateOrder' },
+    { id: 'b', caminho: 'api/src/orders/service.ts', simbolo: 'validateOrder' },
+    { id: 'c', caminho: 'api/src/events/publisher.ts' },
+  ],
+  gabarito: ['a', 'b'],
+  explicacao: '…',
+  evidencias: multipla.evidencias,
+};
+
+describe('corrigir — Apontar no código', () => {
+  it('acerta quem aponta qualquer uma das opções aceitas', () => {
+    expect(corrigir(apontar, ['a'])).toBe(true);
+    expect(corrigir(apontar, ['b'])).toBe(true);
+  });
+
+  it('erra quem aponta um distrator', () => {
+    expect(corrigir(apontar, ['c'])).toBe(false);
+  });
+
+  it('aponta-se um lugar só: várias opções, ou nenhuma, é erro', () => {
+    expect(corrigir(apontar, ['a', 'b'])).toBe(false);
+    expect(corrigir(apontar, [])).toBe(false);
+  });
+});
+
+const fluxo: Desafio = {
+  id: 'd3',
+  formato: 'tracar_fluxo',
+  enunciado: 'Ordene o que acontece depois que `POST /orders` chega:',
+  dificuldade: 4,
+  opcoes: [
+    { id: 'cobra', texto: 'cobra', regiao_id: 'api' },
+    { id: 'recebe', texto: 'recebe', regiao_id: 'api' },
+    { id: 'grava', texto: 'grava', regiao_id: null, ligacao: 'consulta' },
+  ],
+  gabarito: ['recebe', 'cobra', 'grava'],
+  explicacao: '…',
+  evidencias: multipla.evidencias,
+};
+
+describe('corrigir — Traçar o fluxo', () => {
+  it('acerta quem põe todos os passos na ordem do gabarito', () => {
+    expect(corrigir(fluxo, ['recebe', 'cobra', 'grava'])).toBe(true);
+  });
+
+  it('erra quem troca a ordem de algum passo', () => {
+    expect(corrigir(fluxo, ['cobra', 'recebe', 'grava'])).toBe(false);
+  });
+
+  it('a ordem precisa ser completa: faltar ou repetir passo é erro', () => {
+    expect(corrigir(fluxo, ['recebe', 'cobra'])).toBe(false);
+    expect(corrigir(fluxo, ['recebe', 'cobra', 'grava', 'grava'])).toBe(false);
+    expect(corrigir(fluxo, [])).toBe(false);
   });
 });

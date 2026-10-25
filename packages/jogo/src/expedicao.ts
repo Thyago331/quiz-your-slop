@@ -1,6 +1,6 @@
 // A Expedição: uma batalha contra o Guardião da região (spec §3, §13). Imutável, como o mapa: cada
 // passo devolve outra Expedição, e o objeto inteiro é serializável.
-import type { Desafio } from './contrato.ts';
+import type { Desafio, FormatoDesafio } from './contrato.ts';
 import { corrigir, type Resposta } from './correcao.ts';
 import { CALIBRAGEM_PADRAO, type Calibragem } from './progressao.ts';
 
@@ -122,20 +122,57 @@ function embaralhar<T>(itens: readonly T[], aleatorio: Aleatorio): T[] {
   return copia;
 }
 
+export type OpcoesDaEscolha = {
+  /** Normalmente 5 (spec §5). */
+  quantidade?: number;
+  aleatorio?: Aleatorio;
+  /** A região tem Ligações: a Expedição precisa de um Traçar o fluxo. */
+  temLigacoes?: boolean;
+};
+
+/**
+ * Mistura mínima (contrato, Validação 4): falta um Formato exigido e o banco tem um → ele entra no
+ * lugar do último sorteado que não seja o único de outro Formato exigido.
+ */
+function garantirMistura(
+  escolhidos: Desafio[],
+  prioridade: readonly Desafio[],
+  exigidos: readonly FormatoDesafio[],
+): Desafio[] {
+  const resultado = [...escolhidos];
+  const quantosDe = (formato: FormatoDesafio) =>
+    resultado.filter((d) => d.formato === formato).length;
+  for (const formato of exigidos) {
+    if (quantosDe(formato) > 0) continue;
+    const candidato = prioridade.find((d) => d.formato === formato && !resultado.includes(d));
+    if (!candidato) continue;
+    let k = resultado.length - 1;
+    while (k >= 0) {
+      const atual = resultado[k] as Desafio;
+      if (!exigidos.includes(atual.formato) || quantosDe(atual.formato) > 1) break;
+      k--;
+    }
+    if (k >= 0) resultado[k] = candidato;
+  }
+  return resultado;
+}
+
 /**
  * Os Desafios de uma nova tentativa: sorteia primeiro entre os ainda não vistos e completa com os
- * já vistos; a Expedição os enfrenta em dificuldade crescente (spec §5).
+ * já vistos, respeitando a mistura mínima de Formatos quando o banco permite; a Expedição os
+ * enfrenta em dificuldade crescente (spec §5).
  */
 export function escolherDesafios(
   banco: readonly Desafio[],
   vistos: readonly string[],
-  quantidade = 5,
-  aleatorio: Aleatorio = Math.random,
+  { quantidade = 5, aleatorio = Math.random, temLigacoes = false }: OpcoesDaEscolha = {},
 ): Desafio[] {
   const jaVistos = new Set(vistos);
   const novos = banco.filter((d) => !jaVistos.has(chaveDoDesafio(d)));
   const repetidos = banco.filter((d) => jaVistos.has(chaveDoDesafio(d)));
-  return [...embaralhar(novos, aleatorio), ...embaralhar(repetidos, aleatorio)]
-    .slice(0, quantidade)
-    .sort((a, b) => a.dificuldade - b.dificuldade);
+  const prioridade = [...embaralhar(novos, aleatorio), ...embaralhar(repetidos, aleatorio)];
+  const exigidos: FormatoDesafio[] = temLigacoes ? ['apontar', 'tracar_fluxo'] : ['apontar'];
+  return garantirMistura(prioridade.slice(0, quantidade), prioridade, exigidos).sort(
+    (a, b) => a.dificuldade - b.dificuldade,
+  );
 }

@@ -2,16 +2,26 @@
 import {
   desafioAtual,
   guardiaoDerrotado,
+  passoDoFluxo,
   vidasDoGuardiao,
   VIDAS_DO_GUARDIAO,
+  type Desafio,
   type Expedicao,
   type FormatoDesafio,
+  type MapaAventura,
+  type Opcao,
+  type OpcaoApontar,
+  type OpcaoTracarFluxo,
+  type PassoNaTela,
+  type RespostaDada,
   type ResultadoExpedicao,
 } from '@quiz/jogo';
 import { Barra } from './Barra.tsx';
 import { EvidenciaNaTela, Texto } from './Codigo.tsx';
 import { Janela } from './Janela.tsx';
+import { ROTULO_LIGACAO } from './MapaMundi.tsx';
 import { Menu } from './Menu.tsx';
+import { OrdemDoFluxo } from './OrdemDoFluxo.tsx';
 import { Sprite } from './Sprite.tsx';
 import type { NomeSprite } from './sprites.ts';
 
@@ -21,9 +31,53 @@ export const ROTULO_FORMATO: Readonly<Record<FormatoDesafio, string>> = {
   tracar_fluxo: 'Traçar o fluxo',
 };
 
+/** O passo como a tela o mostra: na Névoa, só o tipo da Ligação por onde o caminho sai (spec §5). */
+export function textoDoPasso(passo: PassoNaTela): string {
+  if (!passo.naNevoa) return passo.texto;
+  return passo.ligacao
+    ? `??? (${ROTULO_LIGACAO[passo.ligacao]} → região desconhecida)`
+    : '??? (região desconhecida)';
+}
+
+/** Apontar no código: o arquivo, e a função quando há. */
+function LugarNoCodigo({ opcao }: { opcao: OpcaoApontar }) {
+  return (
+    <span className="lugar-no-codigo">
+      <code>{opcao.caminho}</code>
+      {opcao.simbolo && (
+        <>
+          {' → '}
+          <code>{opcao.simbolo}</code>
+        </>
+      )}
+    </span>
+  );
+}
+
+function RotuloDaOpcao({
+  desafio,
+  opcao,
+  estados,
+}: {
+  desafio: Desafio;
+  opcao: Opcao;
+  estados: MapaAventura['estados'];
+}) {
+  switch (desafio.formato) {
+    case 'apontar':
+      return <LugarNoCodigo opcao={opcao as OpcaoApontar} />;
+    case 'tracar_fluxo':
+      return <Texto>{textoDoPasso(passoDoFluxo(opcao as OpcaoTracarFluxo, estados))}</Texto>;
+    case 'multipla_escolha':
+      return <Texto>{'texto' in opcao ? opcao.texto : opcao.id}</Texto>;
+  }
+}
+
 type BatalhaProps = {
   /** Em jogo: respondendo ou corrigido (a encerrada vira ResumoExpedicao). */
   expedicao: Expedicao;
+  /** Os estados do mapa: passos de fluxo em região na Névoa não mostram o nome. */
+  estados: MapaAventura['estados'];
   nomeRegiao: string;
   heroi: NomeSprite;
   onResponder: (resposta: string[]) => void;
@@ -31,7 +85,14 @@ type BatalhaProps = {
 };
 
 /** A Expedição como batalha contra o Guardião da região (variante D, spec §13). */
-export function Batalha({ expedicao, nomeRegiao, heroi, onResponder, onAvancar }: BatalhaProps) {
+export function Batalha({
+  expedicao,
+  estados,
+  nomeRegiao,
+  heroi,
+  onResponder,
+  onAvancar,
+}: BatalhaProps) {
   const desafio = desafioAtual(expedicao);
   const numero = expedicao.atual + 1;
   const resposta =
@@ -66,31 +127,35 @@ export function Batalha({ expedicao, nomeRegiao, heroi, onResponder, onAvancar }
         </p>
 
         {!resposta ? (
-          <Menu
-            key={desafio.id ?? numero}
-            rotulo="Opções"
-            autoFoco
-            itens={desafio.opcoes.map((o) => ({
-              id: o.id,
-              rotulo: <Texto>{'texto' in o ? o.texto : o.caminho}</Texto>,
-            }))}
-            onEscolher={(id) => onResponder([id])}
-          />
+          desafio.formato === 'tracar_fluxo' ? (
+            <OrdemDoFluxo
+              key={desafio.id ?? numero}
+              passos={desafio.opcoes.map((o) => {
+                const passo = passoDoFluxo(o as OpcaoTracarFluxo, estados);
+                return {
+                  id: o.id,
+                  rotulo: <Texto>{textoDoPasso(passo)}</Texto>,
+                  naNevoa: passo.naNevoa,
+                };
+              })}
+              onConfirmar={onResponder}
+            />
+          ) : (
+            <Menu
+              key={desafio.id ?? numero}
+              rotulo="Opções"
+              autoFoco
+              className={desafio.formato === 'apontar' ? 'menu--codigo' : undefined}
+              itens={desafio.opcoes.map((o) => ({
+                id: o.id,
+                rotulo: <RotuloDaOpcao desafio={desafio} opcao={o} estados={estados} />,
+              }))}
+              onEscolher={(id) => onResponder([id])}
+            />
+          )
         ) : (
           <>
-            <ul className="opcoes-corrigidas">
-              {desafio.opcoes.map((o) => {
-                const certa = desafio.gabarito.includes(o.id);
-                const escolhida = resposta.resposta.includes(o.id);
-                const classe = certa ? 'opcao--certa' : escolhida ? 'opcao--errada' : undefined;
-                return (
-                  <li key={o.id} className={classe}>
-                    {certa ? '✔ ' : escolhida ? '✘ ' : '· '}
-                    <Texto>{'texto' in o ? o.texto : o.caminho}</Texto>
-                  </li>
-                );
-              })}
-            </ul>
+            <OpcoesCorrigidas desafio={desafio} resposta={resposta} estados={estados} />
             <p role="status" className={resposta.acertou ? 'texto-ok' : 'texto-erro'}>
               {resposta.acertou
                 ? 'ACERTOU! O Guardião sofreu dano.'
@@ -113,6 +178,52 @@ export function Batalha({ expedicao, nomeRegiao, heroi, onResponder, onAvancar }
         )}
       </Janela>
     </div>
+  );
+}
+
+/** Depois da correção: a certa (ou a ordem certa) marcada ✔, e o que o Jogador errou ✘. */
+function OpcoesCorrigidas({
+  desafio,
+  resposta,
+  estados,
+}: {
+  desafio: Desafio;
+  resposta: RespostaDada;
+  estados: MapaAventura['estados'];
+}) {
+  if (desafio.formato === 'tracar_fluxo') {
+    return (
+      <>
+        <div className="texto-apagado">Ordem certa:</div>
+        <ol className="opcoes-corrigidas fluxo-ordem" aria-label="Ordem certa">
+          {desafio.gabarito.map((id, k) => {
+            const opcao = desafio.opcoes.find((o) => o.id === id);
+            const noLugar = resposta.resposta[k] === id;
+            return (
+              <li key={id} className={noLugar ? 'opcao--certa' : 'opcao--fora'}>
+                {noLugar ? '✔ ' : '✘ '}
+                {opcao && <RotuloDaOpcao desafio={desafio} opcao={opcao} estados={estados} />}
+              </li>
+            );
+          })}
+        </ol>
+      </>
+    );
+  }
+  return (
+    <ul className="opcoes-corrigidas">
+      {desafio.opcoes.map((o) => {
+        const certa = desafio.gabarito.includes(o.id);
+        const escolhida = resposta.resposta.includes(o.id);
+        const classe = certa ? 'opcao--certa' : escolhida ? 'opcao--errada' : undefined;
+        return (
+          <li key={o.id} className={classe}>
+            {certa ? '✔ ' : escolhida ? '✘ ' : '· '}
+            <RotuloDaOpcao desafio={desafio} opcao={o} estados={estados} />
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

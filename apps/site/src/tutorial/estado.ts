@@ -69,14 +69,23 @@ export function podePartir(estado: EstadoTutorial, regiaoId: string): boolean {
   return emExpedicao(estado, regiaoId) && temDesafios(regiaoId);
 }
 
-/** Sorteia os 5 Desafios da tentativa, preferindo os que o Jogador ainda não viu na região. */
+const temLigacoes = (regiaoId: string) =>
+  ESTRUTURA.ligacoes.some((l) => l.origem === regiaoId || l.destino === regiaoId);
+
+/**
+ * Sorteia os 5 Desafios da tentativa, preferindo os que o Jogador ainda não viu na região e
+ * respeitando a mistura mínima de Formatos.
+ */
 export function desafiosParaPartir(
   estado: EstadoTutorial,
   regiaoId: string,
   aleatorio: Aleatorio = Math.random,
 ): Desafio[] {
   const vistos = estado.aventura?.vistos[regiaoId] ?? [];
-  return escolherDesafios(DESAFIOS[regiaoId] ?? [], vistos, 5, aleatorio);
+  return escolherDesafios(DESAFIOS[regiaoId] ?? [], vistos, {
+    aleatorio,
+    temLigacoes: temLigacoes(regiaoId),
+  });
 }
 
 const saidasDaNevoa = (antes: MapaAventura, depois: MapaAventura) =>

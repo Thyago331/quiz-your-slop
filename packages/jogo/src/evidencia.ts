@@ -1,4 +1,4 @@
-import type { Evidencia } from './contrato.ts';
+import type { Evidencia, OpcaoApontar } from './contrato.ts';
 
 export type MotivoEvidenciaInvalida =
   'arquivo_inexistente' | 'intervalo_invalido' | 'fora_do_arquivo' | 'trecho_diferente';
@@ -37,4 +37,23 @@ export function conferirEvidencia(lerArquivo: LerArquivo, ev: Evidencia): Result
     return { ok: false, motivo: 'trecho_diferente' };
   }
   return { ok: true };
+}
+
+export type ResultadoOpcaoApontar =
+  { ok: true } | { ok: false; motivo: 'arquivo_inexistente' | 'simbolo_inexistente' };
+
+/**
+ * Regra 2, para Apontar no código: a opção aponta para um arquivo que existe e, se traz símbolo,
+ * ele aparece no arquivo como nome inteiro (não como pedaço de outro identificador).
+ */
+export function conferirOpcaoApontar(
+  lerArquivo: LerArquivo,
+  opcao: OpcaoApontar,
+): ResultadoOpcaoApontar {
+  const conteudo = lerArquivo(opcao.caminho);
+  if (conteudo === undefined) return { ok: false, motivo: 'arquivo_inexistente' };
+  if (opcao.simbolo === undefined) return { ok: true };
+  const escapado = opcao.simbolo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const nomeInteiro = new RegExp(`(?<![\\w$])${escapado}(?![\\w$])`);
+  return nomeInteiro.test(conteudo) ? { ok: true } : { ok: false, motivo: 'simbolo_inexistente' };
 }

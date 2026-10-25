@@ -29,6 +29,8 @@ function desafio(id: string, caminho = `api/${id}.ts`, dificuldade: Desafio['dif
     evidencias: [{ caminho, linha_inicio: 1, linha_fim: 1, trecho: 'x' }],
   } satisfies Desafio;
 }
+/** O mesmo Desafio, noutro Formato (o gabarito continua 'certa'). */
+const em = (formato: Desafio['formato'], d: Desafio): Desafio => ({ ...d, formato });
 const cinco = ['d1', 'd2', 'd3', 'd4', 'd5'].map((id) => desafio(id));
 
 /** Responde e avança: o ritmo normal de uma Expedição. */
@@ -163,7 +165,7 @@ describe('escolherDesafios', () => {
   const primeiro = () => 0;
 
   it('traz a quantidade pedida, em dificuldade crescente', () => {
-    const escolhidos = escolherDesafios(banco, [], 5, primeiro);
+    const escolhidos = escolherDesafios(banco, [], { aleatorio: primeiro });
     expect(escolhidos).toHaveLength(5);
     const dificuldades = escolhidos.map((d) => d.dificuldade);
     expect(dificuldades).toEqual([...dificuldades].sort((a, b) => a - b));
@@ -171,25 +173,93 @@ describe('escolherDesafios', () => {
 
   it('prefere os Desafios ainda não vistos e completa com os já vistos', () => {
     const vistos = ['f3', 'f1', 'f5', 'f2'];
-    const escolhidos = ids(escolherDesafios(banco, vistos, 5, primeiro));
+    const escolhidos = ids(escolherDesafios(banco, vistos, { aleatorio: primeiro }));
     expect(escolhidos).toEqual(expect.arrayContaining(['f4', 'f2b', 'f1b']));
     expect(escolhidos.filter((id) => vistos.includes(id!))).toHaveLength(2);
   });
 
   it('com o banco menor que a quantidade, traz o banco todo', () => {
-    expect(escolherDesafios(banco.slice(0, 3), [], 5, primeiro)).toHaveLength(3);
+    expect(escolherDesafios(banco.slice(0, 3), [], { aleatorio: primeiro })).toHaveLength(3);
   });
 
   it('o sorteio decide quais entram quando há sobra', () => {
     const ultimo = () => 0.999;
-    expect(ids(escolherDesafios(banco, [], 2, primeiro))).not.toEqual(
-      ids(escolherDesafios(banco, [], 2, ultimo)),
+    expect(ids(escolherDesafios(banco, [], { quantidade: 2, aleatorio: primeiro }))).not.toEqual(
+      ids(escolherDesafios(banco, [], { quantidade: 2, aleatorio: ultimo })),
     );
   });
 
   it('não altera o banco recebido', () => {
     const copia = structuredClone(banco);
-    escolherDesafios(banco, ['f1'], 5);
+    escolherDesafios(banco, ['f1'], { temLigacoes: true });
     expect(banco).toEqual(copia);
+  });
+
+  describe('mistura mínima (contrato, Validação 4)', () => {
+    const formatos = (desafios: readonly Desafio[]) => desafios.map((d) => d.formato);
+    // j = i no embaralhamento: a prioridade fica exatamente na ordem do banco.
+    const naOrdem = () => 0.999;
+    // Só Múltipla escolha nos primeiros do banco: o sorteio "na ordem" deixaria os outros de fora.
+    const misturado = [
+      desafio('m1', 'f', 1),
+      desafio('m2', 'f', 2),
+      desafio('m3', 'f', 3),
+      desafio('m4', 'f', 4),
+      desafio('m5', 'f', 5),
+      em('apontar', desafio('a1', 'f', 2)),
+      em('tracar_fluxo', desafio('t1', 'f', 4)),
+      em('tracar_fluxo', desafio('t2', 'f', 5)),
+    ];
+
+    it('sempre ao menos um Apontar no código, quando o banco tem', () => {
+      const escolhidos = escolherDesafios(misturado, [], { aleatorio: naOrdem });
+      expect(escolhidos).toHaveLength(5);
+      expect(formatos(escolhidos)).toContain('apontar');
+      expect(formatos(escolhidos)).not.toContain('tracar_fluxo');
+    });
+
+    it('ao menos um Traçar o fluxo quando a região tem Ligações', () => {
+      const escolhidos = escolherDesafios(misturado, [], { aleatorio: naOrdem, temLigacoes: true });
+      expect(escolhidos).toHaveLength(5);
+      expect(formatos(escolhidos).filter((f) => f === 'apontar')).toHaveLength(1);
+      expect(formatos(escolhidos).filter((f) => f === 'tracar_fluxo')).toHaveLength(1);
+    });
+
+    it('a troca tira o último sorteado, nunca o único de outro Formato exigido', () => {
+      const vistos = ['m1'];
+      const escolhidos = ids(
+        escolherDesafios(misturado, vistos, { aleatorio: naOrdem, temLigacoes: true }),
+      );
+      // Prioridade: m2 m3 m4 m5 a1 (não vistos) e depois t1 t2 m1. O Traçar o fluxo entra no lugar
+      // de m5, não de a1.
+      expect(escolhidos).toEqual(['m2', 'a1', 'm3', 'm4', 't1']);
+    });
+
+    it('continua em dificuldade crescente depois das trocas', () => {
+      const escolhidos = escolherDesafios(misturado, [], { aleatorio: naOrdem, temLigacoes: true });
+      const dificuldades = escolhidos.map((d) => d.dificuldade);
+      expect(dificuldades).toEqual([...dificuldades].sort((a, b) => a - b));
+    });
+
+    it('sem o Formato no banco, a Expedição sai sem ele', () => {
+      const soMultipla = misturado.filter((d) => d.formato === 'multipla_escolha');
+      const escolhidos = escolherDesafios(soMultipla, [], { temLigacoes: true });
+      expect(formatos(escolhidos)).toEqual(Array(5).fill('multipla_escolha'));
+    });
+
+    it('a troca não tira o único representante de outro Formato exigido', () => {
+      const banco = [
+        em('apontar', desafio('a1', 'f', 1)),
+        desafio('m1', 'f', 2),
+        em('tracar_fluxo', desafio('t1', 'f', 3)),
+      ];
+      const escolhidos = escolherDesafios(banco, [], {
+        quantidade: 1,
+        aleatorio: naOrdem,
+        temLigacoes: true,
+      });
+      // Com um Desafio só não cabem os dois; fica o primeiro sorteado.
+      expect(ids(escolhidos)).toEqual(['a1']);
+    });
   });
 });

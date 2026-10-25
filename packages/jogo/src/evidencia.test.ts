@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { conferirEvidencia } from './evidencia.ts';
+import { conferirEvidencia, conferirOpcaoApontar } from './evidencia.ts';
 
 const arquivos: Record<string, string> = {
   'api/service.ts': 'function a() {\n  return 1;\n}\n\nexport { a };\n',
@@ -57,5 +57,37 @@ describe('conferirEvidencia', () => {
       trecho: 'functiona() {',
     };
     expect(conferirEvidencia(ler, ev)).toEqual({ ok: false, motivo: 'trecho_diferente' });
+  });
+});
+
+describe('conferirOpcaoApontar', () => {
+  const codigo: Record<string, string> = {
+    'api/orders.ts': 'export const createOrderHandler = async () => {};\nfunction $parse() {}\n',
+  };
+  const lerCodigo = (caminho: string) => codigo[caminho];
+
+  it('aceita arquivo existente, com ou sem símbolo que aparece nele', () => {
+    expect(conferirOpcaoApontar(lerCodigo, { id: 'a', caminho: 'api/orders.ts' })).toEqual({
+      ok: true,
+    });
+    const comSimbolo = { id: 'a', caminho: 'api/orders.ts', simbolo: 'createOrderHandler' };
+    expect(conferirOpcaoApontar(lerCodigo, comSimbolo)).toEqual({ ok: true });
+    const comCifrao = { id: 'a', caminho: 'api/orders.ts', simbolo: '$parse' };
+    expect(conferirOpcaoApontar(lerCodigo, comCifrao)).toEqual({ ok: true });
+  });
+
+  it('recusa arquivo inexistente', () => {
+    expect(conferirOpcaoApontar(lerCodigo, { id: 'a', caminho: 'api/nada.ts' })).toEqual({
+      ok: false,
+      motivo: 'arquivo_inexistente',
+    });
+  });
+
+  it('recusa símbolo que não está no arquivo — nem como pedaço de outro nome', () => {
+    for (const simbolo of ['validateOrder', 'createOrder', 'parse']) {
+      expect(
+        conferirOpcaoApontar(lerCodigo, { id: 'a', caminho: 'api/orders.ts', simbolo }),
+      ).toEqual({ ok: false, motivo: 'simbolo_inexistente' });
+    }
   });
 });

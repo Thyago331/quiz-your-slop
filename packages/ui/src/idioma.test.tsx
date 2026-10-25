@@ -15,7 +15,8 @@ import { SeletorDeIdioma } from './SeletorDeIdioma.tsx';
 const em = (idioma: Idioma, filho: ReactNode) =>
   render(<IdiomaDaInterface idioma={idioma}>{filho}</IdiomaDaInterface>);
 
-// O Desafio fica em português: o conteúdo dos Desafios só se traduz no #30.
+// O Desafio fica em português: o conteúdo vem pronto de quem o escreveu (Mestre ou Taverna); a
+// interface só traduz o que é dela.
 const desafio: Desafio = {
   id: 'd1',
   formato: 'apontar',

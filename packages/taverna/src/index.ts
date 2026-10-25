@@ -12,6 +12,9 @@ export { mapaNoIdioma, type MapaNoIdioma } from './idioma.ts';
 export {
   DESAFIOS,
   DESAFIOS_TRADUZIDOS,
+  TEXTOS_TRADUZIDOS,
   desafiosDaRegiao,
   type DesafioTaverna,
+  type TextosDaRegiao,
+  type TextosDoDesafio,
 } from './desafios.ts';

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Desafio } from '@quiz/jogo';
-import { DESAFIOS } from '@quiz/taverna';
+import type { Desafio, Idioma } from '@quiz/jogo';
+import { DESAFIOS, DESAFIOS_TRADUZIDOS } from '@quiz/taverna';
 import {
   ESTADO_INICIAL,
   desafiosParaPartir,
@@ -97,16 +97,16 @@ describe('estado do Tutorial', () => {
   describe('Contestação roteirizada no Cofre do Anão', () => {
     // Backend vence a API de Pedidos e desbloqueia o Cofre.
     const comCofre = rodar([{ tipo: 'voltarAoMapa' }], batalhar(backend, [true, true, true, true]));
-    const partirNoCofre = (aleatorio = primeiro) => {
-      const desafios = desafiosParaPartir(comCofre, 'cofre-anao', aleatorio);
+    const partirNoCofre = (aleatorio = primeiro, idioma: Idioma = 'pt') => {
+      const desafios = desafiosParaPartir(comCofre, 'cofre-anao', aleatorio, idioma);
       return {
         desafios,
         estado: tutorial(comCofre, { tipo: 'partir', regiaoId: 'cofre-anao', desafios }),
       };
     };
     /** Joga até a isca, acertando o resto, e responde a isca com a resposta de verdade. */
-    function ateAIsca() {
-      const { desafios, estado } = partirNoCofre();
+    function ateAIsca(idioma: Idioma = 'pt') {
+      const { desafios, estado } = partirNoCofre(primeiro, idioma);
       const k = desafios.findIndex((d) => d.isca);
       let atual = estado;
       for (const desafio of desafios.slice(0, k)) {
@@ -144,6 +144,17 @@ describe('estado do Tutorial', () => {
       expect(contestado.expedicao?.respostas[k]?.contestacao?.evidencias[0]?.trecho).toMatch(
         /ledger\.push/,
       );
+    });
+
+    it('em inglês, a isca sai traduzida e a anulação explica em inglês', () => {
+      const isca = DESAFIOS_TRADUZIDOS.en['cofre-anao']?.find((d) => d.isca);
+      const { estado, desafios, k } = ateAIsca('en');
+      expect(desafios[k]?.enunciado).toBe(isca?.enunciado);
+      const contestado = tutorial(estado, { tipo: 'contestar', argumento: 'It lies.' });
+      expect(contestado.expedicao?.respostas[k]?.contestacao).toMatchObject({
+        veredito: 'anulado',
+        explicacao: isca?.anulacao?.explicacao,
+      });
     });
 
     it('a Contestação vencida dá o bônus de Caçador de Slop no fim da Expedição', () => {

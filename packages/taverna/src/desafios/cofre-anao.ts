@@ -280,8 +280,8 @@ export const COFRE_DO_ANAO: readonly DesafioTaverna[] = [
     ],
     gabarito: ['b', 'c'],
     explicacao:
-      'Duas respostas valem: `charge()` chama `sleep(VAULT_LATENCY_MS)` — 300 ms "contando as ' +
-      'moedas" — antes de montar o recibo. É o Cofre fingindo ser um serviço de pagamento de ' +
+      'Duas respostas valem, a função `sleep` e a constante `VAULT_LATENCY_MS`: `charge()` chama ' +
+      '`sleep(VAULT_LATENCY_MS)` — 300 ms "contando as moedas" — antes de montar o recibo. É o Cofre fingindo ser um serviço de pagamento de ' +
       'verdade, que sempre demora.',
     evidencias: [
       {

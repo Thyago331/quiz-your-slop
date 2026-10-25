@@ -1,7 +1,7 @@
 import NextLink from 'next/link';
 import type { Opcao } from '@quiz/jogo';
-import { ETIQUETA, IDIOMA_PADRAO, MENSAGENS } from '@quiz/i18n';
-import { DESAFIOS, desafiosDaRegiao } from '@quiz/taverna';
+import { MENSAGENS } from '@quiz/i18n';
+import { desafiosDaRegiao } from '@quiz/taverna';
 import { EvidenciaNaTela, Janela, Texto } from '@quiz/ui';
 import { auth } from '@/auth';
 import { caminhoDoLogin } from '@/i18n/caminhos';
@@ -25,11 +25,9 @@ export default async function VitrineDaTaverna() {
   const idioma = await idiomaDaRequisicao();
   const t = TAVERNA[idioma];
   // O primeiro Desafio da API de Pedidos (o mais fácil); é texto de exemplo, não uma Expedição.
-  const banco = desafiosDaRegiao(REGIAO_DO_EXEMPLO, idioma);
-  const exemplo = banco.find((d) => d.formato === 'multipla_escolha');
-  // Até o #30, fora do português o Desafio vem em português: avisado e marcado com lang.
-  const emPortugues = idioma !== IDIOMA_PADRAO && banco === DESAFIOS[REGIAO_DO_EXEMPLO];
-  const lang = emPortugues ? ETIQUETA[IDIOMA_PADRAO] : undefined;
+  const exemplo = desafiosDaRegiao(REGIAO_DO_EXEMPLO, idioma).find(
+    (d) => d.formato === 'multipla_escolha',
+  );
   const certas = new Set(exemplo?.gabarito);
   return (
     <article className={estilo.artigo}>
@@ -48,19 +46,16 @@ export default async function VitrineDaTaverna() {
           <p className={estilo.apagado}>
             {t.desafioTexto} {MENSAGENS[idioma].jogo.formatos[exemplo.formato]}
           </p>
-          {emPortugues && <p className={estilo.apagado}>{t.desafioEmPortugues}</p>}
-          <div lang={lang}>
-            <p className="desafio-enunciado">
-              <Texto>{exemplo.enunciado}</Texto>
-            </p>
-            <ul className={estilo.opcoes}>
-              {exemplo.opcoes.map((o) => (
-                <li key={o.id}>
-                  {o.id.toUpperCase()}) <Texto>{rotuloDaOpcao(o)}</Texto>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <p className="desafio-enunciado">
+            <Texto>{exemplo.enunciado}</Texto>
+          </p>
+          <ul className={estilo.opcoes}>
+            {exemplo.opcoes.map((o) => (
+              <li key={o.id}>
+                {o.id.toUpperCase()}) <Texto>{rotuloDaOpcao(o)}</Texto>
+              </li>
+            ))}
+          </ul>
           <details className={estilo.resposta}>
             <summary>{t.verResposta}</summary>
             <p className="texto-ok">
@@ -71,7 +66,7 @@ export default async function VitrineDaTaverna() {
                   <Texto key={o.id}>{`${o.id.toUpperCase()}) ${rotuloDaOpcao(o)}`}</Texto>
                 ))}
             </p>
-            <p lang={lang}>
+            <p>
               <Texto>{exemplo.explicacao}</Texto>
             </p>
             {exemplo.evidencias.map((ev) => (

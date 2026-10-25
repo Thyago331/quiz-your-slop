@@ -99,7 +99,7 @@ const temLigacoes = (regiaoId: string) =>
 /**
  * Sorteia os 5 Desafios da tentativa no idioma da tela, preferindo os que o Jogador ainda não viu
  * na região e respeitando a mistura mínima de Formatos. Os ids são os mesmos em todo idioma, então
- * trocar de idioma não faz rever Desafio. Até o #30, en e es sorteiam os em português.
+ * trocar de idioma não faz rever Desafio.
  */
 export function desafiosParaPartir(
   estado: EstadoTutorial,

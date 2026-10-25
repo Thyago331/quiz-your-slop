@@ -82,4 +82,5 @@ Os ids (`salao`, `cardapio`...) não mudam; só os nomes na tela.
 | Fogão               | Stove           | Fogón              |
 
 O código da Taverna (`packages/taverna/codigo/`) já é em inglês e não se traduz. Os Desafios da
-Taverna ainda são só em português; os de en/es chegam no #30.
+Taverna existem nos três idiomas: o português em `packages/taverna/src/desafios/`, os textos em
+inglês e espanhol em `desafios/en/` e `desafios/es/`, com as mesmas Evidências (o código não muda).

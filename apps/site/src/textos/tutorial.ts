@@ -19,8 +19,6 @@ const pt = {
   ajuda:
     '▶ Setas andam pelo mapa · Enter ou clique numa região desbloqueada parte em Expedição · Tab ' +
     'chega ao menu.',
-  /** Aparece quando os Desafios não estão no idioma da tela (até o #30). */
-  desafiosEmPortugues: 'Os Desafios do Tutorial estão em português.',
 };
 
 export const TUTORIAL: PorIdioma<typeof pt> = {
@@ -42,8 +40,6 @@ export const TUTORIAL: PorIdioma<typeof pt> = {
     ajuda:
       '▶ Arrows walk the map · Enter or a click on an unlocked region sets out on an Expedition · ' +
       'Tab reaches the menu.',
-    desafiosEmPortugues:
-      "The Tutorial's Challenges are still in Portuguese; English versions are on the way.",
   },
   es: {
     titulo: 'Tutorial — Taberna del Slop',
@@ -62,7 +58,5 @@ export const TUTORIAL: PorIdioma<typeof pt> = {
     ajuda:
       '▶ Las flechas recorren el mapa · Enter o un clic en una región desbloqueada parte en ' +
       'Expedición · Tab llega al menú.',
-    desafiosEmPortugues:
-      'Los Desafíos del Tutorial todavía están en portugués; la versión en español está en camino.',
   },
 };

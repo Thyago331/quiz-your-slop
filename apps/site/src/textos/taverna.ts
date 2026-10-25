@@ -46,8 +46,6 @@ const pt = {
   selecione: 'Escolha uma região do mapa para ver o que ela faz.',
   desafioTitulo: 'Um Desafio de exemplo',
   desafioTexto: 'Da API de Pedidos, a região de entrada do Cavaleiro do Backend ·',
-  /** Aparece quando o Desafio não está no idioma da página (os do Tutorial, até o #30). */
-  desafioEmPortugues: 'Os Desafios do Tutorial estão em português.',
   verResposta: 'Ver a resposta',
   gabarito: 'Gabarito:',
   convite: 'Pronto para enfrentar o Guardião?',
@@ -73,8 +71,6 @@ export const TAVERNA: PorIdioma<typeof pt> = {
     selecione: 'Pick a region on the map to see what it does.',
     desafioTitulo: 'A sample Challenge',
     desafioTexto: 'From the Orders API, the entry region of the Backend Knight ·',
-    desafioEmPortugues:
-      "The Tutorial's Challenges are still in Portuguese; English versions are on the way.",
     verResposta: 'Show the answer',
     gabarito: 'Answer key:',
     convite: 'Ready to face the Guardian?',
@@ -97,8 +93,6 @@ export const TAVERNA: PorIdioma<typeof pt> = {
     selecione: 'Elige una región del mapa para ver qué hace.',
     desafioTitulo: 'Un Desafío de ejemplo',
     desafioTexto: 'De la API de Pedidos, la región de entrada del Caballero del Backend ·',
-    desafioEmPortugues:
-      'Los Desafíos del Tutorial todavía están en portugués; la versión en español está en camino.',
     verResposta: 'Ver la respuesta',
     gabarito: 'Solución:',
     convite: '¿Listo para enfrentar al Guardián?',

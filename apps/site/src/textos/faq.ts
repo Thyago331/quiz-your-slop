@@ -131,7 +131,7 @@ export const PERGUNTAS: PorIdioma<Pergunta[]> = {
       pergunta: 'Em quais idiomas?',
       resposta:
         'Português, inglês e espanhol, no site, no Tutorial e no Jogo. Os Desafios do Tutorial ' +
-        'ainda estão só em português; no Jogo, o Mestre gera os Desafios no idioma do Jogador.',
+        'existem nos três idiomas; no Jogo, o Mestre gera os Desafios no idioma do Jogador.',
     },
   ],
   en: [
@@ -227,8 +227,8 @@ export const PERGUNTAS: PorIdioma<Pergunta[]> = {
       pergunta: 'Which languages?',
       resposta:
         'Portuguese, English and Spanish, on the site, in the Tutorial and in the Game. The ' +
-        "Tutorial's Challenges are still in Portuguese only; in the Game, the Master writes the " +
-        "Challenges in the Player's language.",
+        "Tutorial's Challenges come in all three; in the Game, the Master writes the Challenges " +
+        "in the Player's language.",
     },
   ],
   es: [
@@ -325,8 +325,8 @@ export const PERGUNTAS: PorIdioma<Pergunta[]> = {
       pergunta: '¿En qué idiomas?',
       resposta:
         'Portugués, inglés y español, en el sitio, en el Tutorial y en el Juego. Los Desafíos del ' +
-        'Tutorial todavía están solo en portugués; en el Juego, el Máster genera los Desafíos en ' +
-        'el idioma del Jugador.',
+        'Tutorial existen en los tres idiomas; en el Juego, el Máster genera los Desafíos en el ' +
+        'idioma del Jugador.',
     },
   ],
 };

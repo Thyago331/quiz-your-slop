@@ -10,8 +10,8 @@ import {
   type Aventura,
   type EnvioDeProgresso,
 } from '@quiz/jogo';
-import { IDIOMA_PADRAO, emMaiusculas, formatar, nomeDoTitulo, type Idioma } from '@quiz/i18n';
-import { DESAFIOS, ENTRADAS, desafiosDaRegiao, mapaNoIdioma } from '@quiz/taverna';
+import { emMaiusculas, formatar, nomeDoTitulo, type Idioma } from '@quiz/i18n';
+import { ENTRADAS, mapaNoIdioma } from '@quiz/taverna';
 import {
   Barra,
   EscolhaDeClasse,
@@ -54,10 +54,6 @@ const ilhasNoIdioma = (idioma: Idioma): IlhaNoMapa[] =>
 
 const nomeDaRegiao = (id: string, idioma: Idioma) =>
   mapaNoIdioma(idioma).regioes.find((r) => r.id === id)?.nome ?? id;
-
-/** Até o #30, fora do português os Desafios da Taverna saem em português. */
-const desafiosEmPortugues = (idioma: Idioma) =>
-  idioma !== IDIOMA_PADRAO && desafiosDaRegiao('cardapio', idioma) === DESAFIOS['cardapio'];
 
 // O estado inteiro do Tutorial (mapa incluído) fica só neste navegador. Ao servidor vai só o
 // resumo de envioDoTutorial; por isso o Perfil acompanha o Jogador em qualquer aparelho, mas o mapa
@@ -368,9 +364,6 @@ function TelaDoMapa({ estado, aventura, selecionada, onSelecionar, despachar }: 
         <Janela>
           <Menu rotulo={t.acoes} itens={acoes} onEscolher={escolher} />
           {estadoRegiao === 'revelada' && <p className={estilos.ouro}>{t.revelada}</p>}
-          {desafiosEmPortugues(idioma) && (
-            <p className={estilos.apagado}>{t.desafiosEmPortugues}</p>
-          )}
         </Janela>
       </div>
 

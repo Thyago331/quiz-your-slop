@@ -61,7 +61,8 @@ export async function contarInscricoes(sql: Sql): Promise<Contagem> {
     SELECT ia, count(*)::int AS total FROM lista_de_espera GROUP BY ia
   `;
   const outras = await sql<{ nome: string; total: number }[]>`
-    SELECT min(outra) AS nome, count(*)::int AS total
+    -- COLLATE "C": o nome que representa o grupo não pode depender do locale do banco.
+    SELECT min(outra COLLATE "C") AS nome, count(*)::int AS total
     FROM lista_de_espera
     WHERE ia = 'outra'
     GROUP BY lower(outra)
@@ -76,11 +77,14 @@ export async function contarInscricoes(sql: Sql): Promise<Contagem> {
   };
 }
 
-/** O dono do projeto é o login do GitHub em DONO_GITHUB_LOGIN; sem ela, ninguém. */
+/**
+ * O dono do projeto é o id numérico do GitHub em DONO_GITHUB_ID (o login pode mudar de dono; o id,
+ * não); sem ela, ninguém.
+ */
 export function ehDono(
-  login: string | undefined,
+  githubId: number | undefined,
   env: Record<string, string | undefined> = process.env,
 ): boolean {
-  const dono = env.DONO_GITHUB_LOGIN?.trim().toLowerCase();
-  return !!dono && !!login && login.toLowerCase() === dono;
+  const dono = env.DONO_GITHUB_ID?.trim() ?? '';
+  return /^[1-9]\d*$/.test(dono) && githubId === Number(dono);
 }

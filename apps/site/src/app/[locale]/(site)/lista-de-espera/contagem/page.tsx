@@ -13,10 +13,10 @@ export async function generateMetadata() {
   return { title: LISTA[await idiomaDaRequisicao()].contagemTitulo };
 }
 
-// Só o dono do projeto (DONO_GITHUB_LOGIN) vê; para qualquer outro, a página não existe.
+// Só o dono do projeto (DONO_GITHUB_ID) vê; para qualquer outro, a página não existe.
 export default async function ContagemDaLista() {
   const sessao = await auth();
-  if (!ehDono(sessao?.user.login)) notFound();
+  if (!ehDono(sessao?.user.githubId)) notFound();
   const contagem = await contarInscricoes(banco());
   const idioma = await idiomaDaRequisicao();
   const t = LISTA[idioma];

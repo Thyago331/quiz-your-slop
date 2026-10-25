@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Desafio, Idioma } from '@quiz/jogo';
+import { ARGUMENTO_MAXIMO, type Desafio, type Idioma } from '@quiz/jogo';
 import { DESAFIOS, DESAFIOS_TRADUZIDOS } from '@quiz/taverna';
 import {
   ESTADO_INICIAL,
@@ -146,15 +146,33 @@ describe('estado do Tutorial', () => {
       );
     });
 
-    it('em inglês, a isca sai traduzida e a anulação explica em inglês', () => {
-      const isca = DESAFIOS_TRADUZIDOS.en['cofre-anao']?.find((d) => d.isca);
-      const { estado, desafios, k } = ateAIsca('en');
-      expect(desafios[k]?.enunciado).toBe(isca?.enunciado);
-      const contestado = tutorial(estado, { tipo: 'contestar', argumento: 'It lies.' });
-      expect(contestado.expedicao?.respostas[k]?.contestacao).toMatchObject({
-        veredito: 'anulado',
-        explicacao: isca?.anulacao?.explicacao,
-      });
+    it.each(['en', 'es'] as const)(
+      'em %s, a isca sai traduzida e a anulação explica no mesmo idioma',
+      (idioma) => {
+        const isca = DESAFIOS_TRADUZIDOS[idioma]['cofre-anao']?.find((d) => d.isca);
+        const { estado, desafios, k } = ateAIsca(idioma);
+        expect(desafios[k]?.enunciado).toBe(isca?.enunciado);
+        const contestado = tutorial(estado, { tipo: 'contestar', argumento: 'It lies.' });
+        expect(contestado.expedicao?.respostas[k]?.contestacao).toMatchObject({
+          veredito: 'anulado',
+          explicacao: isca?.anulacao?.explicacao,
+        });
+      },
+    );
+
+    it('todo Desafio traduzido leva a anulação junto (o sorteado basta, sem buscar no banco)', () => {
+      for (const porRegiao of Object.values(DESAFIOS_TRADUZIDOS))
+        for (const [regiaoId, lista] of Object.entries(DESAFIOS))
+          for (const [k, pt] of lista.entries())
+            expect(porRegiao[regiaoId]?.[k]?.anulacao !== undefined, pt.id).toBe(
+              pt.anulacao !== undefined,
+            );
+    });
+
+    it('argumento longo demais não faz nada (e não quebra o redutor)', () => {
+      const { estado: corrigido } = ateAIsca();
+      const longo = 'x'.repeat(ARGUMENTO_MAXIMO + 1);
+      expect(tutorial(corrigido, { tipo: 'contestar', argumento: longo })).toBe(corrigido);
     });
 
     it('a Contestação vencida dá o bônus de Caçador de Slop no fim da Expedição', () => {

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { describe, expect, it } from 'vitest';
 import proxy from '@/proxy';
+import { destinoSeguro } from '@/servidor/destino';
 import { caminhoDoLogin, caminhoNoIdioma } from './caminhos';
 import { routing } from './routing';
 
@@ -11,7 +12,15 @@ describe('caminhos', () => {
   it('prefixam o idioma, e a inicial é só o prefixo', () => {
     expect(caminhoNoIdioma('en', '/faq')).toBe('/en/faq');
     expect(caminhoNoIdioma('pt', '/')).toBe('/pt');
-    expect(caminhoDoLogin('es', '/tutorial')).toBe('/es/entrar?de=/es/tutorial');
+    expect(caminhoDoLogin('es', '/tutorial')).toBe('/es/entrar?de=%2Fes%2Ftutorial');
+  });
+
+  it('o destino do login vai codificado e volta inteiro, com a própria query', () => {
+    const login = caminhoDoLogin('pt', '/tutorial?a=1&b=2');
+    expect(login).toBe('/pt/entrar?de=%2Fpt%2Ftutorial%3Fa%3D1%26b%3D2');
+    // Como o Next entrega searchParams à página /entrar: já decodificado.
+    const de = new URL(login, 'http://localhost:3000').searchParams.get('de') ?? undefined;
+    expect(destinoSeguro(de)).toBe('/pt/tutorial?a=1&b=2');
   });
 });
 

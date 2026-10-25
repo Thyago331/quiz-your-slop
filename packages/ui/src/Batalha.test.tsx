@@ -174,6 +174,15 @@ describe('Batalha — Traçar o fluxo', () => {
     expect(screen.queryByText(/INSERT grava/)).toBeNull();
   });
 
+  it('região só desbloqueada fica na Névoa se a Expedição não é nela (spec §5: até a revelação)', () => {
+    // Expedição no cofre (revelado de novo); a api está desbloqueada, mas não foi revelada.
+    montar(iniciarExpedicao('cofre', [fluxo]));
+    const passos = screen.getAllByRole('menuitem').map((b) => b.textContent);
+    expect(passos).toContain('charge() cobra');
+    expect(passos).not.toContain('o handler recebe');
+    expect(passos.filter((p) => p?.startsWith('???'))).toHaveLength(2);
+  });
+
   it('montar a ordem e atacar responde com a ordem', async () => {
     const user = userEvent.setup();
     const { onResponder } = montar(expedicao);

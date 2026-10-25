@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { salvarJogador, type PerfilGithub } from './jogador';
 import { migrar } from './migrar';
 
-// Contra um Postgres de verdade (compose.dev.yaml); sem DATABASE_URL, como na CI, fica de fora.
+// Contra um Postgres de verdade (compose.dev.yaml); sem DATABASE_URL fica de fora.
 // Cada execução usa um schema descartável, então não suja o banco de desenvolvimento.
 const url = process.env.DATABASE_URL;
 const schema = `teste_${process.pid}_${Date.now()}`;

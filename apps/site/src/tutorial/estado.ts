@@ -2,9 +2,11 @@
 // Expedição em curso. O estado inteiro fica neste navegador (localStorage); ao servidor só vai o
 // resumo sem conteúdo de envioDoTutorial (spec §8) — o mapa retoma só neste aparelho.
 import {
+  CLASSES,
+  ESTADOS_NO_MAPA,
   ESTATISTICAS_ZERADAS,
   ID_AVENTURA_TUTORIAL,
-  ARGUMENTO_MAXIMO,
+  argumentoValido,
   avancar,
   concluirExpedicao,
   contestacaoRoteirizada,
@@ -13,11 +15,14 @@ import {
   escolherDesafios,
   iniciarAventura,
   iniciarExpedicao,
+  iniciarMapa,
+  mesclarEstatisticas,
   montarEnvio,
   podeContestar,
   responderDesafio,
   resultadoDaExpedicao,
   somarExpedicao,
+  vizinhas,
   type Aleatorio,
   type Aventura,
   type Classe,
@@ -93,8 +98,9 @@ export function podePartir(estado: EstadoTutorial, regiaoId: string): boolean {
   return emExpedicao(estado, regiaoId) && temDesafios(regiaoId);
 }
 
-const temLigacoes = (regiaoId: string) =>
-  ESTRUTURA.ligacoes.some((l) => l.origem === regiaoId || l.destino === regiaoId);
+/** Só as Ligações importam aqui (para vizinhas); a entrada é qualquer região. */
+const MAPA_COMPLETO = iniciarMapa(ESTRUTURA, ESTRUTURA.regioes[0]!);
+const temLigacoes = (regiaoId: string) => vizinhas(MAPA_COMPLETO, regiaoId).length > 0;
 
 /**
  * Sorteia os 5 Desafios da tentativa no idioma da tela, preferindo os que o Jogador ainda não viu
@@ -115,14 +121,10 @@ export function desafiosParaPartir(
 }
 
 /**
- * O texto de anulação mora no banco da Taverna, junto da isca: vem no próprio Desafio sorteado (no
- * idioma em que saiu); se não, o do banco em português.
+ * O texto de anulação mora no banco da Taverna, junto da isca: vem no próprio Desafio sorteado, no
+ * idioma em que saiu (a tradução sempre o leva junto).
  */
-const anulacaoDo = (desafio: Desafio) =>
-  (desafio as Partial<DesafioTaverna>).anulacao ??
-  Object.values(DESAFIOS)
-    .flat()
-    .find((d) => d.id === desafio.id)?.anulacao;
+const anulacaoDo = (desafio: Desafio) => (desafio as Partial<DesafioTaverna>).anulacao;
 
 const saidasDaNevoa = (antes: MapaAventura, depois: MapaAventura) =>
   Object.keys(depois.estados).filter(
@@ -150,12 +152,12 @@ export function tutorial(estado: EstadoTutorial, acao: AcaoTutorial): EstadoTuto
       if (expedicao?.fase !== 'respondendo') return estado;
       return { ...estado, expedicao: responderDesafio(expedicao, acao.resposta) };
     case 'contestar': {
-      const argumento = acao.argumento.trim();
       if (!expedicao || !podeContestar(expedicao)) return estado;
-      if (argumento.length === 0 || argumento.length > ARGUMENTO_MAXIMO) return estado;
+      // contestarDesafio lança com argumento inválido; o redutor só ignora.
+      if (!argumentoValido(acao.argumento)) return estado;
       const desafio = desafioAtual(expedicao);
       const saida = contestacaoRoteirizada(desafio, anulacaoDo(desafio));
-      return { ...estado, expedicao: contestarDesafio(expedicao, argumento, saida) };
+      return { ...estado, expedicao: contestarDesafio(expedicao, acao.argumento, saida) };
     }
     case 'avancar': {
       if (!aventura || expedicao?.fase !== 'corrigido') return estado;
@@ -177,16 +179,11 @@ export function tutorial(estado: EstadoTutorial, acao: AcaoTutorial): EstadoTuto
     case 'recomecar':
       return { ...ESTADO_INICIAL, xp: estado.xp, estatisticas: estado.estatisticas };
     case 'sincronizar': {
-      const { xp, estatisticas: e } = acao.servidor;
-      const atual = estado.estatisticas;
+      const { xp, estatisticas } = acao.servidor;
       return {
         ...estado,
         xp: Math.max(estado.xp, xp),
-        estatisticas: {
-          expedicoes: Math.max(atual.expedicoes, e.expedicoes),
-          acertos: Math.max(atual.acertos, e.acertos),
-          contestacoes_vencidas: Math.max(atual.contestacoes_vencidas, e.contestacoes_vencidas),
-        },
+        estatisticas: mesclarEstatisticas(estado.estatisticas, estatisticas),
       };
     }
   }
@@ -203,8 +200,8 @@ export function envioDoTutorial(estado: EstadoTutorial): EnvioDeProgresso {
 
 const contagem = (n: unknown): n is number =>
   typeof n === 'number' && Number.isSafeInteger(n) && n >= 0;
-const ESTADOS_NO_MAPA = new Set(['nevoa', 'desbloqueada', 'revelada', 'desatualizada']);
-const CLASSES_DO_JOGO = new Set(['backend', 'frontend', 'fullstack']);
+const ehUmDe = (lista: readonly string[], valor: unknown) =>
+  typeof valor === 'string' && lista.includes(valor);
 
 /**
  * O estado guardado neste navegador, se ainda servir: o mapa precisa ter as mesmas regiões da
@@ -229,8 +226,8 @@ export function estadoSalvo(salvo: unknown): EstadoTutorial | null {
   const regioes = estados ? Object.keys(estados) : [];
   const mesmoMapa =
     regioes.length === ESTRUTURA.regioes.length &&
-    ESTRUTURA.regioes.every((id) => ESTADOS_NO_MAPA.has(String(estados?.[id])));
-  if (!a || !CLASSES_DO_JOGO.has(String(a.classe)) || !mesmoMapa) return null;
+    ESTRUTURA.regioes.every((id) => ehUmDe(ESTADOS_NO_MAPA, estados?.[id]));
+  if (!a || !ehUmDe(CLASSES, a.classe) || !mesmoMapa) return null;
   const listas = Array.isArray(a.mapa?.ligacoes) && Array.isArray(a.mapa?.ligacoesConhecidas);
   if (!listas || typeof a.vistos !== 'object' || !a.vistos) return null;
   return { ...base, aventura: a as Aventura };

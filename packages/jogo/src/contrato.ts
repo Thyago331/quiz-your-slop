@@ -2,7 +2,9 @@
 // Os nomes de campo seguem o contrato ao pé da letra: são o formato do JSON trocado com o Mestre.
 export type { Idioma } from './idioma.ts';
 
-export type Classe = 'backend' | 'frontend' | 'fullstack';
+/** As Classes em tempo de execução (validar o que chega); o tipo sai daqui. */
+export const CLASSES = ['backend', 'frontend', 'fullstack'] as const;
+export type Classe = (typeof CLASSES)[number];
 export type TipoLigacao = 'chamada' | 'consulta' | 'evento' | 'dependencia';
 export type EstadoRegiao = 'desbloqueada' | 'revelada' | 'desatualizada';
 

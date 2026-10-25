@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   ESTATISTICAS_ZERADAS,
   ID_AVENTURA_TUTORIAL,
+  INTEIRO_MAXIMO,
   MAXIMO_DE_AVENTURAS,
   ehIdDeAventura,
+  mesclarEstatisticas,
   lerEnvio,
   mesclarProgresso,
   montarEnvio,
@@ -11,6 +13,8 @@ import {
   type EnvioDeProgresso,
 } from './envio.ts';
 import { iniciarAventura } from './aventura.ts';
+import { tituloDoXp } from './progressao.ts';
+import { CLASSES } from './contrato.ts';
 import { revelar, type EstruturaMapa } from './mapa.ts';
 
 const UUID = '3f2b8c1e-9a4d-4e6f-8b2a-1c5d7e9f0a3b';
@@ -74,6 +78,22 @@ describe('lerEnvio: só progresso sem conteúdo passa (spec §8)', () => {
       expect(lerEnvio({ ...copia(), xp, titulo: 'Comitador Cego' }).ok).toBe(false);
     const estatisticas = { ...valido.estatisticas, acertos: -3 };
     expect(lerEnvio({ ...copia(), estatisticas }).ok).toBe(false);
+  });
+
+  it('XP e estatísticas cabem num integer do Postgres (até 2147483647)', () => {
+    const noLimite = tituloDoXp(INTEIRO_MAXIMO).atual.nome;
+    expect(lerEnvio({ ...copia(), xp: INTEIRO_MAXIMO, titulo: noLimite }).ok).toBe(true);
+    const acima = tituloDoXp(INTEIRO_MAXIMO + 1).atual.nome;
+    expect(erroDe({ ...copia(), xp: INTEIRO_MAXIMO + 1, titulo: acima })).toMatch(/envio\.xp/);
+    for (const campo of ['expedicoes', 'acertos', 'contestacoes_vencidas'] as const) {
+      const estatisticas = {
+        expedicoes: INTEIRO_MAXIMO,
+        acertos: INTEIRO_MAXIMO,
+        contestacoes_vencidas: 0,
+        [campo]: INTEIRO_MAXIMO + 1,
+      };
+      expect(erroDe({ ...copia(), estatisticas })).toMatch(new RegExp(campo));
+    }
   });
 
   it('Contestação vencida conta como acerto: não pode haver mais vencidas que acertos', () => {
@@ -204,5 +224,26 @@ describe('mesclarProgresso', () => {
       { id: ID_AVENTURA_TUTORIAL, progresso: 0, classe: 'frontend' },
       { id: UUID, progresso: 43, classe: 'backend' },
     ]);
+  });
+});
+
+describe('mesclarEstatisticas', () => {
+  it('cada contador fica com o maior dos dois', () => {
+    expect(
+      mesclarEstatisticas(
+        { expedicoes: 20, acertos: 10, contestacoes_vencidas: 1 },
+        { expedicoes: 12, acertos: 47, contestacoes_vencidas: 2 },
+      ),
+    ).toEqual({ expedicoes: 20, acertos: 47, contestacoes_vencidas: 2 });
+  });
+});
+
+describe('CLASSES', () => {
+  it('são as três Classes, e lerEnvio aceita cada uma', () => {
+    expect([...CLASSES].sort()).toEqual(['backend', 'frontend', 'fullstack']);
+    for (const classe of CLASSES) {
+      const aventuras = [{ id: UUID, progresso: 1, classe }];
+      expect(lerEnvio({ ...copia(), aventuras }).ok).toBe(true);
+    }
   });
 });

@@ -58,17 +58,24 @@ function RotuloDaOpcao({
   desafio,
   opcao,
   estados,
+  regiaoAtual,
 }: {
   desafio: Desafio;
   opcao: Opcao;
   estados: MapaAventura['estados'];
+  /** A região da Expedição: os passos nela têm nome mesmo antes de revelada. */
+  regiaoAtual: string;
 }) {
   const m = useMensagens();
   switch (desafio.formato) {
     case 'apontar':
       return <LugarNoCodigo opcao={opcao as OpcaoApontar} />;
     case 'tracar_fluxo':
-      return <Texto>{textoDoPasso(passoDoFluxo(opcao as OpcaoTracarFluxo, estados), m)}</Texto>;
+      return (
+        <Texto>
+          {textoDoPasso(passoDoFluxo(opcao as OpcaoTracarFluxo, estados, regiaoAtual), m)}
+        </Texto>
+      );
     case 'multipla_escolha':
       return <Texto>{'texto' in opcao ? opcao.texto : opcao.id}</Texto>;
   }
@@ -168,7 +175,7 @@ export function Batalha({
             <OrdemDoFluxo
               key={desafio.id ?? numero}
               passos={desafio.opcoes.map((o) => {
-                const passo = passoDoFluxo(o as OpcaoTracarFluxo, estados);
+                const passo = passoDoFluxo(o as OpcaoTracarFluxo, estados, expedicao.regiaoId);
                 return {
                   id: o.id,
                   rotulo: <Texto>{textoDoPasso(passo, m)}</Texto>,
@@ -185,14 +192,26 @@ export function Batalha({
               className={desafio.formato === 'apontar' ? 'menu--codigo' : undefined}
               itens={desafio.opcoes.map((o) => ({
                 id: o.id,
-                rotulo: <RotuloDaOpcao desafio={desafio} opcao={o} estados={estados} />,
+                rotulo: (
+                  <RotuloDaOpcao
+                    desafio={desafio}
+                    opcao={o}
+                    estados={estados}
+                    regiaoAtual={expedicao.regiaoId}
+                  />
+                ),
               }))}
               onEscolher={(id) => onResponder([id])}
             />
           )
         ) : (
           <>
-            <OpcoesCorrigidas desafio={desafio} resposta={resposta} estados={estados} />
+            <OpcoesCorrigidas
+              desafio={desafio}
+              resposta={resposta}
+              estados={estados}
+              regiaoAtual={expedicao.regiaoId}
+            />
             <p
               role="status"
               className={anulado ? 'texto-ouro' : resposta.acertou ? 'texto-ok' : 'texto-erro'}
@@ -338,10 +357,12 @@ function OpcoesCorrigidas({
   desafio,
   resposta,
   estados,
+  regiaoAtual,
 }: {
   desafio: Desafio;
   resposta: RespostaDada;
   estados: MapaAventura['estados'];
+  regiaoAtual: string;
 }) {
   const t = useMensagens().ui.batalha;
   if (desafio.formato === 'tracar_fluxo') {
@@ -355,7 +376,14 @@ function OpcoesCorrigidas({
             return (
               <li key={id} className={noLugar ? 'opcao--certa' : 'opcao--fora'}>
                 {noLugar ? '✔ ' : '✘ '}
-                {opcao && <RotuloDaOpcao desafio={desafio} opcao={opcao} estados={estados} />}
+                {opcao && (
+                  <RotuloDaOpcao
+                    desafio={desafio}
+                    opcao={opcao}
+                    estados={estados}
+                    regiaoAtual={regiaoAtual}
+                  />
+                )}
               </li>
             );
           })}
@@ -372,7 +400,12 @@ function OpcoesCorrigidas({
         return (
           <li key={o.id} className={classe}>
             {certa ? '✔ ' : escolhida ? '✘ ' : '· '}
-            <RotuloDaOpcao desafio={desafio} opcao={o} estados={estados} />
+            <RotuloDaOpcao
+              desafio={desafio}
+              opcao={o}
+              estados={estados}
+              regiaoAtual={regiaoAtual}
+            />
           </li>
         );
       })}

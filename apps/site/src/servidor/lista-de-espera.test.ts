@@ -38,14 +38,18 @@ describe('validarInscricao', () => {
 });
 
 describe('ehDono', () => {
-  it('compara o login com DONO_GITHUB_LOGIN sem diferenciar maiúsculas', () => {
-    expect(ehDono('Thyago331', { DONO_GITHUB_LOGIN: 'thyago331' })).toBe(true);
-    expect(ehDono('outra-pessoa', { DONO_GITHUB_LOGIN: 'thyago331' })).toBe(false);
+  it('compara o id numérico do GitHub com DONO_GITHUB_ID (o login pode mudar)', () => {
+    expect(ehDono(64616108, { DONO_GITHUB_ID: '64616108' })).toBe(true);
+    expect(ehDono(64616108, { DONO_GITHUB_ID: ' 64616108 ' })).toBe(true);
+    expect(ehDono(777, { DONO_GITHUB_ID: '64616108' })).toBe(false);
   });
 
-  it('sem a variável, ninguém é dono', () => {
-    expect(ehDono('thyago331', {})).toBe(false);
-    expect(ehDono(undefined, { DONO_GITHUB_LOGIN: '' })).toBe(false);
+  it('sem a variável, ou com ela inválida, ninguém é dono', () => {
+    expect(ehDono(64616108, {})).toBe(false);
+    expect(ehDono(undefined, { DONO_GITHUB_ID: '' })).toBe(false);
+    expect(ehDono(0, { DONO_GITHUB_ID: '' })).toBe(false);
+    expect(ehDono(64616108, { DONO_GITHUB_ID: 'thyago331' })).toBe(false);
+    expect(ehDono(64616108, { DONO_GITHUB_ID: '64616108abc' })).toBe(false);
   });
 });
 

@@ -135,8 +135,10 @@ export type PedidoDeProgresso =
 
 export type RespostaDeProgresso = { status: number; corpo: EnvioDeProgresso | { erro: string } };
 
-const ehViolacaoDeChave = (erro: unknown) =>
-  typeof erro === 'object' && erro !== null && 'code' in erro && erro.code === '23503';
+const codigoDoErro = (erro: unknown) =>
+  typeof erro === 'object' && erro !== null && 'code' in erro && typeof erro.code === 'string'
+    ? erro.code
+    : undefined;
 
 /**
  * A API /api/progresso sem o Next em volta, para testar contra o banco: GET devolve o progresso
@@ -169,8 +171,11 @@ export async function responderProgresso(
       ? { status: 200, corpo: salvo.progresso }
       : { status: 400, corpo: { erro: salvo.erro } };
   } catch (erro) {
+    const codigo = codigoDoErro(erro);
     // Sessão de um Jogador que não existe mais no banco.
-    if (ehViolacaoDeChave(erro)) return { status: 401, corpo: { erro: 'Jogador desconhecido.' } };
+    if (codigo === '23503') return { status: 401, corpo: { erro: 'Jogador desconhecido.' } };
+    // Classe 22 (data exception): um valor que o banco não aceita é erro do pedido, não do site.
+    if (codigo?.startsWith('22')) return { status: 400, corpo: { erro: 'valor fora do aceito' } };
     throw erro;
   }
 }

@@ -20,6 +20,12 @@ export type RespostaDada = {
 /** O argumento da Contestação é curto: uma ou duas frases. */
 export const ARGUMENTO_MAXIMO = 280;
 
+/** O argumento que contestarDesafio aceita: de 1 a ARGUMENTO_MAXIMO caracteres, sem as bordas. */
+export function argumentoValido(argumento: string): boolean {
+  const texto = argumento.trim();
+  return texto.length > 0 && texto.length <= ARGUMENTO_MAXIMO;
+}
+
 export type FaseExpedicao = 'respondendo' | 'corrigido' | 'encerrada';
 
 export type Expedicao = {
@@ -99,12 +105,14 @@ export function contestarDesafio(
   const resposta = expedicao.respostas[expedicao.atual];
   if (!resposta) throw new Error(`Desafio sem resposta: ${expedicao.atual}`);
   if (resposta.contestacao) throw new Error('Este Desafio já foi contestado');
-  const texto = argumento.trim();
-  if (texto.length === 0 || texto.length > ARGUMENTO_MAXIMO) {
+  if (!argumentoValido(argumento)) {
     throw new Error(`O argumento precisa ter de 1 a ${ARGUMENTO_MAXIMO} caracteres`);
   }
   const respostas = [...expedicao.respostas];
-  respostas[expedicao.atual] = { ...resposta, contestacao: { argumento: texto, ...saida } };
+  respostas[expedicao.atual] = {
+    ...resposta,
+    contestacao: { argumento: argumento.trim(), ...saida },
+  };
   return { ...expedicao, respostas };
 }
 

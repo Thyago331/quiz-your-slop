@@ -38,7 +38,8 @@ export type EntradaDoExplorador = {
   todos?: readonly string[];
 };
 
-export const NOME_OUTROS_ARQUIVOS = 'Outros arquivos';
+/** O nome do grupo dos arquivos fora de toda Região; a tela mostra o seu, traduzido. */
+const NOME_OUTROS_ARQUIVOS = 'Outros arquivos';
 
 /** O nome borrado: mesmo tamanho, só pontos e barras de verdade. */
 export function mascarar(nome: string): string {

@@ -4,6 +4,14 @@ import type { EstadoRegiao } from './contrato.ts';
 /** O contrato só fala das regiões conhecidas; do lado do Jogo existe também a Névoa. */
 export type EstadoNoMapa = 'nevoa' | EstadoRegiao;
 
+/** Todos os estados no mapa, em tempo de execução (validar o que foi guardado). */
+export const ESTADOS_NO_MAPA = [
+  'nevoa',
+  'desbloqueada',
+  'revelada',
+  'desatualizada',
+] as const satisfies readonly EstadoNoMapa[];
+
 /** Ligação reduzida ao que o mapa precisa: quem fala com quem. */
 export type LigacaoMapa = { id: string; origem: string; destino: string };
 

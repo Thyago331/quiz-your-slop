@@ -1,4 +1,5 @@
 export { IDIOMAS, type Idioma, ehIdioma } from './idioma.ts';
+export { CLASSES } from './contrato.ts';
 export type {
   Classe,
   Desafio,
@@ -25,7 +26,6 @@ export {
   type ResultadoOpcaoApontar,
 } from './evidencia.ts';
 export {
-  NOME_OUTROS_ARQUIVOS,
   arvoreDoExplorador,
   caminhosVisiveis,
   mascarar,
@@ -37,6 +37,7 @@ export {
 } from './explorador.ts';
 export { passoDoFluxo, type PassoNaTela } from './fluxo.ts';
 export {
+  ESTADOS_NO_MAPA,
   iniciarMapa,
   progresso,
   revelar,
@@ -52,6 +53,7 @@ export { corrigir, type Resposta } from './correcao.ts';
 export {
   ARGUMENTO_MAXIMO,
   VIDAS_DO_GUARDIAO,
+  argumentoValido,
   acertosDa,
   avancar,
   chaveDoDesafio,
@@ -84,9 +86,11 @@ export {
 export {
   ESTATISTICAS_ZERADAS,
   ID_AVENTURA_TUTORIAL,
+  INTEIRO_MAXIMO,
   MAXIMO_DE_AVENTURAS,
   ehIdDeAventura,
   lerEnvio,
+  mesclarEstatisticas,
   mesclarProgresso,
   montarEnvio,
   porcentagemDoProgresso,

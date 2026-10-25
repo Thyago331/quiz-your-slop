@@ -1,7 +1,7 @@
 // O envio de progresso ao servidor (spec §8): a única coisa que sai da máquina do Jogador. Só
 // números e ids opacos — nada de mapa, caminhos, Desafios ou nomes. A conta vem da sessão, não do
 // corpo. `lerEnvio` é a lista permitida: qualquer campo a mais, em qualquer nível, é recusado.
-import type { Classe } from './contrato.ts';
+import { CLASSES, type Classe } from './contrato.ts';
 import type { Aventura } from './aventura.ts';
 import { progresso, type MapaAventura } from './mapa.ts';
 import { CALIBRAGEM_PADRAO, tituloDoXp, type Calibragem } from './progressao.ts';
@@ -30,13 +30,14 @@ export type EnvioDeProgresso = {
 
 export const ID_AVENTURA_TUTORIAL = 'tutorial';
 export const MAXIMO_DE_AVENTURAS = 100;
+/** XP e estatísticas vão para colunas `integer` do Postgres: acima disto, o banco recusaria. */
+export const INTEIRO_MAXIMO = 2_147_483_647;
 export const ESTATISTICAS_ZERADAS: EstatisticasDoJogador = {
   expedicoes: 0,
   acertos: 0,
   contestacoes_vencidas: 0,
 };
 
-const CLASSES: readonly Classe[] = ['backend', 'frontend', 'fullstack'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 export function ehIdDeAventura(id: unknown): id is string {
@@ -47,6 +48,18 @@ export function ehIdDeAventura(id: unknown): id is string {
 export function porcentagemDoProgresso(mapa: MapaAventura): number {
   const { reveladas, conhecidas } = progresso(mapa);
   return conhecidas > 0 ? Math.round((100 * reveladas) / conhecidas) : 0;
+}
+
+/** Estatísticas só sobem: cada contador fica com o maior dos dois. */
+export function mesclarEstatisticas(
+  a: EstatisticasDoJogador,
+  b: EstatisticasDoJogador,
+): EstatisticasDoJogador {
+  return {
+    expedicoes: Math.max(a.expedicoes, b.expedicoes),
+    acertos: Math.max(a.acertos, b.acertos),
+    contestacoes_vencidas: Math.max(a.contestacoes_vencidas, b.contestacoes_vencidas),
+  };
 }
 
 export function somarExpedicao(
@@ -96,7 +109,7 @@ function objeto(dado: unknown, onde: string, chaves: readonly string[]): Record<
   return registro;
 }
 
-function contagem(dado: unknown, onde: string, maximo = Number.MAX_SAFE_INTEGER): number {
+function contagem(dado: unknown, onde: string, maximo = INTEIRO_MAXIMO): number {
   if (typeof dado !== 'number' || !Number.isSafeInteger(dado) || dado < 0 || dado > maximo)
     throw new Recusa(`${onde} precisa ser um inteiro de 0 a ${maximo}`);
   return dado;
@@ -164,8 +177,6 @@ export function mesclarProgresso(
 ): EnvioDeProgresso {
   if (!guardado) return { ...envio, aventuras: [...envio.aventuras] };
   const xp = Math.max(guardado.xp, envio.xp);
-  const g = guardado.estatisticas;
-  const n = envio.estatisticas;
   const novas = new Map(envio.aventuras.map((a) => [a.id, a]));
   const aventuras = guardado.aventuras.map((a) => novas.get(a.id) ?? a);
   const antigas = new Set(guardado.aventuras.map((a) => a.id));
@@ -173,11 +184,7 @@ export function mesclarProgresso(
   return {
     xp,
     titulo: tituloDoXp(xp, calibragem).atual.nome,
-    estatisticas: {
-      expedicoes: Math.max(g.expedicoes, n.expedicoes),
-      acertos: Math.max(g.acertos, n.acertos),
-      contestacoes_vencidas: Math.max(g.contestacoes_vencidas, n.contestacoes_vencidas),
-    },
+    estatisticas: mesclarEstatisticas(guardado.estatisticas, envio.estatisticas),
     aventuras,
   };
 }

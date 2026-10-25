@@ -3,6 +3,7 @@ import type { Desafio, SaidaContestar } from './contrato.ts';
 import { CALIBRAGEM_PADRAO } from './progressao.ts';
 import {
   ARGUMENTO_MAXIMO,
+  argumentoValido,
   avancar,
   contestacoesVencidas,
   contestarDesafio,
@@ -193,6 +194,13 @@ describe('Contestação', () => {
     const longo = 'x'.repeat(ARGUMENTO_MAXIMO + 1);
     expect(() => contestarDesafio(errou, longo, mantido)).toThrow(/argumento/);
     expect(() => contestarDesafio(errou, 'x'.repeat(ARGUMENTO_MAXIMO), mantido)).not.toThrow();
+  });
+
+  it('argumentoValido diz de antemão o que contestarDesafio aceita (sem lançar)', () => {
+    for (const argumento of ['   ', '', 'x'.repeat(ARGUMENTO_MAXIMO + 1)])
+      expect(argumentoValido(argumento)).toBe(false);
+    for (const argumento of ['ok', `  ${'x'.repeat(ARGUMENTO_MAXIMO)}  `])
+      expect(argumentoValido(argumento)).toBe(true);
   });
 
   it('gabarito mantido não muda nada no placar', () => {

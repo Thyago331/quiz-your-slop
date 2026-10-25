@@ -10,13 +10,14 @@ export const ESCOPO_GITHUB = 'read:user user:email';
 
 declare module 'next-auth' {
   interface Session {
-    user: { jogadorId: string; login: string } & DefaultSession['user'];
+    user: { jogadorId: string; githubId: number; login: string } & DefaultSession['user'];
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
     jogadorId?: string;
+    githubId?: number;
     login?: string;
   }
 }
@@ -38,12 +39,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           avatarUrl: typeof profile.avatar_url === 'string' ? profile.avatar_url : null,
         });
         token.jogadorId = jogador.id;
+        token.githubId = jogador.githubId;
         token.login = jogador.login;
       }
       return token;
     },
     session({ session, token }) {
       if (token.jogadorId) session.user.jogadorId = token.jogadorId;
+      if (token.githubId) session.user.githubId = token.githubId;
       if (token.login) session.user.login = token.login;
       return session;
     },

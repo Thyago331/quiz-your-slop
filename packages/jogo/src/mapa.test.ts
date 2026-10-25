@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ESTADOS_NO_MAPA,
   iniciarMapa,
   progresso,
   revelar,
@@ -103,5 +104,16 @@ describe('progresso', () => {
       estados: { ...revelado.estados, b: 'desatualizada' },
     };
     expect(progresso(mapa)).toEqual({ reveladas: 0, conhecidas: 3 });
+  });
+});
+
+describe('ESTADOS_NO_MAPA', () => {
+  it('lista a Névoa e os três estados de região conhecida, sem repetir', () => {
+    expect([...ESTADOS_NO_MAPA].sort()).toEqual([
+      'desatualizada',
+      'desbloqueada',
+      'nevoa',
+      'revelada',
+    ]);
   });
 });

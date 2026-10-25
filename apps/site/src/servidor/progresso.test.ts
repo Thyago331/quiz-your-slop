@@ -1,6 +1,6 @@
 import postgres, { type Sql } from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import type { EnvioDeProgresso } from '@quiz/jogo';
+import { tituloDoXp, type EnvioDeProgresso } from '@quiz/jogo';
 import { salvarJogador } from './jogador';
 import { migrar } from './migrar';
 import { PROGRESSO_ZERADO, progressoDoJogador, responderProgresso } from './progresso';
@@ -41,10 +41,31 @@ describe('API de progresso sem banco', () => {
     });
     expect((await put(' '.repeat(20_000))).status).toBe(413);
   });
+
+  it('XP acima do integer do Postgres é 400, não 500', async () => {
+    const put = (corpo: string) =>
+      responderProgresso(semBanco, { metodo: 'PUT', jogadorId: UUID, corpo });
+    const xp = 2_147_483_648;
+    const corpo = JSON.stringify({ ...envio, xp, titulo: tituloDoXp(xp).atual.nome });
+    expect((await put(corpo)).status).toBe(400);
+  });
+
+  it('erro de dado do Postgres (classe 22) vira 400; os outros seguem como erro', async () => {
+    const falhando = (code: string) => (): Sql =>
+      ({
+        begin: () => Promise.reject(Object.assign(new Error('falhou'), { code })),
+      }) as unknown as Sql;
+    const corpo = JSON.stringify(envio);
+    const put = (code: string) =>
+      responderProgresso(falhando(code), { metodo: 'PUT', jogadorId: UUID, corpo });
+    expect((await put('22003')).status).toBe(400);
+    expect((await put('22P02')).status).toBe(400);
+    await expect(put('57P01')).rejects.toThrow('falhou');
+  });
 });
 
 // Contra um Postgres de verdade (compose.dev.yaml), num schema descartável; sem DATABASE_URL fica
-// de fora, como na CI.
+// de fora.
 const url = process.env.DATABASE_URL;
 const schema = `teste_progresso_${process.pid}_${Date.now()}`;
 

@@ -8,7 +8,11 @@ export function caminhoNoIdioma(idioma: Idioma, caminho: string): string {
   return `/${idioma}${caminho === '/' ? '' : caminho}`;
 }
 
-/** O login, voltando depois para `caminho` no mesmo idioma. */
+/**
+ * O login, voltando depois para `caminho` no mesmo idioma. O destino vai codificado: com `?` ou `&`
+ * dentro, ele não se mistura à query do login (o Next decodifica ao entregar `searchParams`).
+ */
 export function caminhoDoLogin(idioma: Idioma, caminho: string): string {
-  return `${caminhoNoIdioma(idioma, '/entrar')}?de=${caminhoNoIdioma(idioma, caminho)}`;
+  const de = encodeURIComponent(caminhoNoIdioma(idioma, caminho));
+  return `${caminhoNoIdioma(idioma, '/entrar')}?de=${de}`;
 }

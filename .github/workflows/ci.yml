@@ -2,12 +2,26 @@ name: CI
 
 on:
   push:
-    branches: [main]
   pull_request:
 
 jobs:
   ci:
     runs-on: ubuntu-latest
+    services:
+      # Mesmas credenciais do compose.dev.yaml; os testes de banco usam schemas descartáveis.
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: quiz
+          POSTGRES_USER: quiz
+          POSTGRES_PASSWORD: quiz
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quiz -d quiz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -20,4 +34,6 @@ jobs:
       - run: pnpm lint
       - run: pnpm format:check
       - run: pnpm test
+        env:
+          DATABASE_URL: postgres://quiz:quiz@localhost:5432/quiz
       - run: pnpm build

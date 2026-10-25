@@ -271,6 +271,22 @@ importers:
         specifier: ^5.0.0
         version: 5.0.5(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5))
 
+  packages/taverna:
+    dependencies:
+      '@quiz/jogo':
+        specifier: workspace:*
+        version: link:../jogo
+    devDependencies:
+      '@types/node':
+        specifier: ^22.20.5
+        version: 22.20.5
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.5(@types/node@22.20.5)(vite@8.3.5(@types/node@22.20.5))
+
   packages/ui:
     dependencies:
       '@quiz/jogo':

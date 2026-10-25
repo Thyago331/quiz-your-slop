@@ -1,0 +1,23 @@
+{
+  "name": "@quiz/taverna",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A Taverna do Slop: o código do Projeto fictício do Tutorial (conteúdo, nunca executado) e os dados do seu mapa.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "gerar": "node scripts/gerar.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@quiz/jogo": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.0"
+  }
+}

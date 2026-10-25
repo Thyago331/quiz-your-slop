@@ -1,0 +1,104 @@
+:root {
+  --wood: #3b2416;
+  --parchment: #f4e4c1;
+  --ink: #2a1a10;
+  --gold: #d4a017;
+  --ember: #b5441b;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--ink);
+  background: var(--wood);
+}
+
+body {
+  margin: 0;
+}
+
+.tavern {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.tavern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: var(--parchment);
+}
+
+.tavern-header h1 {
+  cursor: pointer;
+}
+
+main {
+  background: var(--parchment);
+  border-radius: 8px;
+  padding: 24px;
+}
+
+.category-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.category-filter button.active {
+  background: var(--gold);
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.item-card {
+  border: 2px solid var(--wood);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.item-card.unavailable {
+  opacity: 0.5;
+}
+
+.price,
+.total {
+  color: var(--ember);
+  font-weight: bold;
+}
+
+.cart-badge .count {
+  background: var(--gold);
+  border-radius: 999px;
+  padding: 0 8px;
+  margin-left: 4px;
+}
+
+.cart-lines {
+  list-style: none;
+  padding: 0;
+}
+
+.cart-lines li {
+  display: grid;
+  grid-template-columns: 1fr 64px 140px auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+
+.error {
+  color: var(--ember);
+}
+
+button.link {
+  background: none;
+  border: none;
+  text-decoration: underline;
+}

@@ -11,6 +11,9 @@ export default tseslint.config(
       'apps/site/**',
       'apps/desktop/src-tauri/**',
       'docs/**',
+      // Código da Taverna: conteúdo lido pelo Tutorial, nunca executado nem checado.
+      'packages/taverna/codigo/**',
+      'packages/taverna/src/arquivos.gerado.ts',
     ],
   },
   js.configs.recommended,
@@ -19,6 +22,11 @@ export default tseslint.config(
     files: ['packages/ui/**/*.{ts,tsx}', 'apps/desktop/**/*.{ts,tsx}'],
     plugins: { 'react-hooks': reactHooks },
     rules: reactHooks.configs.recommended.rules,
+  },
+  {
+    // Scripts de build rodam no Node.
+    files: ['packages/*/scripts/**/*.mjs'],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
   },
   {
     // Fronteira: as regras do Jogo são puras — sem DOM, sem framework, sem rede (spec §11).

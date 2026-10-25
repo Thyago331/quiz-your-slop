@@ -210,3 +210,9 @@ export {
   type OpcoesDaExpedicaoNoProjeto,
   type Revelacao,
 } from './expedicaoNoProjeto.ts';
+export {
+  detalhesDoErro,
+  sanitizar,
+  type ContextoDoRelatorio,
+  type DetalhesDoErro,
+} from './relatorio.ts';

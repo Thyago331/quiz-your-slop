@@ -115,7 +115,8 @@ export const PRIVACIDADE: PorIdioma<Privacidade> = {
           'O site conta visitas com o Umami, hospedado por nós: sem cookies, sem identificar você ' +
             'e sem os parâmetros da URL. Serve só para saber quais páginas são lidas.',
           'O Jogo desktop não tem telemetria nenhuma. Relatórios de erro são opcionais, com os ' +
-            'caminhos trocados por <projeto>/... e editáveis antes de enviar.',
+            'caminhos e nomes do Projeto trocados por <projeto>/... e editáveis antes de enviar: o ' +
+            'Jogo só abre uma issue nova no GitHub com o texto, e quem envia é você.',
         ],
       },
       {
@@ -192,8 +193,9 @@ export const PRIVACIDADE: PorIdioma<Privacidade> = {
         paragrafos: [
           'The site counts visits with Umami, hosted by us: no cookies, no identifying you and no ' +
             'URL parameters. It only tells us which pages are read.',
-          'The desktop Game has no telemetry at all. Error reports are opt-in, with paths ' +
-            'replaced by <project>/... and editable before sending.',
+          'The desktop Game has no telemetry at all. Error reports are opt-in, with paths and ' +
+            'Project names replaced by <projeto>/... and editable before sending: the Game only ' +
+            'opens a new GitHub issue with the text, and you are the one who sends it.',
         ],
       },
       {
@@ -270,7 +272,9 @@ export const PRIVACIDADE: PorIdioma<Privacidade> = {
           'El sitio cuenta visitas con Umami, alojado por nosotros: sin cookies, sin identificarte ' +
             'y sin los parámetros de la URL. Sirve solo para saber qué páginas se leen.',
           'El Juego de escritorio no tiene ninguna telemetría. Los informes de error son ' +
-            'opcionales, con las rutas cambiadas por <proyecto>/... y editables antes de enviar.',
+            'opcionales, con las rutas y los nombres del Proyecto cambiados por <projeto>/... y ' +
+            'editables antes de enviar: el Juego solo abre un issue nuevo en GitHub con el texto, ' +
+            'y quien lo envía eres tú.',
         ],
       },
       {

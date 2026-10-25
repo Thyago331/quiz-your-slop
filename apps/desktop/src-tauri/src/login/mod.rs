@@ -3,9 +3,9 @@
 //! verificador PKCE) por um token, que fica no chaveiro do sistema. O token só circula aqui: a
 //! interface recebe apenas se há sessão e o perfil mínimo.
 
-mod cofre;
+pub(crate) mod cofre;
 mod retorno;
-mod site;
+pub(crate) mod site;
 
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicBool, Ordering};

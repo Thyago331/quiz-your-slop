@@ -119,6 +119,43 @@ pub fn sair(origem: &str, token: &str) -> Result<(), ErroDeLogin> {
     conferir(&resposta)
 }
 
+/// Uma resposta de progresso maior que isto não é progresso (o corpo do envio cabe em 16 KiB).
+const RESPOSTA_MAXIMA: u64 = 64 * 1024;
+
+/// GET /api/progresso: o progresso que o site guarda do dono do token (o corpo, para conferir lá
+/// fora).
+pub fn ler_progresso(origem: &str, token: &str) -> Result<String, ErroDeLogin> {
+    let mut resposta = agente()
+        .get(format!("{origem}/api/progresso"))
+        .header("Authorization", format!("Bearer {token}"))
+        .call()
+        .map_err(rede)?;
+    conferir(&resposta)?;
+    resposta
+        .body_mut()
+        .with_config()
+        .limit(RESPOSTA_MAXIMA)
+        .read_to_string()
+        .map_err(rede)
+}
+
+/// PUT /api/progresso com o corpo exato do envio; devolve o progresso já mesclado no site.
+pub fn enviar_progresso(origem: &str, token: &str, corpo: &str) -> Result<String, ErroDeLogin> {
+    let mut resposta = agente()
+        .put(format!("{origem}/api/progresso"))
+        .header("Authorization", format!("Bearer {token}"))
+        .header("Content-Type", "application/json")
+        .send(corpo)
+        .map_err(rede)?;
+    conferir(&resposta)?;
+    resposta
+        .body_mut()
+        .with_config()
+        .limit(RESPOSTA_MAXIMA)
+        .read_to_string()
+        .map_err(rede)
+}
+
 #[cfg(test)]
 mod testes {
     use super::*;

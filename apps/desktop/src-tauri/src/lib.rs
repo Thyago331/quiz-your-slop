@@ -1,12 +1,15 @@
 //! A camada fina em Rust do Jogo desktop (spec §11): uma lista fechada de comandos e nada mais.
 //! A interface não tem plugin de sistema de arquivos, shell, rede ou abertura de URLs; tudo o que
 //! ela pode pedir ao sistema está nos comandos abaixo, em nova_aventura.rs e nos de login
-//! (src/login) e da atualização (src/atualizacao.rs), listados em capabilities/principal.json. Os
-//! plugins de diálogo e de atualização só são usados do Rust (`escolher_pasta`, atualizacao.rs); o
-//! login abre o navegador só na página do próprio site.
+//! (src/login), da atualização (src/atualizacao.rs), do envio de progresso (src/envio.rs) e do
+//! relatório de erro (src/relatorio.rs), listados em capabilities/principal.json. Os plugins de
+//! diálogo e de atualização só são usados do Rust (`escolher_pasta`, atualizacao.rs); o login abre
+//! o navegador só na página do próprio site, e o relatório só na issue nova do repositório do Jogo.
+//! Rede, só três destinos: o site (login e /api/progresso, em login/site.rs) e o updater.
 
 mod atualizacao;
 mod aventuras;
+mod envio;
 mod erro;
 mod git;
 mod login;
@@ -14,6 +17,7 @@ mod mestre;
 mod nova_aventura;
 mod processo;
 mod projeto;
+mod relatorio;
 
 use erro::{Erro, Resultado};
 use git::ComandoGit;
@@ -66,7 +70,11 @@ pub fn rodar() {
             login::entrar,
             login::cancelar_entrada,
             login::sessao_atual,
-            login::sair
+            login::sair,
+            // Sync do progresso e "O que é enviado" (src/envio.rs); relatório de erro opcional
+            envio::sincronizar_progresso,
+            envio::estado_do_envio,
+            relatorio::abrir_relatorio
         ])
         .run(tauri::generate_context!())
         .expect("falha ao abrir o Jogo");

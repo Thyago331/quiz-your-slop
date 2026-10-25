@@ -25,6 +25,7 @@ import {
 } from '@quiz/ui';
 import { EscolhaDoMestre, estaPronta, primeiraPronta, useMestres } from './EscolhaDoMestre.tsx';
 import { lerArquivosDoProjeto, transporteDoMestre } from './mestre.ts';
+import { TelaDoRelatorio, itemDoRelatorio, type PedidoDeRelatorio } from './Relatorio.tsx';
 import { ehErroDoSistema, escolherPasta, rodarGit, salvarAventura } from './sistema.ts';
 import { useEsc } from './TelaProvisoria.tsx';
 
@@ -38,13 +39,13 @@ type Linha = { tipo: 'ok' | 'andamento' | 'recusada'; texto: string };
 
 type Leitura =
   | { estado: 'lendo'; linhas: Linha[] }
-  | { estado: 'erro'; linhas: Linha[]; erro: string }
+  | { estado: 'erro'; linhas: Linha[]; erro: string; causa: unknown }
   | { estado: 'pronta'; linhas: Linha[]; saida: SaidaCriarAventura; arquivos: ArquivosDoProjeto };
 
 type Detalhe =
   | { estado: 'escolhendo' }
   | { estado: 'detalhando'; texto: string }
-  | { estado: 'erro'; erro: string };
+  | { estado: 'erro'; erro: string; causa: unknown };
 
 type Erros = Mensagens['ui']['nova']['erros'];
 
@@ -110,6 +111,8 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
   const [detalhe, setDetalhe] = useState<Detalhe>({ estado: 'escolhendo' });
   // Cada leitura/detalhe tem um número: voltar no meio faz a resposta antiga ser ignorada.
   const geracao = useRef(0);
+  // O relatório de erro aberto (opcional, Relatorio.tsx).
+  const [relatorio, setRelatorio] = useState<PedidoDeRelatorio | null>(null);
 
   const repositorios = nomearRepositorios(pastas.map((p) => p.caminho));
   const mestres = useMestres(passo === 2 ? pastas.map((p) => p.caminho) : null);
@@ -123,7 +126,7 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
     else if (passo === 5) setPasso(3);
     else setPasso((passo - 1) as Passo);
   }, [passo, onVoltar]);
-  useEsc(voltar);
+  useEsc(relatorio ? () => {} : voltar);
 
   async function adicionarPasta() {
     setAviso(null);
@@ -178,7 +181,12 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
       setPasso(5);
     } catch (e) {
       if (atual())
-        setLeitura({ estado: 'erro', linhas: [...linhas], erro: mensagemDoErro(e, t.erros) });
+        setLeitura({
+          estado: 'erro',
+          linhas: [...linhas],
+          erro: mensagemDoErro(e, t.erros),
+          causa: e,
+        });
     }
   }
 
@@ -224,9 +232,23 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
       onCriada(aventura);
     } catch (e) {
       if (geracao.current === minha)
-        setDetalhe({ estado: 'erro', erro: mensagemDoErro(e, t.erros) });
+        setDetalhe({ estado: 'erro', erro: mensagemDoErro(e, t.erros), causa: e });
     }
   }
+
+  /** Abre o relatório de um erro com o que o limpa: as pastas e os nomes que o Mestre deu. */
+  function relatar(erro: unknown, onde: PedidoDeRelatorio['onde']) {
+    const saida = leitura.estado === 'pronta' ? leitura.saida : null;
+    const nomes = saida
+      ? [
+          ...saida.territorios.map((x) => x.nome),
+          ...saida.candidatas_entrada.flatMap((c) => [c.nome, c.territorio_novo?.nome ?? '']),
+        ]
+      : [];
+    setRelatorio({ erro, onde, mestre, repositorios, nomes });
+  }
+
+  if (relatorio) return <TelaDoRelatorio pedido={relatorio} onVoltar={() => setRelatorio(null)} />;
 
   let corpo: ReactNode;
   if (passo === 1) {
@@ -338,9 +360,14 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
               autoFoco
               itens={[
                 { id: 'de-novo', rotulo: t.leitura.tentarDeNovo },
+                itemDoRelatorio(idioma),
                 { id: 'voltar', rotulo: t.voltar },
               ]}
-              onEscolher={(id) => (id === 'voltar' ? voltar() : classe && void ler(classe))}
+              onEscolher={(id) => {
+                if (id === 'voltar') voltar();
+                else if (id === 'relatorio') relatar(leitura.causa, 'leitura');
+                else if (classe) void ler(classe);
+              }}
             />
           </>
         ) : (
@@ -383,9 +410,16 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
         />
         {detalhe.estado === 'detalhando' && <p role="status">{detalhe.texto}</p>}
         {detalhe.estado === 'erro' && (
-          <p className="nova-aviso" role="alert">
-            {t.entrada.erro} {detalhe.erro}
-          </p>
+          <>
+            <p className="nova-aviso" role="alert">
+              {t.entrada.erro} {detalhe.erro}
+            </p>
+            <Menu
+              rotulo={t.entrada.erro}
+              itens={[itemDoRelatorio(idioma)]}
+              onEscolher={() => relatar(detalhe.causa, 'entrada')}
+            />
+          </>
         )}
         <p className="nova-apagado">{t.entrada.ajuda}</p>
       </>

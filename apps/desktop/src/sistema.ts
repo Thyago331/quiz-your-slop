@@ -2,7 +2,7 @@
 // dos comandos da lista fechada; os tipos espelham os do Rust (serde) e qualquer outro formato é
 // recusado lá.
 import { Channel, invoke } from '@tauri-apps/api/core';
-import type { IaDoMestre } from '@quiz/jogo';
+import type { EnvioDeProgresso, IaDoMestre } from '@quiz/jogo';
 import type { Idioma } from '@quiz/i18n';
 
 /** As IAs que podem ser o Mestre (spec §7). */
@@ -171,3 +171,33 @@ export const sessaoAtual = () => invoke<Sessao>('sessao_atual');
 
 /** Revoga o token no site e o apaga do chaveiro. */
 export const sair = () => invoke<Sessao>('sair');
+
+// --- Envio de progresso (src-tauri/src/envio.rs) ---
+// Sai daqui só o resumo de `montarEnvio`; o token continua na camada Rust.
+
+/** `sem_rede` e `desconectado`: o envio ficou pendente e sai depois. */
+export type Sincronia =
+  | { estado: 'sincronizado'; progresso: EnvioDeProgresso; enviado: boolean }
+  | { estado: 'sem_rede' }
+  | { estado: 'desconectado' };
+
+export type EstadoDoEnvio = {
+  /** O JSON exato do último envio aceito e quando (ms desde 1970). */
+  ultimo: { json: string; em: number } | null;
+  /** O envio que espera o site. */
+  pendente: string | null;
+  /** O progresso que o site devolveu por último. */
+  servidor: EnvioDeProgresso | null;
+};
+
+/** Envia o resumo (ou o deixa pendente, se não há rede ou conta). */
+export const sincronizarProgresso = (envio: string) =>
+  invoke<Sincronia>('sincronizar_progresso', { envio });
+
+export const estadoDoEnvio = () => invoke<EstadoDoEnvio>('estado_do_envio');
+
+// --- Relatório de erro (src-tauri/src/relatorio.rs) ---
+
+/** Abre o navegador numa issue nova do repositório do Jogo com o texto que o Jogador revisou. */
+export const abrirRelatorio = (titulo: string, corpo: string) =>
+  invoke<null>('abrir_relatorio', { titulo, corpo });

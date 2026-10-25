@@ -4,19 +4,22 @@ import {
   detalharVizinhas,
   lerAventuraSalva,
   porcentagemDoProgresso,
+  tituloDoXp,
   type AventuraNoProjeto,
   type MudancaDaRegiao,
 } from '@quiz/jogo';
-import { AUTONIMO, ETIQUETA, formatar, MENSAGENS } from '@quiz/i18n';
+import { AUTONIMO, ETIQUETA, formatar, MENSAGENS, nomeDoTitulo } from '@quiz/i18n';
 import { IdiomaDaInterface, TelaInicial } from '@quiz/ui';
 import { AvisoDeAtualizacao, useAtualizacao } from './Atualizacao.tsx';
 import { detectarNoProjeto } from './desatualizacao.ts';
 import { ITEM_DA_CONTA, ResumoDaConta, TelaDeEntrada, itemDaConta, useConta } from './Conta.tsx';
+import { Enviado } from './Enviado.tsx';
 import { idiomaSalvo, salvarIdioma } from './idioma.ts';
 import { NovaAventura } from './NovaAventura.tsx';
 import type { Linha } from './Linhas.tsx';
 import { lerArquivosDoProjeto, transporteDoMestre } from './mestre.ts';
 import { carregarAventuras, salvarAventura } from './sistema.ts';
+import { useSincronia } from './sincronia.ts';
 import { TelaDaExpedicao } from './TelaDaExpedicao.tsx';
 import { nomeDoProjeto, TelaDoMapa } from './TelaDoMapa.tsx';
 import { TelaDeIdioma } from './TelaDeIdioma.tsx';
@@ -46,6 +49,9 @@ export function Jogo() {
   const [ultima, setUltima] = useState<string | undefined>();
   const voltar = useCallback(() => setTela('inicio'), []);
   const conta = useConta(idioma);
+  // O progresso com o site: nunca segura o jogo (sincronia.ts).
+  const sincronia = useSincronia(conta.sessao?.estado === 'conectado');
+  const { registrar, carregadas } = sincronia;
   const atualizacao = useAtualizacao();
   // A Expedição em curso (região) e a última, onde o cursor volta no mapa.
   const [expedicao, setExpedicao] = useState<string | null>(null);
@@ -65,10 +71,15 @@ export function Jogo() {
   const [trocandoMestre, setTrocandoMestre] = useState(false);
 
   /** Toda mudança de uma Aventura vai para o disco na hora (o estado inteiro mora no arquivo). */
-  const atualizar = useCallback((aventura: AventuraNoProjeto) => {
-    setAventuras((atuais) => [...atuais.filter((a) => a.id !== aventura.id), aventura]);
-    void salvarAventura(aventura.id, JSON.stringify(aventura)).catch(() => undefined);
-  }, []);
+  const atualizar = useCallback(
+    (aventura: AventuraNoProjeto) => {
+      setAventuras((atuais) => [...atuais.filter((a) => a.id !== aventura.id), aventura]);
+      void salvarAventura(aventura.id, JSON.stringify(aventura)).catch(() => undefined);
+      // O ganho vai para o XP do Jogador; o fim de uma Expedição dispara o envio.
+      registrar(aventura);
+    },
+    [registrar],
+  );
 
   /** Detalha as regiões (vizinhas novas, ou uma que falhou antes), uma de cada vez. */
   const detalhar = useCallback(
@@ -119,11 +130,15 @@ export function Jogo() {
 
   useEffect(() => {
     let vivo = true;
-    void aventurasGuardadas().then((lidas) => vivo && setAventuras(lidas));
+    void aventurasGuardadas().then((lidas) => {
+      if (!vivo) return;
+      setAventuras(lidas);
+      carregadas(lidas);
+    });
     return () => {
       vivo = false;
     };
-  }, []);
+  }, [carregadas]);
 
   // Ao abrir uma Aventura, uma vez por sessão: a detecção da Região desatualizada (só git, sem IA).
   const abertaId = tela === 'continuar' ? recente?.id : undefined;
@@ -145,7 +160,11 @@ export function Jogo() {
     salvarIdioma(idioma);
   }, [idioma]);
 
-  const xpTotal = aventuras.reduce((soma, a) => soma + a.xp, 0);
+  // O XP do Jogador: o contador da sincronia (com o que o site tem), nunca menos que as Aventuras.
+  const xpTotal = Math.max(
+    sincronia.jogador.xp,
+    aventuras.reduce((soma, a) => soma + a.xp, 0),
+  );
   const t = MENSAGENS[idioma].ui.inicio;
   const nomes: Record<TelaDoHub, string> = {
     continuar: recente
@@ -188,6 +207,12 @@ export function Jogo() {
           conta.alternar();
         }}
       >
+        <p className="conta-resumo">
+          {formatar(MENSAGENS[idioma].ui.aventura.xp, {
+            xp: xpTotal,
+            titulo: nomeDoTitulo(tituloDoXp(xpTotal).atual.nome, idioma),
+          })}
+        </p>
         <ResumoDaConta {...conta} />
         <AvisoDeAtualizacao {...atualizacao} />
       </TelaInicial>
@@ -264,9 +289,19 @@ export function Jogo() {
         onVoltar={voltar}
         onCriada={(nova) => {
           setAventuras((atuais) => [...atuais.filter((a) => a.id !== nova.id), nova]);
+          registrar(nova);
           setUltima('continuar');
           setTela('continuar');
         }}
+      />
+    );
+  } else if (tela === 'enviado') {
+    conteudo = (
+      <Enviado
+        envio={sincronia.envio}
+        comConta={conta.sessao !== null && conta.sessao.estado !== 'desconectado'}
+        onAbrir={sincronia.reler}
+        onVoltar={voltar}
       />
     );
   } else {

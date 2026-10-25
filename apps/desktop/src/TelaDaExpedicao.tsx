@@ -42,11 +42,12 @@ import { gitDoProjeto } from './desatualizacao.ts';
 import { ListaDeLinhas, type Linha } from './Linhas.tsx';
 import { leitorDoProjeto, lerArquivosDoProjeto, transporteDoMestre } from './mestre.ts';
 import { mensagemDoErro } from './NovaAventura.tsx';
+import { TelaDoRelatorio, itemDoRelatorio } from './Relatorio.tsx';
 import { useEsc } from './TelaProvisoria.tsx';
 
 type Fase =
   | { tipo: 'preparando'; linhas: Linha[] }
-  | { tipo: 'erro'; linhas: Linha[]; erro: string }
+  | { tipo: 'erro'; linhas: Linha[]; erro: string; causa: unknown }
   | { tipo: 'batalha'; expedicao: Expedicao; contestacao?: PedidoDeContestacao }
   | { tipo: 'resumo'; concluida: ExpedicaoConcluida; xpAntes: number };
 
@@ -93,6 +94,8 @@ export function TelaDaExpedicao({
   // Cada preparação tem um número: voltar no meio faz a resposta antiga ser ignorada.
   const geracao = useRef(0);
   const iniciou = useRef(false);
+  // O relatório de erro aberto (opcional, Relatorio.tsx).
+  const [relatando, setRelatando] = useState(false);
   const atual = useRef(aventura);
   useEffect(() => {
     atual.current = aventura;
@@ -102,7 +105,7 @@ export function TelaDaExpedicao({
     geracao.current++;
     onVoltar();
   }, [onVoltar]);
-  useEsc(fase.tipo === 'batalha' ? () => {} : voltar);
+  useEsc(fase.tipo === 'batalha' || relatando ? () => {} : voltar);
 
   const preparar = useCallback(async () => {
     const minha = ++geracao.current;
@@ -184,7 +187,7 @@ export function TelaDaExpedicao({
         e instanceof PoucosDesafios
           ? formatar(t.poucos, { n: e.validos, minimo: MINIMO_DE_DESAFIOS })
           : mensagemDoErro(e, m.ui.nova.erros);
-      setFase({ tipo: 'erro', linhas: [...linhas], erro });
+      setFase({ tipo: 'erro', linhas: [...linhas], erro, causa: e });
     }
   }, [idioma, leitor, m, nomeRegiao, onAtualizada, regiaoId, t]);
 
@@ -291,6 +294,21 @@ export function TelaDaExpedicao({
     );
   }
 
+  if (fase.tipo === 'erro' && relatando) {
+    return (
+      <TelaDoRelatorio
+        pedido={{
+          erro: fase.causa,
+          onde: 'expedicao',
+          mestre: aventura.mestre,
+          repositorios: aventura.repositorios,
+          nomes: [...aventura.regioes, ...aventura.territorios].map((x) => x.nome),
+        }}
+        onVoltar={() => setRelatando(false)}
+      />
+    );
+  }
+
   return (
     <main className="tela-expedicao">
       <Janela titulo={emMaiusculas(idioma, nomeRegiao)} className="nova-janela">
@@ -309,9 +327,14 @@ export function TelaDaExpedicao({
               autoFoco
               itens={[
                 { id: 'de-novo', rotulo: t.tentarDeNovo },
+                itemDoRelatorio(idioma),
                 { id: 'voltar', rotulo: t.voltar },
               ]}
-              onEscolher={(id) => (id === 'voltar' ? voltar() : void preparar())}
+              onEscolher={(id) => {
+                if (id === 'voltar') voltar();
+                else if (id === 'relatorio') setRelatando(true);
+                else void preparar();
+              }}
             />
           </>
         ) : (

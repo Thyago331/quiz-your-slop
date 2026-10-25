@@ -12,6 +12,9 @@ vi.mock('./sistema.ts', async (original) => ({
   rodarMestre: vi.fn(),
   lerArquivo: vi.fn(),
   salvarAventura: vi.fn(),
+  sincronizarProgresso: vi.fn(),
+  estadoDoEnvio: vi.fn(),
+  abrirRelatorio: vi.fn(),
 }));
 
 const ARQUIVOS: Record<string, string> = {
@@ -181,6 +184,13 @@ describe('Expedição no Projeto (desktop)', () => {
   beforeEach(() => {
     localStorage.setItem('quiz-your-slop:idioma', 'pt');
     vi.clearAllMocks();
+    vi.mocked(sistema.estadoDoEnvio).mockResolvedValue({
+      ultimo: null,
+      pendente: null,
+      servidor: null,
+    });
+    vi.mocked(sistema.sincronizarProgresso).mockResolvedValue({ estado: 'sem_rede' });
+    vi.mocked(sistema.abrirRelatorio).mockResolvedValue(null);
   });
 
   it('prepara, batalha com o código ao lado, vence e as vizinhas aparecem detalhadas', async () => {
@@ -238,6 +248,16 @@ describe('Expedição no Projeto (desktop)', () => {
     expect(screen.getByRole('button', { name: 'Rotas, revelada' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Serviço de pedidos, desbloqueada' })).toBeTruthy();
     expect(screen.getByText('XP 80 · Comitador Cego')).toBeTruthy();
+
+    // O fim da Expedição mandou o resumo ao site (pela camada Rust): só números e ids.
+    const enviados = vi.mocked(sistema.sincronizarProgresso).mock.calls.map(([j]) => j);
+    expect(JSON.parse(enviados.at(-1)!)).toEqual({
+      xp: 80,
+      titulo: 'Comitador Cego',
+      estatisticas: { expedicoes: 1, acertos: 4, contestacoes_vencidas: 0 },
+      aventuras: [{ id: '0b7e6c1a-3f2d-4c5e-9a8b-7c6d5e4f3a2b', progresso: 50, classe: 'backend' }],
+    });
+    expect(enviados.at(-1)).not.toMatch(/loja|Rotas|Servidor|pedidos|home/);
   });
 
   it('Contestação anulada: o Mestre relê o código, GOLPE CRÍTICO, e o resumo conta o bônus', async () => {
@@ -378,6 +398,25 @@ describe('Expedição no Projeto (desktop)', () => {
       .map((l) => l.textContent);
     expect(linhas).toContain('✘ 2 de 5 Desafios conferidos no código · 1 descartados');
     expect(vi.mocked(sistema.rodarMestre)).toHaveBeenCalledTimes(3);
+
+    // O relatório opcional: limpo, editável, e só abre o GitHub quando o Jogador confirma.
+    await user.click(item('Enviar relatório (opcional)'));
+    const texto = screen.getByLabelText('Texto do relatório') as HTMLTextAreaElement;
+    expect(texto.value).toContain('**Erro:** PoucosDesafios — preparar_expedicao: só 2 Desafios');
+    expect(texto.value).toContain('Expedição — preparação dos Desafios');
+    expect(texto.value).not.toMatch(/\/home\/a|loja|Rotas|Servidor|criarPedido|orders/);
+    expect(sistema.abrirRelatorio).not.toHaveBeenCalled();
+    await user.clear(texto);
+    await user.type(texto, 'Só isto, editado por mim.');
+    await user.click(item('Abrir no GitHub'));
+    expect(sistema.abrirRelatorio).toHaveBeenCalledWith(
+      expect.stringContaining('PoucosDesafios'),
+      'Só isto, editado por mim.',
+    );
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Aberto no navegador. Pode voltar ao Jogo.',
+    );
+    await user.click(item('Voltar'));
 
     vi.mocked(sistema.rodarMestre).mockResolvedValue(envelope(PREPARAR));
     await user.click(item('Tentar de novo'));

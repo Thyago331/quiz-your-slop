@@ -18,6 +18,10 @@ const COMANDOS: &[&str] = &[
     "cancelar_entrada",
     "sessao_atual",
     "sair",
+    // Sync do progresso e "O que é enviado" (src/envio.rs); relatório de erro (src/relatorio.rs).
+    "sincronizar_progresso",
+    "estado_do_envio",
+    "abrir_relatorio",
 ];
 
 fn main() {

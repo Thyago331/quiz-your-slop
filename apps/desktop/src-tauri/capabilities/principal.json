@@ -17,6 +17,9 @@
     "allow-entrar",
     "allow-cancelar-entrada",
     "allow-sessao-atual",
-    "allow-sair"
+    "allow-sair",
+    "allow-sincronizar-progresso",
+    "allow-estado-do-envio",
+    "allow-abrir-relatorio"
   ]
 }

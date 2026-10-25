@@ -5,7 +5,7 @@ Um jogo de perguntas e respostas (game show/RPG) em que o jogador aprende como o
 ## Language
 
 **Jogo**:
-O produto Quiz your slop: regras, progressão, pontuação e interface. Nunca vê o código do jogador, só o que o Mestre entrega.
+O produto Quiz your slop: regras, progressão, pontuação e interface. Roda na máquina do Jogador e nunca envia o código dele para fora dela.
 _Avoid_: App, plataforma, servidor
 
 **Jogador**:

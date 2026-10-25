@@ -311,13 +311,68 @@ describe('escolherDesafios', () => {
     });
 
     it('a troca tira o último sorteado, nunca o único de outro Formato exigido', () => {
-      const vistos = ['m1'];
+      // Os dois Traçar o fluxo já foram vistos: só a troca traz um deles de volta.
+      const vistos = ['m1', 't1', 't2'];
       const escolhidos = ids(
         escolherDesafios(misturado, vistos, { aleatorio: naOrdem, temLigacoes: true }),
       );
-      // Prioridade: m2 m3 m4 m5 a1 (não vistos) e depois t1 t2 m1. O Traçar o fluxo entra no lugar
+      // Prioridade: a1 m2 m3 m4 m5 (não vistos) e depois m1 t1 t2. O Traçar o fluxo entra no lugar
       // de m5, não de a1.
-      expect(escolhidos).toEqual(['m2', 'a1', 'm3', 'm4', 't1']);
+      expect(escolhidos).toEqual(['a1', 'm2', 'm3', 'm4', 't1']);
+    });
+
+    it('guarda um inédito de cada Formato exigido para a próxima tentativa', () => {
+      // Na ordem do banco, um sorteio cego pegaria t1 e t2 juntos e a próxima tentativa
+      // precisaria repetir um Traçar o fluxo.
+      const banco = [
+        em('tracar_fluxo', desafio('t1', 'f', 1)),
+        em('tracar_fluxo', desafio('t2', 'f', 2)),
+        em('apontar', desafio('a1', 'f', 3)),
+        em('apontar', desafio('a2', 'f', 4)),
+        ...['m1', 'm2', 'm3', 'm4', 'm5', 'm6'].map((id) => desafio(id, 'f', 3)),
+      ];
+      const primeira = ids(escolherDesafios(banco, [], { aleatorio: naOrdem, temLigacoes: true }));
+      expect(primeira).toEqual(expect.arrayContaining(['t1', 'a1']));
+      expect(primeira).not.toContain('t2');
+      expect(primeira).not.toContain('a2');
+      const segunda = ids(
+        escolherDesafios(banco, primeira as string[], { aleatorio: naOrdem, temLigacoes: true }),
+      );
+      expect(segunda.filter((id) => primeira.includes(id))).toEqual([]);
+      expect(segunda).toEqual(expect.arrayContaining(['t2', 'a2']));
+    });
+
+    it('não repete Desafio enquanto houver inéditos, em qualquer sorteio', () => {
+      const banco = [
+        em('tracar_fluxo', desafio('t1', 'f', 4)),
+        em('tracar_fluxo', desafio('t2', 'f', 5)),
+        em('tracar_fluxo', desafio('t3', 'f', 2)),
+        em('apontar', desafio('a1', 'f', 1)),
+        em('apontar', desafio('a2', 'f', 3)),
+        { ...desafio('isca', 'f', 3), isca: true },
+        ...([1, 2, 3, 4, 5] as const).map((n) => desafio(`m${n}`, 'f', n)),
+      ];
+      for (let semente = 1; semente <= 200; semente++) {
+        let s = semente;
+        // Gerador congruente simples: sorteios diferentes e reproduzíveis.
+        const aleatorio = () => ((s = (s * 16807) % 2147483647) - 1) / 2147483646;
+        const vistos = new Set<string>();
+        for (let tentativa = 0; vistos.size < banco.length; tentativa++) {
+          expect(tentativa, `semente ${semente}`).toBeLessThan(3);
+          const ineditos = ids(banco.filter((d) => !vistos.has(d.id ?? '')));
+          const escolhidos = ids(
+            escolherDesafios(banco, [...vistos], { aleatorio, temLigacoes: true }),
+          );
+          expect(formatos(banco.filter((d) => escolhidos.includes(d.id)))).toEqual(
+            expect.arrayContaining(['apontar', 'tracar_fluxo']),
+          );
+          // Só repete quando todos os inéditos já entraram.
+          if (escolhidos.some((id) => vistos.has(id!))) {
+            expect(escolhidos, `semente ${semente}`).toEqual(expect.arrayContaining(ineditos));
+          }
+          for (const id of escolhidos) vistos.add(id!);
+        }
+      }
     });
 
     it('continua em dificuldade crescente depois das trocas', () => {

@@ -213,8 +213,11 @@ function garantirMistura(
 
 /**
  * Os Desafios de uma nova tentativa: sorteia primeiro entre os ainda não vistos (a isca não vista
- * sempre entra) e completa com os já vistos, respeitando a mistura mínima de Formatos quando o banco permite; a Expedição os
- * enfrenta em dificuldade crescente (spec §5).
+ * sempre entra) e completa com os já vistos, respeitando a mistura mínima de Formatos quando o
+ * banco permite; a Expedição os enfrenta em dificuldade crescente (spec §5).
+ *
+ * Entre os inéditos, um de cada Formato exigido vai na frente e outro fica guardado para o fim:
+ * assim a próxima tentativa ainda acha os Formatos exigidos sem repetir Desafio.
  */
 export function escolherDesafios(
   banco: readonly Desafio[],
@@ -224,17 +227,30 @@ export function escolherDesafios(
   const jaVistos = new Set(vistos);
   const novos = banco.filter((d) => !jaVistos.has(chaveDoDesafio(d)));
   const repetidos = banco.filter((d) => jaVistos.has(chaveDoDesafio(d)));
+  const exigidos: FormatoDesafio[] = temLigacoes ? ['apontar', 'tracar_fluxo'] : ['apontar'];
   // A isca da Contestação roteirizada ainda não vista vem na frente: o Tutorial não a esconde.
-  const iscas = novos.filter((d) => d.isca);
+  const iscas = embaralhar(
+    novos.filter((d) => d.isca),
+    aleatorio,
+  );
+  const ineditos = embaralhar(
+    novos.filter((d) => !d.isca),
+    aleatorio,
+  );
+  const frente: Desafio[] = [];
+  const reserva: Desafio[] = [];
+  for (const formato of exigidos) {
+    const [primeiro, segundo] = ineditos.filter((d) => d.formato === formato);
+    if (primeiro) frente.push(primeiro);
+    if (segundo) reserva.push(segundo);
+  }
   const prioridade = [
-    ...embaralhar(iscas, aleatorio),
-    ...embaralhar(
-      novos.filter((d) => !d.isca),
-      aleatorio,
-    ),
+    ...iscas,
+    ...frente,
+    ...ineditos.filter((d) => !frente.includes(d) && !reserva.includes(d)),
+    ...reserva,
     ...embaralhar(repetidos, aleatorio),
   ];
-  const exigidos: FormatoDesafio[] = temLigacoes ? ['apontar', 'tracar_fluxo'] : ['apontar'];
   return garantirMistura(prioridade.slice(0, quantidade), prioridade, exigidos, iscas).sort(
     (a, b) => a.dificuldade - b.dificuldade,
   );

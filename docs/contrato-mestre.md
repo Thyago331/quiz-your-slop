@@ -8,12 +8,14 @@ Decidido em [Qual é o contrato de dados de cada chamada ao Mestre](https://gith
 - **A memória mora no Jogo.** O Mestre não lembra de nada entre chamadas; tudo que ele precisa vem na entrada.
 - **O Jogo cria os ids.** Regiões, Territórios, Ligações e Desafios recebem ids gerados pelo Jogo. O Mestre só referencia ids que recebeu na entrada; algo novo vem sem id e o Jogo atribui.
 - **Caminhos são relativos à raiz do repositório**, prefixados pelo repositório quando o Projeto tem mais de um (`loja-api:src/orders/service.ts`).
+- **Idioma do Jogador.** Toda entrada leva `idioma` (`"pt" | "en" | "es"`); todo texto que o Mestre devolve (nomes, resumos, enunciados, explicações) vem nesse idioma. Caminhos, símbolos e trechos de código ficam como estão no repositório.
 - **O mesmo formato serve ao Tutorial.** Os Desafios escritos à mão da Taverna do Slop usam o tipo `Desafio` abaixo.
 
 ## Tipos compartilhados
 
 ```ts
 type Classe = "backend" | "frontend" | "fullstack";
+type Idioma = "pt" | "en" | "es";   // presente em toda entrada, omitido abaixo por brevidade
 type TipoLigacao = "chamada" | "consulta" | "evento" | "dependencia";
 
 type RegiaoConhecida = {        // como o Jogo descreve o mapa ao Mestre

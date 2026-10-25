@@ -44,6 +44,10 @@ _Avoid_: Fog, oculto, bloqueado
 O papel que o Jogador escolhe para uma Aventura — Backend, Frontend ou Fullstack; define a região de entrada e o foco dos Desafios.
 _Avoid_: Perfil, papel, role
 
+**Tutorial**:
+A Aventura fixa sobre a **Taverna do Slop** — um Projeto feito sob medida para o jogo, jogável no site sem Mestre, com Desafios escritos à mão.
+_Avoid_: Demo, onboarding, projeto de exemplo
+
 **Projeto**:
 O conjunto de um ou mais repositórios do Jogador sobre o qual uma Aventura acontece, tratado como um sistema único.
 _Avoid_: Repo, codebase, workspace

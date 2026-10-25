@@ -1,0 +1,49 @@
+// Dados estruturados (spec §12): cada objeto repete o que está visível na página onde aparece.
+import type { Pergunta } from '@/textos/faq';
+import { IDIOMA } from './metadados';
+import { NOME_DO_SITE, REPOSITORIO, urlAbsoluta, type Env } from './site';
+
+export type JsonLd = {
+  '@context': 'https://schema.org';
+  '@type': string;
+  [campo: string]: unknown;
+};
+
+/** `<` escapado: nenhum texto dos dados consegue fechar a tag `<script>`. */
+export function serializarJsonLd(dados: JsonLd): string {
+  return JSON.stringify(dados).replace(/</g, '\\u003c');
+}
+
+/** O Jogo, na página inicial. */
+export function softwareApplication(descricao: string, env: Env = process.env): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: NOME_DO_SITE,
+    url: urlAbsoluta('/', env),
+    description: descricao,
+    applicationCategory: 'GameApplication',
+    applicationSubCategory: 'Educational game',
+    operatingSystem: 'Windows, Linux',
+    inLanguage: IDIOMA,
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' },
+    codeRepository: REPOSITORIO,
+    sameAs: [REPOSITORIO],
+  };
+}
+
+/** As perguntas da página de FAQ, com as respostas em texto puro. */
+export function faqPage(perguntas: readonly Pergunta[], env: Env = process.env): JsonLd {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    url: urlAbsoluta('/faq', env),
+    inLanguage: IDIOMA,
+    mainEntity: perguntas.map((p) => ({
+      '@type': 'Question',
+      name: p.pergunta,
+      acceptedAnswer: { '@type': 'Answer', text: p.resposta },
+    })),
+  };
+}

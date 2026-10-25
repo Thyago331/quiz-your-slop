@@ -1,0 +1,58 @@
+.formulario fieldset {
+  border: 0;
+  margin: 0 0 12px;
+  padding: 0;
+}
+.formulario legend {
+  margin-bottom: 8px;
+}
+.opcao {
+  display: block;
+  position: relative;
+  padding: 2px 6px 2px 26px;
+  cursor: pointer;
+}
+/* O rádio some atrás do cursor ▶ do JRPG; o teclado continua funcionando nele. */
+.opcao input {
+  position: absolute;
+  opacity: 0;
+  left: 0;
+}
+.opcao:has(input:checked) {
+  color: var(--px-ouro);
+}
+.opcao:has(input:checked)::before {
+  content: '▶';
+  position: absolute;
+  left: 4px;
+}
+.opcao:has(input:focus-visible) {
+  text-decoration: underline;
+}
+.outra {
+  display: block;
+  margin: 6px 0 0 26px;
+}
+.outra input {
+  font: inherit;
+  color: var(--px-texto);
+  background: var(--px-codigo-fundo);
+  border: 0;
+  box-shadow: 0 0 0 3px var(--px-janela-borda);
+  padding: 2px 8px;
+  width: min(100%, 320px);
+}
+.tabela {
+  border-collapse: collapse;
+  margin: 8px 0;
+}
+.tabela th,
+.tabela td {
+  text-align: left;
+  padding: 2px 24px 2px 0;
+  font-weight: 400;
+}
+.tabela td:last-child {
+  text-align: right;
+  color: var(--px-ouro);
+}

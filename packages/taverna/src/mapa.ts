@@ -149,8 +149,9 @@ export const REGIOES: readonly RegiaoTaverna[] = [
 ];
 
 // Uma Ligação por par de Regiões, como no esboço. A linha "Cardápio, Carrinho e Checkout, API de
-// Pedidos → Grimório" do esboço vira três Ligações. Imports só de tipo do Grimório e a fiação
-// interna do Salão (Menu usa useCart, Checkout usa API_URL) não contam como Ligação.
+// Pedidos → Grimório" do esboço vira três Ligações. Menu usar useCart vira a Ligação
+// Cardápio → Carrinho e Checkout (dá vizinha ao Frontend dentro do Salão). Imports só de tipo do
+// Grimório e Checkout reusar API_URL do cliente HTTP não contam como Ligação.
 export const LIGACOES: readonly LigacaoTaverna[] = [
   {
     id: 'cardapio-api-pedidos',
@@ -174,6 +175,21 @@ export const LIGACOES: readonly LigacaoTaverna[] = [
         linha_inicio: 9,
         linha_fim: 9,
         trecho: "router.get('/items', listItemsHandler);",
+      },
+    ],
+  },
+  {
+    id: 'cardapio-carrinho-checkout',
+    origem: { regiao_id: 'cardapio' },
+    destino: { regiao_id: 'carrinho-checkout' },
+    tipo: 'dependencia',
+    descricao: 'O Cardápio põe itens no carrinho com useCart',
+    evidencias: [
+      {
+        caminho: 'web/src/pages/Menu.tsx',
+        linha_inicio: 4,
+        linha_fim: 4,
+        trecho: "import { useCart } from '../cart/useCart';",
       },
     ],
   },

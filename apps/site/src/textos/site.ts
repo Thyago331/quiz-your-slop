@@ -8,6 +8,7 @@ const pt = {
     { href: '/taverna-do-slop', rotulo: 'Taverna do Slop' },
     { href: '/privacidade', rotulo: 'Privacidade' },
     { href: '/faq', rotulo: 'FAQ' },
+    { href: '/baixar', rotulo: 'Baixar' },
   ],
   rotuloNavegacao: 'Páginas do site',
   entrar: 'Entrar com GitHub',
@@ -15,6 +16,7 @@ const pt = {
   sair: 'Sair',
   rodape: ['Seu código nunca sai da sua máquina.', 'Jogo de código aberto'],
   repositorio: 'GitHub',
+  verificar: 'Verificar o download',
 };
 
 export const SITE: PorIdioma<typeof pt> = {
@@ -26,6 +28,7 @@ export const SITE: PorIdioma<typeof pt> = {
       { href: '/taverna-do-slop', rotulo: 'Slop Tavern' },
       { href: '/privacidade', rotulo: 'Privacy' },
       { href: '/faq', rotulo: 'FAQ' },
+      { href: '/baixar', rotulo: 'Download' },
     ],
     rotuloNavegacao: 'Site pages',
     entrar: 'Sign in with GitHub',
@@ -33,6 +36,7 @@ export const SITE: PorIdioma<typeof pt> = {
     sair: 'Sign out',
     rodape: ['Your code never leaves your machine.', 'Open source game'],
     repositorio: 'GitHub',
+    verificar: 'Verify the download',
   },
   es: {
     marca: 'QUIZ YOUR SLOP',
@@ -41,6 +45,7 @@ export const SITE: PorIdioma<typeof pt> = {
       { href: '/taverna-do-slop', rotulo: 'Taberna del Slop' },
       { href: '/privacidade', rotulo: 'Privacidad' },
       { href: '/faq', rotulo: 'FAQ' },
+      { href: '/baixar', rotulo: 'Descargar' },
     ],
     rotuloNavegacao: 'Páginas del sitio',
     entrar: 'Entrar con GitHub',
@@ -48,5 +53,6 @@ export const SITE: PorIdioma<typeof pt> = {
     sair: 'Salir',
     rodape: ['Tu código nunca sale de tu máquina.', 'Juego de código abierto'],
     repositorio: 'GitHub',
+    verificar: 'Verificar la descarga',
   },
 };

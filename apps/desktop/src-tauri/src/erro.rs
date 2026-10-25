@@ -5,8 +5,8 @@ use serde::Serialize;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(tag = "codigo", content = "detalhe", rename_all = "snake_case")]
 pub enum Erro {
-    /// O comando existe na lista, mas ainda não faz nada.
-    NaoImplementado,
+    /// A verificação ou a instalação da atualização falhou (rede, assinatura, instalador).
+    Atualizacao(String),
     /// A raiz do Projeto não existe ou não é uma pasta.
     RaizInvalida(String),
     /// Caminho absoluto, com `..` ou que sai da raiz do Projeto.

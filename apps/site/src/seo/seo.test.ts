@@ -97,6 +97,7 @@ describe('JSON-LD', () => {
       url: 'https://quiz.example/en',
       inLanguage: 'en',
       operatingSystem: 'Windows, Linux',
+      downloadUrl: 'https://quiz.example/en/baixar',
       offers: { '@type': 'Offer', price: '0' },
     });
   });
@@ -129,9 +130,15 @@ describe('rastreio', () => {
   it('o sitemap lista cada página pública em cada idioma, com o hreflang de todas', () => {
     const mapa = mapaDoSite(env);
     expect(mapa.map((u) => u.url)).toEqual(
-      ['', '/como-funciona', '/taverna-do-slop', '/privacidade', '/faq'].flatMap((c) =>
-        ['pt', 'en', 'es'].map((i) => `https://quiz.example/${i}${c}`),
-      ),
+      [
+        '',
+        '/como-funciona',
+        '/taverna-do-slop',
+        '/privacidade',
+        '/faq',
+        '/baixar',
+        '/verificar',
+      ].flatMap((c) => ['pt', 'en', 'es'].map((i) => `https://quiz.example/${i}${c}`)),
     );
     const faqEmEspanhol = mapa.find((u) => u.url === 'https://quiz.example/es/faq');
     expect(faqEmEspanhol?.alternates?.languages).toEqual(HREFLANG_DO_FAQ);
@@ -159,6 +166,7 @@ describe('rastreio', () => {
     }
     expect(texto).toContain('### O Mestre é a sua IA');
     expect(texto).toContain('[How it works (English)](https://quiz.example/en/como-funciona)');
+    expect(texto).toContain('- [Verificar o download](https://quiz.example/pt/verificar): ');
   });
 });
 

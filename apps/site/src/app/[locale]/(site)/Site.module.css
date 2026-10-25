@@ -91,6 +91,15 @@
   line-height: 1.6;
   margin: 10px 0 6px;
 }
+.tituloDownload {
+  margin-top: 40px;
+}
+.download {
+  margin: 8px 8px 22px;
+}
+.download a + a {
+  margin-left: 12px;
+}
 @media (max-width: 760px) {
   .heroi,
   .passos {

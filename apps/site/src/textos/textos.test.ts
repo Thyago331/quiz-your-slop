@@ -3,6 +3,7 @@
 // o que o tipo não vê (listas, Records por id).
 import { describe, expect, it } from 'vitest';
 import { IDIOMAS, chavesDe, textosVazios, type PorIdioma } from '@quiz/i18n';
+import { BAIXAR, PAGINA as PAGINA_BAIXAR } from './baixar';
 import { COMO_FUNCIONA, PAGINA as PAGINA_COMO_FUNCIONA } from './como-funciona';
 import { ENTRAR } from './entrar';
 import { ENTRAR_DESKTOP } from './entrar-desktop';
@@ -14,6 +15,7 @@ import { PAGINA as PAGINA_PRIVACIDADE, PRIVACIDADE } from './privacidade';
 import { SITE } from './site';
 import { PAGINA as PAGINA_TAVERNA, TAVERNA } from './taverna';
 import { TUTORIAL } from './tutorial';
+import { PAGINA as PAGINA_VERIFICAR, VERIFICAR } from './verificar';
 
 const TEXTOS: Record<string, PorIdioma<unknown>> = {
   SITE,
@@ -28,11 +30,15 @@ const TEXTOS: Record<string, PorIdioma<unknown>> = {
   ENTRAR,
   ENTRAR_DESKTOP,
   TUTORIAL,
+  BAIXAR,
+  VERIFICAR,
   'PAGINA /': PAGINA_INICIO.textos,
   'PAGINA /como-funciona': PAGINA_COMO_FUNCIONA.textos,
   'PAGINA /faq': PAGINA_FAQ.textos,
   'PAGINA /privacidade': PAGINA_PRIVACIDADE.textos,
   'PAGINA /taverna-do-slop': PAGINA_TAVERNA.textos,
+  'PAGINA /baixar': PAGINA_BAIXAR.textos,
+  'PAGINA /verificar': PAGINA_VERIFICAR.textos,
 };
 
 const marcadores = (valor: unknown): string[] =>
@@ -59,6 +65,7 @@ describe('ids e links', () => {
         PERGUNTAS.pt.map((p) => p.link?.href),
       );
       expect(ids(COMO_FUNCIONA[idioma].secoes)).toEqual(ids(COMO_FUNCIONA.pt.secoes));
+      expect(ids(VERIFICAR[idioma].secoes)).toEqual(ids(VERIFICAR.pt.secoes));
       expect(SITE[idioma].navegacao.map((n) => n.href)).toEqual(
         SITE.pt.navegacao.map((n) => n.href),
       );

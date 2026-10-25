@@ -4,7 +4,9 @@ const COMANDOS: &[&str] = &[
     "rodar_mestre",
     "rodar_git",
     "ler_arquivo",
-    "atualizar",
+    // Atualização automática (src/atualizacao.rs).
+    "verificar_atualizacao",
+    "instalar_atualizacao",
     // Nova Aventura (#34)
     "escolher_pasta",
     "detectar_mestre",

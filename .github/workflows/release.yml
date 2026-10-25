@@ -1,0 +1,171 @@
+name: Release do desktop
+
+# Uma tag v<semver> gera o Jogo desktop (spec §10): AppImage e .deb no Linux, o instalador NSIS no
+# Windows, os .sig e o latest.json do updater, o SHA256SUMS.txt de tudo e uma attestation de
+# proveniência por arquivo; tudo vai para uma Release do GitHub, criada como rascunho e publicada
+# no fim. Nada é assinado pelo sistema operacional: quem baixa confere pelo site (/verificar).
+#
+# workflow_dispatch é o ensaio: compila e monta tudo (os arquivos ficam como artefatos do run), mas
+# não cria Release nem attestation.
+#
+# Segredos: TAURI_SIGNING_PRIVATE_KEY e TAURI_SIGNING_PRIVATE_KEY_PASSWORD (a chave do updater,
+# cuja parte pública está em apps/desktop/src-tauri/tauri.conf.json). Variável: QUIZ_SITE_URL (a
+# origem do site em produção, fixada no binário para o login).
+#
+# Ações fixadas pelo commit (a tag ao lado é só para leitura).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  compilar:
+    name: Compilar (${{ matrix.plataforma }})
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # O Ubuntu suportado mais antigo: o AppImage e o .deb dependem da glibc de onde foram
+          # compilados e rodam nas distribuições com a mesma ou mais nova.
+          - os: ubuntu-22.04
+            plataforma: linux
+            bundles: appimage,deb
+          - os: windows-latest
+            plataforma: windows
+            bundles: nsis
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    defaults:
+      run:
+        shell: bash
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Versão
+        id: versao
+        env:
+          EVENTO: ${{ github.event_name }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          if [ "$EVENTO" = push ]; then
+            versao=$(node scripts/release.mjs versao "$TAG")
+          else
+            versao=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          fi
+          echo "versao=$versao" >> "$GITHUB_OUTPUT"
+
+      - name: Dependências do WebKitGTK
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable, 2026-10-16
+        with:
+          toolchain: stable
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      # Sem cache de build: o binário publicado sai sempre de uma compilação limpa.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build assinado para o updater
+        env:
+          QUIZ_SITE_URL: ${{ vars.QUIZ_SITE_URL }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          VERSAO: ${{ steps.versao.outputs.versao }}
+          BUNDLES: ${{ matrix.bundles }}
+        run: |
+          case "$QUIZ_SITE_URL" in
+            https://*) ;;
+            *) echo "::error::a variável QUIZ_SITE_URL (https://...) não está definida"; exit 1 ;;
+          esac
+          pnpm tauri build --ci --bundles "$BUNDLES" --config "{\"version\":\"$VERSAO\"}"
+
+      - name: Nomes fixos
+        env:
+          PLATAFORMA: ${{ matrix.plataforma }}
+        run: node scripts/release.mjs coletar src-tauri/target/release/bundle ../../publicar "$PLATAFORMA"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: desktop-${{ matrix.plataforma }}
+          path: publicar/
+          if-no-files-found: error
+          retention-days: 7
+
+  publicar:
+    name: Publicar
+    needs: compilar
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # criar a Release e subir os arquivos
+      id-token: write # attestations (OIDC do Sigstore)
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: desktop-*
+          path: publicar
+          merge-multiple: true
+
+      - name: latest.json e SHA256SUMS.txt
+        env:
+          EVENTO: ${{ github.event_name }}
+          TAG: ${{ github.ref_name }}
+          REPOSITORIO: ${{ github.repository }}
+        run: |
+          if [ "$EVENTO" = push ]; then
+            tag="$TAG"
+          else
+            tag="v$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")"
+          fi
+          node apps/desktop/scripts/release.mjs publicar publicar "$tag" "$REPOSITORIO"
+          (cd publicar && sha256sum -c SHA256SUMS.txt)
+          ls -l publicar
+
+      - name: Arquivos do ensaio
+        if: github.event_name != 'push'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-ensaio
+          path: publicar/
+          retention-days: 7
+
+      - name: Attestations
+        if: github.event_name == 'push'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: publicar/*
+
+      - name: Release (rascunho → publicada)
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          versao=$(node apps/desktop/scripts/release.mjs versao "$TAG")
+          extra=()
+          case "$versao" in *-*) extra=(--prerelease) ;; *) extra=(--latest) ;; esac
+          gh release create "$TAG" --draft --verify-tag --generate-notes \
+            --title "Quiz your slop $versao" "${extra[@]}"
+          gh release upload "$TAG" publicar/*
+          gh release edit "$TAG" --draft=false "${extra[@]}"

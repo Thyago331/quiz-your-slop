@@ -10,6 +10,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@quiz/i18n": "workspace:*",
     "@quiz/jogo": "workspace:*",
     "@quiz/ui": "workspace:*",
     "react": "19.3.0",

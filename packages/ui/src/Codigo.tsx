@@ -20,10 +20,12 @@ type EvidenciaNaTelaProps = {
   evidencia: Evidencia;
   /** Com ele, o `caminho:linha` vira botão que abre o arquivo no explorador de código. */
   onAbrir?: (evidencia: Evidencia) => void;
+  /** O title do botão (vem do idioma de quem usa: este componente também roda no servidor). */
+  rotuloAbrir?: string;
 };
 
 /** A Evidência em pergaminho: onde está e o trecho de código, com os números das linhas. */
-export function EvidenciaNaTela({ evidencia, onAbrir }: EvidenciaNaTelaProps) {
+export function EvidenciaNaTela({ evidencia, onAbrir, rotuloAbrir }: EvidenciaNaTelaProps) {
   const linhas = evidencia.trecho.split(/\r?\n/);
   const local = localDaEvidencia(evidencia);
   return (
@@ -34,7 +36,7 @@ export function EvidenciaNaTela({ evidencia, onAbrir }: EvidenciaNaTelaProps) {
           <button
             type="button"
             className="evidencia-abrir"
-            title="Abrir no explorador de código"
+            title={rotuloAbrir}
             onClick={() => onAbrir(evidencia)}
           >
             <code>{local}</code>

@@ -3,6 +3,19 @@
 @import '@fontsource/press-start-2p/400.css';
 @import '@fontsource/vt323/400.css';
 
+/* A Press Start 2P desenha Í, Ó, Ã... iguais às minúsculas: estas maiúsculas acentuadas vêm de uma
+   fonte própria derivada dela (scripts/fonte-acentos.py, OFL) e o resto cai na Press Start 2P. */
+@font-face {
+  font-family: 'Quiz Pixel Acentos';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src:
+    url(./fontes/quiz-pixel-acentos.woff2) format('woff2'),
+    url(./fontes/quiz-pixel-acentos.woff) format('woff');
+  unicode-range: U+00C0-00C5, U+00C7-00CF, U+00D1-00D6, U+00D9-00DD;
+}
+
 :root {
   --px-fundo: #10101c;
   --px-texto: #f4f0e8;
@@ -35,7 +48,7 @@
   --px-evento: #f1c40f;
   --px-dependencia: #c39bd3;
 
-  --px-fonte-titulo: 'Press Start 2P', ui-monospace, monospace;
+  --px-fonte-titulo: 'Quiz Pixel Acentos', 'Press Start 2P', ui-monospace, monospace;
   --px-fonte-texto: 'VT323', ui-monospace, monospace;
   --px-fonte-codigo: ui-monospace, monospace;
 }
@@ -95,6 +108,33 @@
   line-height: 1.6;
   margin: 0 0 8px;
   color: var(--px-ouro);
+}
+
+/* Seletor de idioma: PT · EN · ES, o atual em ouro com o ▶ */
+.seletor-idioma {
+  font-family: var(--px-fonte-titulo);
+  font-size: 10px;
+  color: var(--px-apagado);
+  white-space: nowrap;
+}
+.seletor-idioma-opcao {
+  font: inherit;
+  background: none;
+  border: 0;
+  padding: 0 2px;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.seletor-idioma-opcao:hover,
+.seletor-idioma-opcao:focus-visible {
+  color: var(--px-texto);
+}
+.seletor-idioma-opcao[aria-current='true'] {
+  color: var(--px-ouro);
+}
+.seletor-idioma-opcao[aria-current='true']::before {
+  content: '▶ ';
 }
 
 /* Menu com cursor ▶ */

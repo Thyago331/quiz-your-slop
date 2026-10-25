@@ -1,7 +1,8 @@
 // Dados estruturados (spec §12): cada objeto repete o que está visível na página onde aparece.
+import { ETIQUETA, type Idioma } from '@quiz/i18n';
 import type { Pergunta } from '@/textos/faq';
-import { IDIOMA } from './metadados';
-import { NOME_DO_SITE, REPOSITORIO, urlAbsoluta, type Env } from './site';
+import { urlNoIdioma } from './metadados';
+import { NOME_DO_SITE, REPOSITORIO, type Env } from './site';
 
 export type JsonLd = {
   '@context': 'https://schema.org';
@@ -15,17 +16,21 @@ export function serializarJsonLd(dados: JsonLd): string {
 }
 
 /** O Jogo, na página inicial. */
-export function softwareApplication(descricao: string, env: Env = process.env): JsonLd {
+export function softwareApplication(
+  descricao: string,
+  idioma: Idioma,
+  env: Env = process.env,
+): JsonLd {
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: NOME_DO_SITE,
-    url: urlAbsoluta('/', env),
+    url: urlNoIdioma(idioma, '/', env),
     description: descricao,
     applicationCategory: 'GameApplication',
     applicationSubCategory: 'Educational game',
     operatingSystem: 'Windows, Linux',
-    inLanguage: IDIOMA,
+    inLanguage: ETIQUETA[idioma],
     isAccessibleForFree: true,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' },
     codeRepository: REPOSITORIO,
@@ -34,12 +39,16 @@ export function softwareApplication(descricao: string, env: Env = process.env): 
 }
 
 /** As perguntas da página de FAQ, com as respostas em texto puro. */
-export function faqPage(perguntas: readonly Pergunta[], env: Env = process.env): JsonLd {
+export function faqPage(
+  perguntas: readonly Pergunta[],
+  idioma: Idioma,
+  env: Env = process.env,
+): JsonLd {
   return {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    url: urlAbsoluta('/faq', env),
-    inLanguage: IDIOMA,
+    url: urlNoIdioma(idioma, '/faq', env),
+    inLanguage: ETIQUETA[idioma],
     mainEntity: perguntas.map((p) => ({
       '@type': 'Question',
       name: p.pergunta,

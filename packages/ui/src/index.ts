@@ -1,13 +1,7 @@
 export { Barra } from './Barra.tsx';
-export {
-  Batalha,
-  ROTULO_FORMATO,
-  ResumoExpedicao,
-  TEXTO_CACADOR_DE_SLOP,
-  textoDoPasso,
-} from './Batalha.tsx';
+export { Batalha, ResumoExpedicao, textoDoPasso } from './Batalha.tsx';
 export { EvidenciaNaTela, Texto, localDaEvidencia } from './Codigo.tsx';
-export { CLASSES, type ClasseNaTela } from './classes.ts';
+export { classeNaTela, classesNaTela, type ClasseNaTela } from './classes.ts';
 export { EscolhaDeClasse } from './EscolhaDeClasse.tsx';
 export {
   ArvoreDeArquivos,
@@ -16,12 +10,11 @@ export {
   VisualizadorDeCodigo,
   type ArquivoAberto,
 } from './Explorador.tsx';
+export { IdiomaDaInterface, useIdioma, useMensagens } from './idioma.tsx';
 export { Janela } from './Janela.tsx';
 export {
   LegendaMapa,
   MapaMundi,
-  ROTULO_ESTADO,
-  ROTULO_LIGACAO,
   type IlhaNoMapa,
   type LigacaoNoMapa,
   type MapaMundiProps,
@@ -37,5 +30,6 @@ export {
   type TipoToken,
   type Token,
 } from './realce.ts';
+export { SeletorDeIdioma, type OpcaoDeIdioma } from './SeletorDeIdioma.tsx';
 export { Pixels, Sprite } from './Sprite.tsx';
 export { PALETA, SPRITES, type NomeSprite } from './sprites.ts';

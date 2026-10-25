@@ -8,17 +8,19 @@ export const TAMANHO_MAXIMO_OUTRA = 80;
 
 export type Inscricao = { ia: IaDaLista; outra: string | null };
 
-export type Validacao = { ok: true; inscricao: Inscricao } | { ok: false; erro: string };
+/** O motivo da recusa; a tela o traduz (textos/lista-de-espera). */
+export type ErroDaInscricao = 'semIa' | 'semOutra' | 'outraLonga';
 
-/** O que veio do formulário vira uma Inscrição ou um erro para mostrar ao Jogador. */
+export type Validacao = { ok: true; inscricao: Inscricao } | { ok: false; erro: ErroDaInscricao };
+
+/** O que veio do formulário vira uma Inscrição ou o motivo da recusa. */
 export function validarInscricao(dados: { ia: unknown; outra: unknown }): Validacao {
   const ia = IAS_DA_LISTA.find((i) => i === dados.ia);
-  if (!ia) return { ok: false, erro: 'Escolha uma das IAs da lista.' };
+  if (!ia) return { ok: false, erro: 'semIa' };
   if (ia !== 'outra') return { ok: true, inscricao: { ia, outra: null } };
   const outra = typeof dados.outra === 'string' ? dados.outra.trim().replace(/\s+/g, ' ') : '';
-  if (!outra) return { ok: false, erro: 'Diga qual é a outra IA.' };
-  if (outra.length > TAMANHO_MAXIMO_OUTRA)
-    return { ok: false, erro: `Use até ${TAMANHO_MAXIMO_OUTRA} caracteres.` };
+  if (!outra) return { ok: false, erro: 'semOutra' };
+  if (outra.length > TAMANHO_MAXIMO_OUTRA) return { ok: false, erro: 'outraLonga' };
   return { ok: true, inscricao: { ia, outra } };
 }
 

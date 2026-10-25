@@ -3,7 +3,7 @@ import { configUmami } from '@/analise/umami';
 import { PERGUNTAS, PAGINA as FAQ } from '@/textos/faq';
 import { PAGINA as INICIO } from '@/textos/inicio';
 import { faqPage, serializarJsonLd, softwareApplication } from './jsonld';
-import { metadadosDaPagina, metadadosDoSite } from './metadados';
+import { alternativas, metadadosDaPagina, metadadosDoSite } from './metadados';
 import { PAGINAS_PUBLICAS } from './paginas';
 import { mapaDoSite, regrasDeRobots, textoLlms } from './rastreio';
 import { urlAbsoluta, urlDoSite } from './site';
@@ -24,26 +24,62 @@ describe('urlDoSite', () => {
   });
 });
 
+const HREFLANG_DO_FAQ = {
+  'pt-BR': 'https://quiz.example/pt/faq',
+  en: 'https://quiz.example/en/faq',
+  es: 'https://quiz.example/es/faq',
+  'x-default': 'https://quiz.example/pt/faq',
+};
+
+describe('alternativas', () => {
+  it('dão pt-BR, en, es e x-default (a versão em português) com o prefixo de cada idioma', () => {
+    expect(alternativas('/faq', env)).toEqual(HREFLANG_DO_FAQ);
+    expect(alternativas('/', env)).toEqual({
+      'pt-BR': 'https://quiz.example/pt',
+      en: 'https://quiz.example/en',
+      es: 'https://quiz.example/es',
+      'x-default': 'https://quiz.example/pt',
+    });
+  });
+});
+
 describe('metadados', () => {
   it('dão a cada página canonical, hreflang, Open Graph e Twitter', () => {
-    const m = metadadosDaPagina(FAQ, env);
+    const m = metadadosDaPagina(FAQ, 'pt', env);
     expect(m.title).toBe('Perguntas frequentes');
-    expect(m.description).toBe(FAQ.descricao);
+    expect(m.description).toBe(FAQ.textos.pt.descricao);
     expect(m.alternates).toEqual({
-      canonical: 'https://quiz.example/faq',
-      languages: { 'pt-BR': 'https://quiz.example/faq', 'x-default': 'https://quiz.example/faq' },
+      canonical: 'https://quiz.example/pt/faq',
+      languages: HREFLANG_DO_FAQ,
     });
     expect(m.openGraph).toMatchObject({
-      url: 'https://quiz.example/faq',
+      url: 'https://quiz.example/pt/faq',
       locale: 'pt_BR',
+      alternateLocale: ['en_US', 'es_ES'],
       siteName: 'Quiz your slop',
     });
     expect(m.twitter).toMatchObject({ card: 'summary_large_image' });
   });
 
+  it('cada idioma tem o próprio canonical, título e locale, e o mesmo conjunto de hreflang', () => {
+    const en = metadadosDaPagina(FAQ, 'en', env);
+    expect(en.title).toBe('Frequently asked questions');
+    expect(en.alternates).toEqual({
+      canonical: 'https://quiz.example/en/faq',
+      languages: HREFLANG_DO_FAQ,
+    });
+    expect(en.openGraph).toMatchObject({ locale: 'en_US', url: 'https://quiz.example/en/faq' });
+    const es = metadadosDaPagina(FAQ, 'es', env);
+    expect(es.title).toBe('Preguntas frecuentes');
+    expect(es.alternates?.canonical).toBe('https://quiz.example/es/faq');
+  });
+
   it('a inicial leva o nome do site junto da chamada, sem o modelo', () => {
-    expect(metadadosDaPagina(INICIO, env).title).toEqual({
+    expect(metadadosDaPagina(INICIO, 'pt', env).title).toEqual({
       absolute: 'Quiz your slop — Você comitou. Mas você leu?',
+    });
+    expect(metadadosDaPagina(INICIO, 'es', env).title).toEqual({
+      absolute: 'Quiz your slop — Hiciste commit. ¿Pero lo leíste?',
     });
   });
 
@@ -54,24 +90,27 @@ describe('metadados', () => {
 
 describe('JSON-LD', () => {
   it('SoftwareApplication descreve o Jogo gratuito para Windows e Linux', () => {
-    const dados = softwareApplication('descrição', env);
+    const dados = softwareApplication('descrição', 'en', env);
     expect(dados).toMatchObject({
       '@type': 'SoftwareApplication',
       name: 'Quiz your slop',
-      url: 'https://quiz.example/',
+      url: 'https://quiz.example/en',
+      inLanguage: 'en',
       operatingSystem: 'Windows, Linux',
       offers: { '@type': 'Offer', price: '0' },
     });
   });
 
   it('FAQPage traz cada pergunta com a resposta da página', () => {
-    const dados = faqPage(PERGUNTAS, env);
+    const perguntas = PERGUNTAS.es;
+    const dados = faqPage(perguntas, 'es', env);
     expect(dados['@type']).toBe('FAQPage');
-    expect(dados.mainEntity).toHaveLength(PERGUNTAS.length);
+    expect(dados).toMatchObject({ url: 'https://quiz.example/es/faq', inLanguage: 'es' });
+    expect(dados.mainEntity).toHaveLength(perguntas.length);
     expect((dados.mainEntity as unknown[])[0]).toEqual({
       '@type': 'Question',
-      name: PERGUNTAS[0]?.pergunta,
-      acceptedAnswer: { '@type': 'Answer', text: PERGUNTAS[0]?.resposta },
+      name: perguntas[0]?.pergunta,
+      acceptedAnswer: { '@type': 'Answer', text: perguntas[0]?.resposta },
     });
   });
 
@@ -87,34 +126,39 @@ describe('JSON-LD', () => {
 });
 
 describe('rastreio', () => {
-  it('o sitemap lista as páginas públicas com URL absoluta', () => {
-    const urls = mapaDoSite(env).map((u) => u.url);
-    expect(urls).toEqual([
-      'https://quiz.example/',
-      'https://quiz.example/como-funciona',
-      'https://quiz.example/taverna-do-slop',
-      'https://quiz.example/privacidade',
-      'https://quiz.example/faq',
-    ]);
+  it('o sitemap lista cada página pública em cada idioma, com o hreflang de todas', () => {
+    const mapa = mapaDoSite(env);
+    expect(mapa.map((u) => u.url)).toEqual(
+      ['', '/como-funciona', '/taverna-do-slop', '/privacidade', '/faq'].flatMap((c) =>
+        ['pt', 'en', 'es'].map((i) => `https://quiz.example/${i}${c}`),
+      ),
+    );
+    const faqEmEspanhol = mapa.find((u) => u.url === 'https://quiz.example/es/faq');
+    expect(faqEmEspanhol?.alternates?.languages).toEqual(HREFLANG_DO_FAQ);
   });
 
-  it('o robots abre o site, fecha login, Tutorial e API e aponta o sitemap', () => {
+  it('o robots abre o site, fecha login, Tutorial e API em todo idioma e aponta o sitemap', () => {
     const robots = regrasDeRobots(env);
     expect(robots.sitemap).toBe('https://quiz.example/sitemap.xml');
     const regras = Array.isArray(robots.rules) ? robots.rules : [robots.rules];
-    expect(regras[0]).toEqual({
-      userAgent: '*',
-      allow: '/',
-      disallow: ['/api/', '/entrar', '/tutorial', '/lista-de-espera'],
-    });
+    expect(regras[0]).toMatchObject({ userAgent: '*', allow: '/' });
+    expect(regras[0]?.disallow).toEqual(
+      expect.arrayContaining(['/api/', '/pt/entrar', '/en/tutorial', '/es/lista-de-espera']),
+    );
     expect(regras[1]?.userAgent).toContain('ClaudeBot');
   });
 
-  it('o llms.txt resume o produto e linka cada página pública', () => {
+  it('o llms.txt resume o produto em português e linka cada página em cada idioma', () => {
     const texto = textoLlms(env);
     expect(texto.startsWith('# Quiz your slop\n\n> ')).toBe(true);
-    for (const p of PAGINAS_PUBLICAS) expect(texto).toContain(urlAbsoluta(p.caminho, env));
+    for (const p of PAGINAS_PUBLICAS) {
+      for (const idioma of ['pt', 'en', 'es'])
+        expect(texto).toContain(
+          urlAbsoluta(`/${idioma}${p.caminho === '/' ? '' : p.caminho}`, env),
+        );
+    }
     expect(texto).toContain('### O Mestre é a sua IA');
+    expect(texto).toContain('[How it works (English)](https://quiz.example/en/como-funciona)');
   });
 });
 

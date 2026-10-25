@@ -2,17 +2,25 @@
 // O explorador de código do Tutorial (spec §9): a árvore da Taverna com a Névoa da Aventura.
 import { useMemo, useState, type ComponentProps } from 'react';
 import { arvoreDoExplorador, type MapaAventura } from '@quiz/jogo';
-import { ARQUIVOS, REGIOES, TERRITORIOS } from '@quiz/taverna';
-import { Batalha, ExploradorDeCodigo, PalcoComCodigo, type ArquivoAberto } from '@quiz/ui';
+import { ARQUIVOS, REGIOES, mapaNoIdioma } from '@quiz/taverna';
+import {
+  Batalha,
+  ExploradorDeCodigo,
+  PalcoComCodigo,
+  useIdioma,
+  type ArquivoAberto,
+} from '@quiz/ui';
 
 const TODOS = Object.keys(ARQUIVOS);
 const lerArquivo = (caminho: string) => ARQUIVOS[caminho];
 
+/** A árvore com os nomes dos Territórios no idioma da tela. */
 function useArvore(estados: MapaAventura['estados']) {
-  return useMemo(
-    () => arvoreDoExplorador({ territorios: TERRITORIOS, regioes: REGIOES, estados, todos: TODOS }),
-    [estados],
-  );
+  const idioma = useIdioma();
+  return useMemo(() => {
+    const { territorios, regioes } = mapaNoIdioma(idioma);
+    return arvoreDoExplorador({ territorios, regioes, estados, todos: TODOS });
+  }, [estados, idioma]);
 }
 
 /** No mapa: ler o código das regiões já fora da Névoa antes de partir. */

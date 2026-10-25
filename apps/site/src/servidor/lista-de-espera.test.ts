@@ -25,11 +25,14 @@ describe('validarInscricao', () => {
       ok: true,
       inscricao: { ia: 'outra', outra: 'Aider CLI' },
     });
-    expect(validarInscricao({ ia: 'outra', outra: 'x'.repeat(81) }).ok).toBe(false);
+    expect(validarInscricao({ ia: 'outra', outra: 'x'.repeat(81) })).toEqual({
+      ok: false,
+      erro: 'outraLonga',
+    });
   });
 
   it('recusa o que não está na lista', () => {
-    expect(validarInscricao({ ia: 'claude', outra: null }).ok).toBe(false);
+    expect(validarInscricao({ ia: 'claude', outra: null })).toEqual({ ok: false, erro: 'semIa' });
     expect(validarInscricao({ ia: null, outra: null }).ok).toBe(false);
   });
 });

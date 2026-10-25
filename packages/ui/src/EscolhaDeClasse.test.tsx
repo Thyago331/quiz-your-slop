@@ -1,7 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { CLASSES } from './classes.ts';
+import { classesNaTela } from './classes.ts';
+
+const CLASSES = classesNaTela('pt');
 import { EscolhaDeClasse } from './EscolhaDeClasse.tsx';
 
 function montar() {

@@ -6,6 +6,8 @@ import {
   type LerArquivo,
   type NoExplorador,
 } from '@quiz/jogo';
+import { emMaiusculas, formatar } from '@quiz/i18n';
+import { useIdioma, useMensagens } from './idioma.tsx';
 import { Janela } from './Janela.tsx';
 import { linguagemDe, realcar } from './realce.ts';
 
@@ -24,6 +26,9 @@ type ArvoreDeArquivosProps = {
  * botão, não recebe foco e o nome que aparece é a máscara que vem das regras do Jogo.
  */
 export function ArvoreDeArquivos({ grupos, aberto, onAbrir }: ArvoreDeArquivosProps) {
+  const idioma = useIdioma();
+  const m = useMensagens();
+  const t = m.ui.explorador;
   const nos = (filhos: readonly NoExplorador[]): ReactNode => (
     <ul className="explorador-nos">
       {filhos.map((no, k) => {
@@ -34,7 +39,7 @@ export function ArvoreDeArquivos({ grupos, aberto, onAbrir }: ArvoreDeArquivosPr
                 <span
                   className="explorador-pasta explorador-nevoa"
                   role="img"
-                  aria-label="Pasta na Névoa"
+                  aria-label={t.pastaNaNevoa}
                 >
                   {no.nome}/
                 </span>
@@ -51,7 +56,7 @@ export function ArvoreDeArquivos({ grupos, aberto, onAbrir }: ArvoreDeArquivosPr
               <span
                 className="explorador-arquivo explorador-nevoa"
                 role="img"
-                aria-label="Arquivo na Névoa"
+                aria-label={t.arquivoNaNevoa}
               >
                 {no.nome}
               </span>
@@ -77,10 +82,12 @@ export function ArvoreDeArquivos({ grupos, aberto, onAbrir }: ArvoreDeArquivosPr
   );
 
   return (
-    <nav className="explorador-arvore" aria-label="Arquivos do Projeto">
+    <nav className="explorador-arvore" aria-label={t.arquivos}>
       {grupos.map((grupo) => (
         <div key={grupo.territorioId ?? '—'} className="explorador-grupo">
-          <h3 className="explorador-territorio">{grupo.nome.toUpperCase()}</h3>
+          <h3 className="explorador-territorio">
+            {emMaiusculas(idioma, grupo.territorioId === null ? m.jogo.outrosArquivos : grupo.nome)}
+          </h3>
           {nos(grupo.filhos)}
         </div>
       ))}
@@ -96,6 +103,7 @@ type VisualizadorDeCodigoProps = {
 
 /** Código somente leitura, com números de linha e destaque de sintaxe; rola até as linhas destacadas. */
 export function VisualizadorDeCodigo({ aberto, conteudo }: VisualizadorDeCodigoProps) {
+  const t = useMensagens().ui.explorador;
   const { caminho, inicio, fim = inicio } = aberto;
   const linhas = useMemo(() => realcar(conteudo, linguagemDe(caminho)), [conteudo, caminho]);
   const caixa = useRef<HTMLPreElement>(null);
@@ -115,8 +123,11 @@ export function VisualizadorDeCodigo({ aberto, conteudo }: VisualizadorDeCodigoP
     inicio !== undefined && fim !== undefined && n >= inicio && n <= fim;
   const rotulo =
     inicio !== undefined
-      ? `Código de ${caminho}, linhas ${inicio}${fim !== inicio ? `–${fim}` : ''} destacadas`
-      : `Código de ${caminho}`;
+      ? formatar(t.codigoDeLinhas, {
+          caminho,
+          linhas: `${inicio}${fim !== inicio ? `–${fim}` : ''}`,
+        })
+      : formatar(t.codigoDe, { caminho });
 
   return (
     <pre ref={caixa} className="codigo explorador-codigo" tabIndex={0} aria-label={rotulo}>
@@ -170,6 +181,8 @@ export function ExploradorDeCodigo({
   onAbrir,
   className,
 }: ExploradorDeCodigoProps) {
+  const idioma = useIdioma();
+  const t = useMensagens().ui.explorador;
   const visiveis = useMemo(() => caminhosVisiveis(grupos), [grupos]);
   const raiz = useRef<HTMLDivElement>(null);
   const visivel = aberto !== null && visiveis.has(aberto.caminho);
@@ -186,22 +199,22 @@ export function ExploradorDeCodigo({
 
   let visor: ReactNode;
   if (aberto === null) {
-    visor = <p className="texto-apagado">Escolha um arquivo na árvore para ler o código.</p>;
+    visor = <p className="texto-apagado">{t.escolha}</p>;
   } else if (!visivel) {
     visor = (
       <p className="explorador-aviso" role="status">
-        ☁ Este arquivo está na Névoa. Revele a região dele para ler o código.
+        {t.naNevoa}
       </p>
     );
   } else if (conteudo === undefined) {
-    visor = <p className="texto-erro">Arquivo não encontrado.</p>;
+    visor = <p className="texto-erro">{t.naoEncontrado}</p>;
   } else {
     visor = <VisualizadorDeCodigo aberto={aberto} conteudo={conteudo} />;
   }
 
   return (
     <div ref={raiz} className={className ? `explorador ${className}` : 'explorador'}>
-      <Janela titulo="EXPLORADOR DE CÓDIGO">
+      <Janela titulo={emMaiusculas(idioma, t.titulo)}>
         <div className="explorador-corpo">
           <ArvoreDeArquivos grupos={grupos} aberto={aberto?.caminho} onAbrir={onAbrir} />
           <div className="explorador-visor">
@@ -235,11 +248,12 @@ export function PalcoComCodigo({
   codigo,
   aba,
   onTrocarAba,
-  rotuloPrincipal = '⚔ Batalha',
+  rotuloPrincipal,
 }: PalcoComCodigoProps) {
+  const t = useMensagens().ui.explorador;
   return (
     <div className="palco" data-aba={aba}>
-      <div className="palco-abas menu--horizontal" role="tablist" aria-label="Cena">
+      <div className="palco-abas menu--horizontal" role="tablist" aria-label={t.cena}>
         <button
           type="button"
           role="tab"
@@ -250,7 +264,7 @@ export function PalcoComCodigo({
           data-cursor={aba === 'principal'}
           onClick={() => onTrocarAba('principal')}
         >
-          {rotuloPrincipal}
+          {rotuloPrincipal ?? t.batalha}
         </button>
         <button
           type="button"
@@ -262,7 +276,7 @@ export function PalcoComCodigo({
           data-cursor={aba === 'codigo'}
           onClick={() => onTrocarAba('codigo')}
         >
-          📜 Código
+          {t.codigo}
         </button>
       </div>
       <div

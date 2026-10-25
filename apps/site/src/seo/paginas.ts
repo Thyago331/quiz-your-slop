@@ -1,3 +1,5 @@
+import { IDIOMAS } from '@quiz/i18n';
+import { caminhoNoIdioma } from '@/i18n/caminhos';
 import { PAGINA as COMO_FUNCIONA } from '@/textos/como-funciona';
 import { PAGINA as FAQ } from '@/textos/faq';
 import { PAGINA as INICIO } from '@/textos/inicio';
@@ -14,5 +16,10 @@ export const PAGINAS_PUBLICAS: readonly DadosDaPagina[] = [
   FAQ,
 ];
 
-/** Caminhos que não interessam a buscadores: login, áreas com conta e rotas da API. */
-export const CAMINHOS_FECHADOS = ['/api/', '/entrar', '/tutorial', '/lista-de-espera'] as const;
+const FECHADAS = ['/entrar', '/tutorial', '/lista-de-espera'] as const;
+
+/** Caminhos que não interessam a buscadores: rotas da API e, em cada idioma, login e áreas com conta. */
+export const CAMINHOS_FECHADOS: readonly string[] = [
+  '/api/',
+  ...IDIOMAS.flatMap((idioma) => FECHADAS.map((c) => caminhoNoIdioma(idioma, c))),
+];

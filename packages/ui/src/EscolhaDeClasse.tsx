@@ -1,5 +1,7 @@
 'use client';
 import type { Classe } from '@quiz/jogo';
+import { emMaiusculas } from '@quiz/i18n';
+import { useIdioma, useMensagens } from './idioma.tsx';
 import { Janela } from './Janela.tsx';
 import { Menu } from './Menu.tsx';
 import { Sprite } from './Sprite.tsx';
@@ -12,15 +14,14 @@ type EscolhaDeClasseProps = {
 };
 
 /** Seleção de personagem: um cartão por Classe; ← → e Enter, ou o mouse. */
-export function EscolhaDeClasse({
-  classes,
-  onEscolher,
-  titulo = 'Escolha a sua Classe',
-}: EscolhaDeClasseProps) {
+export function EscolhaDeClasse({ classes, onEscolher, titulo }: EscolhaDeClasseProps) {
+  const idioma = useIdioma();
+  const t = useMensagens().ui.classe;
+  const nome = titulo ?? t.titulo;
   return (
-    <Janela titulo={titulo.toUpperCase()} className="escolha-classe">
+    <Janela titulo={emMaiusculas(idioma, nome)} className="escolha-classe">
       <Menu
-        rotulo={titulo}
+        rotulo={nome}
         horizontal
         autoFoco
         className="escolha-classe-cartoes"
@@ -40,7 +41,7 @@ export function EscolhaDeClasse({
           if (classe) onEscolher(classe.id);
         }}
       />
-      <p className="escolha-classe-ajuda">▶ ← → escolhem · Enter confirma · ou clique.</p>
+      <p className="escolha-classe-ajuda">{t.ajuda}</p>
     </Janela>
   );
 }

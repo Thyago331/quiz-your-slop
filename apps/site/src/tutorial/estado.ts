@@ -26,9 +26,17 @@ import {
   type EstatisticasDoJogador,
   type EstruturaMapa,
   type Expedicao,
+  type Idioma,
   type MapaAventura,
 } from '@quiz/jogo';
-import { DESAFIOS, ENTRADAS, LIGACOES, REGIOES } from '@quiz/taverna';
+import {
+  DESAFIOS,
+  ENTRADAS,
+  LIGACOES,
+  REGIOES,
+  desafiosDaRegiao,
+  type DesafioTaverna,
+} from '@quiz/taverna';
 
 export const ESTRUTURA: EstruturaMapa = {
   regioes: REGIOES.map((r) => r.id),
@@ -89,23 +97,29 @@ const temLigacoes = (regiaoId: string) =>
   ESTRUTURA.ligacoes.some((l) => l.origem === regiaoId || l.destino === regiaoId);
 
 /**
- * Sorteia os 5 Desafios da tentativa, preferindo os que o Jogador ainda não viu na região e
- * respeitando a mistura mínima de Formatos.
+ * Sorteia os 5 Desafios da tentativa no idioma da tela, preferindo os que o Jogador ainda não viu
+ * na região e respeitando a mistura mínima de Formatos. Os ids são os mesmos em todo idioma, então
+ * trocar de idioma não faz rever Desafio. Até o #30, en e es sorteiam os em português.
  */
 export function desafiosParaPartir(
   estado: EstadoTutorial,
   regiaoId: string,
   aleatorio: Aleatorio = Math.random,
+  idioma: Idioma = 'pt',
 ): Desafio[] {
   const vistos = estado.aventura?.vistos[regiaoId] ?? [];
-  return escolherDesafios(DESAFIOS[regiaoId] ?? [], vistos, {
+  return escolherDesafios(desafiosDaRegiao(regiaoId, idioma), vistos, {
     aleatorio,
     temLigacoes: temLigacoes(regiaoId),
   });
 }
 
-/** O texto de anulação mora no banco da Taverna, junto da isca. */
+/**
+ * O texto de anulação mora no banco da Taverna, junto da isca: vem no próprio Desafio sorteado (no
+ * idioma em que saiu); se não, o do banco em português.
+ */
 const anulacaoDo = (desafio: Desafio) =>
+  (desafio as Partial<DesafioTaverna>).anulacao ??
   Object.values(DESAFIOS)
     .flat()
     .find((d) => d.id === desafio.id)?.anulacao;

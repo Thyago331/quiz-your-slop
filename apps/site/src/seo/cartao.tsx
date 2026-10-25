@@ -1,22 +1,28 @@
-// A imagem de compartilhamento (Open Graph/Twitter) de cada página pública, no estilo pixel: a
-// janela azul de borda branca, o título em Press Start 2P e o lema em VT323.
+// A imagem de compartilhamento (Open Graph/Twitter) de cada página pública, no idioma da página e
+// no estilo pixel: a janela azul de borda branca, o título em Press Start 2P e o lema em VT323.
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ImageResponse } from 'next/og';
+import { IDIOMAS, IDIOMA_PADRAO, ehIdioma } from '@quiz/i18n';
+import type { DadosDaPagina } from '@/textos/pagina';
 import { LEMA } from './site';
 
 export const TAMANHO_DO_CARTAO = { width: 1200, height: 630 };
 
-// Os .woff do @fontsource (o satori não lê woff2). As imagens são geradas no build, então a leitura
+// Os .woff (o satori não lê woff2): os do @fontsource e as maiúsculas acentuadas do @quiz/ui (a
+// Press Start 2P as desenha como minúsculas). As imagens são geradas no build, então a leitura
 // acontece na pasta da app; lidas uma vez por processo.
-let fontes: Promise<[Buffer, Buffer]> | undefined;
+let fontes: Promise<[Buffer, Buffer, Buffer]> | undefined;
 const pastaFontes = (pacote: string) =>
   path.join(process.cwd(), 'node_modules', '@fontsource', pacote, 'files');
 const carregarFontes = () =>
   (fontes ??= Promise.all([
     readFile(path.join(pastaFontes('press-start-2p'), 'press-start-2p-latin-400-normal.woff')),
     readFile(path.join(pastaFontes('vt323'), 'vt323-latin-400-normal.woff')),
+    readFile(path.join(process.cwd(), 'node_modules/@quiz/ui/src/fontes/quiz-pixel-acentos.woff')),
   ]));
+
+const TITULO = 'Quiz Pixel Acentos, Press Start 2P';
 
 const COR = {
   fundo: '#10101c',
@@ -31,7 +37,7 @@ const COR = {
 
 /** O cartão: a marca no topo, o texto da página no meio e o lema embaixo. */
 export async function cartao(texto: string): Promise<ImageResponse> {
-  const [pressStart, vt323] = await carregarFontes();
+  const [pressStart, vt323, acentos] = await carregarFontes();
   return new ImageResponse(
     <div
       style={{
@@ -55,14 +61,12 @@ export async function cartao(texto: string): Promise<ImageResponse> {
           color: COR.texto,
         }}
       >
-        <div
-          style={{ fontFamily: 'Press Start 2P', fontSize: 34, color: COR.ouro, display: 'flex' }}
-        >
+        <div style={{ fontFamily: TITULO, fontSize: 34, color: COR.ouro, display: 'flex' }}>
           QUIZ YOUR SLOP
         </div>
         <div
           style={{
-            fontFamily: 'Press Start 2P',
+            fontFamily: TITULO,
             fontSize: 50,
             lineHeight: 1.5,
             textShadow: `6px 6px 0 ${COR.sombra}`,
@@ -92,9 +96,23 @@ export async function cartao(texto: string): Promise<ImageResponse> {
     {
       ...TAMANHO_DO_CARTAO,
       fonts: [
+        { name: 'Quiz Pixel Acentos', data: acentos, weight: 400, style: 'normal' },
         { name: 'Press Start 2P', data: pressStart, weight: 400, style: 'normal' },
         { name: 'VT323', data: vt323, weight: 400, style: 'normal' },
       ],
     },
   );
+}
+
+type ParametrosDoIdioma = { params: Promise<{ locale: string }> };
+
+/** O `generateStaticParams` dos cartões: um por idioma, gerados no build (as fontes são lidas lá). */
+export const cartoesPorIdioma = () => IDIOMAS.map((locale) => ({ locale }));
+
+/** O `default` de `opengraph-image`/`twitter-image` de uma página: o cartão no idioma da rota. */
+export function cartaoDaPagina(pagina: DadosDaPagina) {
+  return async function Imagem({ params }: ParametrosDoIdioma) {
+    const { locale } = await params;
+    return cartao(pagina.textos[ehIdioma(locale) ? locale : IDIOMA_PADRAO].cartao);
+  };
 }

@@ -1,0 +1,22 @@
+{
+  "name": "@quiz/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Idiomas da interface (pt, en, es): as mensagens compartilhadas entre o site e o Jogo desktop e uma busca sem framework.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@quiz/jogo": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.0"
+  }
+}

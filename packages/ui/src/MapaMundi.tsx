@@ -1,25 +1,13 @@
 'use client';
 import { useRef, type KeyboardEvent } from 'react';
 import type { EstadoNoMapa, TipoLigacao } from '@quiz/jogo';
+import { emMaiusculas, type Mensagens } from '@quiz/i18n';
+import { useIdioma, useMensagens } from './idioma.tsx';
 import { Pixels } from './Sprite.tsx';
 import type { NomeSprite } from './sprites.ts';
 
 /** Lado de um tile, em unidades do SVG. */
 const T = 24;
-
-export const ROTULO_LIGACAO: Readonly<Record<TipoLigacao, string>> = {
-  chamada: 'Chamada',
-  consulta: 'Consulta',
-  evento: 'Evento',
-  dependencia: 'Dependência',
-};
-
-export const ROTULO_ESTADO: Readonly<Record<EstadoNoMapa, string>> = {
-  nevoa: 'na Névoa',
-  desbloqueada: 'desbloqueada',
-  revelada: 'revelada',
-  desatualizada: 'desatualizada',
-};
 
 const MARCA_ESTADO: Readonly<Record<EstadoNoMapa, string>> = {
   nevoa: '',
@@ -117,7 +105,11 @@ function caixasDaRegiao(r: RegiaoNoMapa): Caixa[] {
  * Traça as estradas evitando passar por construções que não são as das pontas e, se der,
  * por outras estradas; depois acha para cada rótulo um lugar livre ao longo da própria estrada.
  */
-function tracarEstradas(regioes: readonly RegiaoNoMapa[], ligacoes: readonly LigacaoNoMapa[]) {
+function tracarEstradas(
+  regioes: readonly RegiaoNoMapa[],
+  ligacoes: readonly LigacaoNoMapa[],
+  rotulos: Mensagens['jogo']['ligacoes'],
+) {
   const porId = new Map(regioes.map((r) => [r.id, r]));
   const ocupados = new Set<string>();
   const ocupadas: Caixa[] = regioes.flatMap(caixasDaRegiao);
@@ -142,7 +134,7 @@ function tracarEstradas(regioes: readonly RegiaoNoMapa[], ligacoes: readonly Lig
     const tiles = opcoes.reduce((melhor, opcao) => (custo(opcao) < custo(melhor) ? opcao : melhor));
     for (const [i, j] of tiles) ocupados.add(`${i},${j}`);
 
-    const texto = ROTULO_LIGACAO[ligacao.tipo];
+    const texto = rotulos[ligacao.tipo];
     const largura = texto.length * 9 + 6;
     const meio = Math.floor(tiles.length / 2);
     const candidatos = tiles
@@ -198,8 +190,11 @@ export function MapaMundi({
   onAtivar,
   heroi,
   spriteHeroi = 'heroi',
-  rotulo = 'Mapa-mundi',
+  rotulo,
 }: MapaMundiProps) {
+  const idioma = useIdioma();
+  const m = useMensagens();
+  const ROTULO_LIGACAO = m.jogo.ligacoes;
   const botoes = useRef(new Map<string, HTMLButtonElement>());
   const largura = colunas * T;
   const altura = linhas * T;
@@ -226,7 +221,7 @@ export function MapaMundi({
   for (let j = 0; j < linhas; j++)
     for (let i = 0; i < colunas; i++) if (ruido(i, j) < 2) enfeites.push([i, j]);
 
-  const estradas = tracarEstradas(regioes, ligacoes);
+  const estradas = tracarEstradas(regioes, ligacoes, ROTULO_LIGACAO);
 
   return (
     <div className="mapa">
@@ -234,7 +229,7 @@ export function MapaMundi({
         viewBox={`0 0 ${largura} ${altura}`}
         shapeRendering="crispEdges"
         role="img"
-        aria-label={rotulo}
+        aria-label={rotulo ?? m.ui.mapa.rotulo}
       >
         <rect width={largura} height={altura} className="mapa-agua" />
         {enfeites
@@ -299,7 +294,7 @@ export function MapaMundi({
 
         {ilhas.map((l) => (
           <text key={l.id} x={l.coluna * T + 8} y={l.linha * T + 14} className="mapa-territorio">
-            {l.nome.toUpperCase()}
+            {emMaiusculas(idioma, l.nome)}
           </text>
         ))}
 
@@ -383,7 +378,7 @@ export function MapaMundi({
             width: `${(56 / largura) * 100}%`,
             height: `${(80 / altura) * 100}%`,
           }}
-          aria-label={`${r.nome}, ${ROTULO_ESTADO[r.estado]}`}
+          aria-label={`${r.nome}, ${m.jogo.estados[r.estado]}`}
           aria-pressed={r.id === selecionada}
           tabIndex={r.id === comFoco?.id ? 0 : -1}
           onClick={() => {
@@ -399,12 +394,13 @@ export function MapaMundi({
 
 /** A legenda dos estados, como no rodapé do protótipo. */
 export function LegendaMapa() {
+  const t = useMensagens().ui.mapa.legenda;
   return (
     <p className="legenda">
-      <span className="legenda-revelada">★ revelada</span> ·{' '}
-      <span className="legenda-desbloqueada">⬚ desbloqueada</span> ·{' '}
-      <span className="legenda-desatualizada">⟳ desatualizada</span> ·{' '}
-      <span className="legenda-nevoa">☁ Névoa</span>
+      <span className="legenda-revelada">{t.revelada}</span> ·{' '}
+      <span className="legenda-desbloqueada">{t.desbloqueada}</span> ·{' '}
+      <span className="legenda-desatualizada">{t.desatualizada}</span> ·{' '}
+      <span className="legenda-nevoa">{t.nevoa}</span>
     </p>
   );
 }

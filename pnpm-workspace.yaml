@@ -5,3 +5,6 @@ allowBuilds:
   esbuild: true
   sharp: true
   unrs-resolver: true
+  # Dependências do extrator de mensagens do next-intl, que o site não usa.
+  '@parcel/watcher': false
+  '@swc/core': false

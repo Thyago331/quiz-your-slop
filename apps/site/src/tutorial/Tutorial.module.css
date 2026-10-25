@@ -68,3 +68,7 @@
   font-size: 12px;
   color: var(--px-ouro);
 }
+
+.idioma {
+  align-self: flex-start;
+}

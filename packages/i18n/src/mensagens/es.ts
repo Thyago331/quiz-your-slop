@@ -1,0 +1,131 @@
+import type { Mensagens } from './pt.ts';
+
+export const es: Mensagens = {
+  jogo: {
+    classes: {
+      backend: {
+        nome: 'Caballero del Backend',
+        descricao: 'Contratos, datos, reglas y efectos secundarios. Empieza en la ruta principal.',
+      },
+      frontend: {
+        nome: 'Mago del Frontend',
+        descricao: 'Estado, pantallas e interacción. Empieza en la página de inicio.',
+      },
+      fullstack: {
+        nome: 'Bardo Fullstack',
+        descricao: 'La travesía front ↔ back. Empieza donde la pantalla llama a la API.',
+      },
+    },
+    titulos: {
+      comitadorCego: 'Commiteador Ciego',
+      leitorDeDiff: 'Lector de Diff',
+      arqueologoDeCodigo: 'Arqueólogo de Código',
+      unslopper: 'Unslopper',
+    },
+    ligacoes: {
+      chamada: 'Llamada',
+      consulta: 'Consulta',
+      evento: 'Evento',
+      dependencia: 'Dependencia',
+    },
+    estados: {
+      nevoa: 'en la Niebla',
+      desbloqueada: 'desbloqueada',
+      revelada: 'revelada',
+      desatualizada: 'desactualizada',
+    },
+    formatos: {
+      multipla_escolha: 'Opción múltiple',
+      apontar: 'Señalar en el código',
+      tracar_fluxo: 'Trazar el flujo',
+    },
+    outrosArquivos: 'Otros archivos',
+  },
+  ui: {
+    idioma: 'Idioma',
+    classe: {
+      titulo: 'Elige tu Clase',
+      ajuda: '▶ ← → eligen · Enter confirma · o haz clic.',
+      entrada: 'Entrada: {regiao}',
+    },
+    mapa: {
+      rotulo: 'Mapamundi',
+      legenda: {
+        revelada: '★ revelada',
+        desbloqueada: '⬚ desbloqueada',
+        desatualizada: '⟳ desactualizada',
+        nevoa: '☁ Niebla',
+      },
+    },
+    batalha: {
+      guardiao: 'Guardián',
+      guardiaoDe: 'Guardián de {regiao}',
+      voce: 'Tú',
+      vida: 'Vida',
+      vidaDoGuardiao: 'Vida del Guardián',
+      acertosDerrotam: '({n} aciertos lo derrotan)',
+      desafio: 'Desafío {n}/{total}',
+      dificuldade: 'Dificultad',
+      opcoes: 'Opciones',
+      critico: '¡GOLPE CRÍTICO! Desafío anulado — ¡Cazador de Slop! +{xp} XP',
+      acertou: '¡ACIERTO! El Guardián recibió daño.',
+      errou: '¡El Guardián lo esquivó! (No pierdes nada.)',
+      seguir: 'Seguir',
+      fim: 'Fin de la batalla',
+      proximo: 'Siguiente Desafío',
+      contestar: '⚑ Impugnar la solución',
+      mantido: '⚑ Solución confirmada',
+      criticoTitulo: '🏹 Golpe crítico — Cazador de Slop',
+      cacadorDeSlop:
+        'Los comentarios también son código, y pueden mentir. La solución se creyó lo que la ' +
+        'función dice de sí misma; tú leíste lo que hace. Desconfía, lee el código e impugna: ' +
+        'tumbar una solución equivocada vale el bono de Cazador de Slop.',
+      porQue: '¿Por qué la solución está equivocada?',
+      enviar: '⚑ Enviar Impugnación',
+      cancelar: 'Cancelar',
+      ordemCerta: 'Orden correcto',
+      abrirEvidencia: 'Abrir en el explorador de código',
+    },
+    resumo: {
+      vitoria: '¡Victoria!',
+      resistiu: 'El Guardián resistió',
+      revelada: 'El Guardián cayó. {regiao} quedó revelada ★',
+      faltouPouco:
+        'Faltó poco. {regiao} sigue desbloqueada — inténtalo de nuevo con otros Desafíos.',
+      acertos: 'Aciertos: {acertos}/{respondidos}',
+      cacador: '🏹 Cazador de Slop: {n} {contestacoes} (+{bonus} XP de bono)',
+      contestacaoVencida: 'Impugnación ganada',
+      contestacoesVencidas: 'Impugnaciones ganadas',
+      novoTitulo: '⬆ Nuevo Título: {titulo}',
+      nevoaRecua: '¡La Niebla retrocede! Descubiertas:',
+      arquivosCitados: 'Archivos citados:',
+      depois: 'Después de la batalla',
+      voltar: 'Volver al mapa',
+    },
+    fluxo: {
+      escolhida: 'Orden elegido',
+      vazia: '(vacío)',
+      escolhaPasso: 'Elige el paso {n}:',
+      faltam: 'Pasos que faltan',
+      ordem: 'Orden',
+      atacar: '⚔ ATACAR (confirmar el orden)',
+      recomecar: '↺ Reiniciar el orden',
+      naNevoa: '??? ({ligacao} → región desconocida)',
+      naNevoaSemLigacao: '??? (región desconocida)',
+    },
+    explorador: {
+      titulo: 'Explorador de código',
+      arquivos: 'Archivos del Proyecto',
+      pastaNaNevoa: 'Carpeta en la Niebla',
+      arquivoNaNevoa: 'Archivo en la Niebla',
+      codigoDe: 'Código de {caminho}',
+      codigoDeLinhas: 'Código de {caminho}, líneas {linhas} resaltadas',
+      escolha: 'Elige un archivo del árbol para leer el código.',
+      naNevoa: '☁ Este archivo está en la Niebla. Revela su región para leer el código.',
+      naoEncontrado: 'Archivo no encontrado.',
+      cena: 'Escena',
+      batalha: '⚔ Batalla',
+      codigo: '📜 Código',
+    },
+  },
+};

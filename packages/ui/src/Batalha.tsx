@@ -13,7 +13,6 @@ import {
   type Desafio,
   type Evidencia,
   type Expedicao,
-  type FormatoDesafio,
   type MapaAventura,
   type Opcao,
   type OpcaoApontar,
@@ -22,27 +21,22 @@ import {
   type RespostaDada,
   type ResultadoExpedicao,
 } from '@quiz/jogo';
+import { emMaiusculas, formatar, type Mensagens } from '@quiz/i18n';
 import { Barra } from './Barra.tsx';
 import { EvidenciaNaTela, Texto } from './Codigo.tsx';
+import { useIdioma, useMensagens } from './idioma.tsx';
 import { Janela } from './Janela.tsx';
-import { ROTULO_LIGACAO } from './MapaMundi.tsx';
 import { Menu } from './Menu.tsx';
 import { OrdemDoFluxo } from './OrdemDoFluxo.tsx';
 import { Sprite } from './Sprite.tsx';
 import type { NomeSprite } from './sprites.ts';
 
-export const ROTULO_FORMATO: Readonly<Record<FormatoDesafio, string>> = {
-  multipla_escolha: 'Múltipla escolha',
-  apontar: 'Apontar no código',
-  tracar_fluxo: 'Traçar o fluxo',
-};
-
 /** O passo como a tela o mostra: na Névoa, só o tipo da Ligação por onde o caminho sai (spec §5). */
-export function textoDoPasso(passo: PassoNaTela): string {
+export function textoDoPasso(passo: PassoNaTela, m: Mensagens): string {
   if (!passo.naNevoa) return passo.texto;
   return passo.ligacao
-    ? `??? (${ROTULO_LIGACAO[passo.ligacao]} → região desconhecida)`
-    : '??? (região desconhecida)';
+    ? formatar(m.ui.fluxo.naNevoa, { ligacao: m.jogo.ligacoes[passo.ligacao] })
+    : m.ui.fluxo.naNevoaSemLigacao;
 }
 
 /** Apontar no código: o arquivo, e a função quando há. */
@@ -69,11 +63,12 @@ function RotuloDaOpcao({
   opcao: Opcao;
   estados: MapaAventura['estados'];
 }) {
+  const m = useMensagens();
   switch (desafio.formato) {
     case 'apontar':
       return <LugarNoCodigo opcao={opcao as OpcaoApontar} />;
     case 'tracar_fluxo':
-      return <Texto>{textoDoPasso(passoDoFluxo(opcao as OpcaoTracarFluxo, estados))}</Texto>;
+      return <Texto>{textoDoPasso(passoDoFluxo(opcao as OpcaoTracarFluxo, estados), m)}</Texto>;
     case 'multipla_escolha':
       return <Texto>{'texto' in opcao ? opcao.texto : opcao.id}</Texto>;
   }
@@ -96,12 +91,6 @@ type BatalhaProps = {
   onAbrirEvidencia?: (evidencia: Evidencia) => void;
 };
 
-/** O que o GOLPE CRÍTICO ensina: vale para toda isca, não só para a do Tutorial. */
-export const TEXTO_CACADOR_DE_SLOP =
-  'Comentário também é código, e pode mentir. O gabarito acreditou no que a função diz de si ' +
-  'mesma; você leu o que ela faz. Desconfie, leia o código e conteste: derrubar um gabarito ' +
-  'errado vale o bônus de Caçador de Slop.';
-
 /** A Expedição como batalha contra o Guardião da região (variante D, spec §13). */
 export function Batalha({
   expedicao,
@@ -115,6 +104,9 @@ export function Batalha({
   onAbrirEvidencia,
 }: BatalhaProps) {
   const [contestando, setContestando] = useState<number | null>(null);
+  const idioma = useIdioma();
+  const m = useMensagens();
+  const t = m.ui.batalha;
   const desafio = desafioAtual(expedicao);
   const numero = expedicao.atual + 1;
   const resposta =
@@ -133,24 +125,39 @@ export function Batalha({
   return (
     <div className="batalha">
       <div className="arena">
-        <div className="px arena-titulo">GUARDIÃO · {nomeRegiao.toUpperCase()}</div>
+        <div className="px arena-titulo">
+          {emMaiusculas(idioma, `${t.guardiao} · ${nomeRegiao}`)}
+        </div>
         <div className="arena-luta">
-          <Sprite nome={heroi} escala={10} titulo="Você" />
+          <Sprite nome={heroi} escala={10} titulo={t.voce} />
           <span className={golpe}>
-            <Sprite nome="slime" escala={14} titulo={`Guardião de ${nomeRegiao}`} />
+            <Sprite
+              nome="slime"
+              escala={14}
+              titulo={formatar(t.guardiaoDe, { regiao: nomeRegiao })}
+            />
           </span>
         </div>
         <div>
-          VIDA{' '}
-          <Barra valor={vidas} maximo={VIDAS_DO_GUARDIAO} rotulo="Vida do Guardião" tipo="vida" />{' '}
-          <span className="texto-apagado">({VIDAS_DO_GUARDIAO} acertos derrotam)</span>
+          {emMaiusculas(idioma, t.vida)}{' '}
+          <Barra valor={vidas} maximo={VIDAS_DO_GUARDIAO} rotulo={t.vidaDoGuardiao} tipo="vida" />{' '}
+          <span className="texto-apagado">
+            {formatar(t.acertosDerrotam, { n: VIDAS_DO_GUARDIAO })}
+          </span>
         </div>
       </div>
 
       <Janela>
         <div className="texto-apagado">
-          {ROTULO_FORMATO[desafio.formato].toUpperCase()} · DESAFIO {numero}/
-          {expedicao.desafios.length} · DIFICULDADE {'★'.repeat(desafio.dificuldade)}
+          {emMaiusculas(
+            idioma,
+            [
+              m.jogo.formatos[desafio.formato],
+              formatar(t.desafio, { n: numero, total: expedicao.desafios.length }),
+              t.dificuldade,
+            ].join(' · '),
+          )}{' '}
+          {'★'.repeat(desafio.dificuldade)}
         </div>
         <p className="desafio-enunciado">
           <Texto>{desafio.enunciado}</Texto>
@@ -164,7 +171,7 @@ export function Batalha({
                 const passo = passoDoFluxo(o as OpcaoTracarFluxo, estados);
                 return {
                   id: o.id,
-                  rotulo: <Texto>{textoDoPasso(passo)}</Texto>,
+                  rotulo: <Texto>{textoDoPasso(passo, m)}</Texto>,
                   naNevoa: passo.naNevoa,
                 };
               })}
@@ -173,7 +180,7 @@ export function Batalha({
           ) : (
             <Menu
               key={desafio.id ?? numero}
-              rotulo="Opções"
+              rotulo={t.opcoes}
               autoFoco
               className={desafio.formato === 'apontar' ? 'menu--codigo' : undefined}
               itens={desafio.opcoes.map((o) => ({
@@ -191,10 +198,10 @@ export function Batalha({
               className={anulado ? 'texto-ouro' : resposta.acertou ? 'texto-ok' : 'texto-erro'}
             >
               {anulado
-                ? `GOLPE CRÍTICO! Desafio anulado — Caçador de Slop! +${xpCacadorDeSlop} XP`
+                ? formatar(t.critico, { xp: xpCacadorDeSlop })
                 : resposta.acertou
-                  ? 'ACERTOU! O Guardião sofreu dano.'
-                  : 'O Guardião desviou! (Você não perde nada.)'}
+                  ? t.acertou
+                  : t.errou}
             </p>
             <p>
               <Texto>{desafio.explicacao}</Texto>
@@ -204,6 +211,7 @@ export function Batalha({
                 key={`${ev.caminho}:${ev.linha_inicio}`}
                 evidencia={ev}
                 onAbrir={onAbrirEvidencia}
+                rotuloAbrir={t.abrirEvidencia}
               />
             ))}
             {resposta.contestacao && (
@@ -223,11 +231,11 @@ export function Batalha({
             ) : (
               <Menu
                 key={`seguir-${numero}-${resposta.contestacao ? 'contestado' : ''}`}
-                rotulo="Seguir"
+                rotulo={t.seguir}
                 autoFoco
                 itens={[
-                  { id: 'avancar', rotulo: ultimo ? 'Fim da batalha' : 'Próximo Desafio' },
-                  ...(contestavel ? [{ id: 'contestar', rotulo: '⚑ Contestar o gabarito' }] : []),
+                  { id: 'avancar', rotulo: ultimo ? t.fim : t.proximo },
+                  ...(contestavel ? [{ id: 'contestar', rotulo: t.contestar }] : []),
                 ]}
                 onEscolher={(id) =>
                   id === 'contestar' ? setContestando(expedicao.atual) : onAvancar()
@@ -249,10 +257,12 @@ function VereditoDaContestacao({
   contestacao: Contestacao;
   onAbrirEvidencia?: (evidencia: Evidencia) => void;
 }) {
+  const idioma = useIdioma();
+  const t = useMensagens().ui.batalha;
   if (contestacao.veredito === 'mantido') {
     return (
       <div className="contestacao contestacao--mantida">
-        <p className="px contestacao-titulo">⚑ GABARITO MANTIDO</p>
+        <p className="px contestacao-titulo">{emMaiusculas(idioma, t.mantido)}</p>
         <p>
           <Texto>{contestacao.explicacao}</Texto>
         </p>
@@ -261,7 +271,7 @@ function VereditoDaContestacao({
   }
   return (
     <div className="contestacao contestacao--critico">
-      <p className="px contestacao-titulo">🏹 GOLPE CRÍTICO — CAÇADOR DE SLOP</p>
+      <p className="px contestacao-titulo">{emMaiusculas(idioma, t.criticoTitulo)}</p>
       <p>
         <Texto>{contestacao.explicacao}</Texto>
       </p>
@@ -270,9 +280,10 @@ function VereditoDaContestacao({
           key={`${ev.caminho}:${ev.linha_inicio}`}
           evidencia={ev}
           onAbrir={onAbrirEvidencia}
+          rotuloAbrir={t.abrirEvidencia}
         />
       ))}
-      <p className="texto-ouro">{TEXTO_CACADOR_DE_SLOP}</p>
+      <p className="texto-ouro">{t.cacadorDeSlop}</p>
     </div>
   );
 }
@@ -284,6 +295,7 @@ function FormularioDeContestacao({
   onEnviar: (argumento: string) => void;
   onCancelar: () => void;
 }) {
+  const t = useMensagens().ui.batalha;
   const [argumento, setArgumento] = useState('');
   const vazio = argumento.trim().length === 0;
   return (
@@ -294,7 +306,7 @@ function FormularioDeContestacao({
         if (!vazio) onEnviar(argumento);
       }}
     >
-      <label htmlFor="argumento-contestacao">Por que o gabarito está errado?</label>
+      <label htmlFor="argumento-contestacao">{t.porQue}</label>
       <textarea
         id="argumento-contestacao"
         autoFocus
@@ -311,10 +323,10 @@ function FormularioDeContestacao({
       </div>
       <div className="contestacao-botoes">
         <button type="submit" className="menu-item" disabled={vazio}>
-          ⚑ Enviar Contestação
+          {t.enviar}
         </button>
         <button type="button" className="menu-item" onClick={onCancelar}>
-          Cancelar
+          {t.cancelar}
         </button>
       </div>
     </form>
@@ -331,11 +343,12 @@ function OpcoesCorrigidas({
   resposta: RespostaDada;
   estados: MapaAventura['estados'];
 }) {
+  const t = useMensagens().ui.batalha;
   if (desafio.formato === 'tracar_fluxo') {
     return (
       <>
-        <div className="texto-apagado">Ordem certa:</div>
-        <ol className="opcoes-corrigidas fluxo-ordem" aria-label="Ordem certa">
+        <div className="texto-apagado">{t.ordemCerta}:</div>
+        <ol className="opcoes-corrigidas fluxo-ordem" aria-label={t.ordemCerta}>
           {desafio.gabarito.map((id, k) => {
             const opcao = desafio.opcoes.find((o) => o.id === id);
             const noLugar = resposta.resposta[k] === id;
@@ -387,34 +400,36 @@ export function ResumoExpedicao({
   onVoltar,
   xpCacadorDeSlop = CALIBRAGEM_PADRAO.xpCacadorDeSlop,
 }: ResumoExpedicaoProps) {
+  const idioma = useIdioma();
+  const t = useMensagens().ui.resumo;
   const { venceu, acertos, respondidos, xp, contestacoesVencidas, arquivosCitados } = resultado;
   const bonus = contestacoesVencidas * xpCacadorDeSlop;
   return (
     <Janela className="resumo">
-      <div className="grande">{venceu ? 'VITÓRIA!' : 'O GUARDIÃO RESISTIU'}</div>
+      <div className="grande">{emMaiusculas(idioma, venceu ? t.vitoria : t.resistiu)}</div>
+      <p>{formatar(venceu ? t.revelada : t.faltouPouco, { regiao: nomeRegiao })}</p>
       <p>
-        {venceu
-          ? `O Guardião caiu. ${nomeRegiao} foi revelada ★`
-          : `Faltou pouco. ${nomeRegiao} continua desbloqueada — tente de novo com outros Desafios.`}
-      </p>
-      <p>
-        Acertos: {acertos}/{respondidos} · <span className="texto-ouro">+{xp} XP</span>
+        {formatar(t.acertos, { acertos, respondidos })} ·{' '}
+        <span className="texto-ouro">+{xp} XP</span>
       </p>
       {contestacoesVencidas > 0 && (
         <p className="texto-ouro">
-          🏹 Caçador de Slop: {contestacoesVencidas}{' '}
-          {contestacoesVencidas === 1 ? 'Contestação vencida' : 'Contestações vencidas'} (+{bonus}{' '}
-          XP de bônus)
+          {formatar(t.cacador, {
+            n: contestacoesVencidas,
+            contestacoes:
+              contestacoesVencidas === 1 ? t.contestacaoVencida : t.contestacoesVencidas,
+            bonus,
+          })}
         </p>
       )}
-      {novoTitulo && <p className="texto-ouro">⬆ Novo Título: {novoTitulo}</p>}
+      {novoTitulo && <p className="texto-ouro">{formatar(t.novoTitulo, { titulo: novoTitulo })}</p>}
       {venceu && descobertas.length > 0 && (
         <p>
-          A Névoa recua! Descobertas: <span className="texto-ouro">{descobertas.join(', ')}</span>
+          {t.nevoaRecua} <span className="texto-ouro">{descobertas.join(', ')}</span>
         </p>
       )}
       <p className="texto-apagado">
-        Arquivos citados:{' '}
+        {t.arquivosCitados}{' '}
         {arquivosCitados.map((caminho, k) => (
           <span key={caminho}>
             {k > 0 && ' '}
@@ -423,9 +438,9 @@ export function ResumoExpedicao({
         ))}
       </p>
       <Menu
-        rotulo="Depois da batalha"
+        rotulo={t.depois}
         autoFoco
-        itens={[{ id: 'voltar', rotulo: 'Voltar ao mapa' }]}
+        itens={[{ id: 'voltar', rotulo: t.voltar }]}
         onEscolher={onVoltar}
       />
     </Janela>

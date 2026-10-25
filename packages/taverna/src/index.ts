@@ -8,4 +8,10 @@ export {
   type RegiaoTaverna,
   type TerritorioTaverna,
 } from './mapa.ts';
-export { DESAFIOS, type DesafioTaverna } from './desafios.ts';
+export { mapaNoIdioma, type MapaNoIdioma } from './idioma.ts';
+export {
+  DESAFIOS,
+  DESAFIOS_TRADUZIDOS,
+  desafiosDaRegiao,
+  type DesafioTaverna,
+} from './desafios.ts';

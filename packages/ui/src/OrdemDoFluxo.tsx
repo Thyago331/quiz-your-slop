@@ -1,5 +1,7 @@
 'use client';
 import { useState, type ReactNode } from 'react';
+import { formatar } from '@quiz/i18n';
+import { useMensagens } from './idioma.tsx';
 import { Menu } from './Menu.tsx';
 
 export type PassoOrdenavel = { id: string; rotulo: ReactNode; naNevoa?: boolean };
@@ -15,6 +17,7 @@ type OrdemDoFluxoProps = {
  * pode recomeçar a ordem e confirma quando todos estão no lugar.
  */
 export function OrdemDoFluxo({ passos, onConfirmar }: OrdemDoFluxoProps) {
+  const t = useMensagens().ui.fluxo;
   const [ordem, setOrdem] = useState<string[]>([]);
   const monte = passos.filter((p) => !ordem.includes(p.id));
   const completa = monte.length === 0;
@@ -22,11 +25,11 @@ export function OrdemDoFluxo({ passos, onConfirmar }: OrdemDoFluxoProps) {
 
   return (
     <div className="fluxo">
-      <div className="texto-apagado">Ordem escolhida:</div>
+      <div className="texto-apagado">{t.escolhida}:</div>
       {ordem.length === 0 ? (
-        <p className="fluxo-vazia texto-apagado">(vazia)</p>
+        <p className="fluxo-vazia texto-apagado">{t.vazia}</p>
       ) : (
-        <ol className="fluxo-ordem" aria-label="Ordem escolhida">
+        <ol className="fluxo-ordem" aria-label={t.escolhida}>
           {ordem.map((id) => (
             <li key={id} className={passo(id)?.naNevoa ? 'passo--nevoa' : undefined}>
               {passo(id)?.rotulo}
@@ -37,11 +40,11 @@ export function OrdemDoFluxo({ passos, onConfirmar }: OrdemDoFluxoProps) {
 
       {!completa && (
         <>
-          <div className="texto-apagado">Escolha o {ordem.length + 1}º passo:</div>
+          <div className="texto-apagado">{formatar(t.escolhaPasso, { n: ordem.length + 1 })}</div>
           <Menu
             // Remontar a cada escolha devolve o foco ao monte (o botão escolhido some).
             key={`monte-${ordem.length}`}
-            rotulo="Passos que faltam"
+            rotulo={t.faltam}
             autoFoco
             className="fluxo-monte"
             itens={monte.map((p) => ({
@@ -55,13 +58,13 @@ export function OrdemDoFluxo({ passos, onConfirmar }: OrdemDoFluxoProps) {
 
       <Menu
         key={completa ? 'acoes-completa' : 'acoes'}
-        rotulo="Ordem"
+        rotulo={t.ordem}
         autoFoco={completa}
         horizontal
         className="fluxo-acoes"
         itens={[
-          { id: 'confirmar', rotulo: '⚔ ATACAR (confirmar a ordem)', desabilitado: !completa },
-          { id: 'recomecar', rotulo: '↺ Recomeçar a ordem', desabilitado: ordem.length === 0 },
+          { id: 'confirmar', rotulo: t.atacar, desabilitado: !completa },
+          { id: 'recomecar', rotulo: t.recomecar, desabilitado: ordem.length === 0 },
         ]}
         onEscolher={(id) => {
           if (id === 'recomecar') setOrdem([]);

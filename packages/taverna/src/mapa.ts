@@ -1,5 +1,5 @@
 // O mapa da Taverna do Slop (docs/prototipos/taverna-do-slop-esboco.md), no formato do contrato.
-// Os textos estão em português e concentrados aqui para a tradução (en, es) vir depois.
+// Os textos estão em português; en e es ficam em traducoes.ts, pelo id (mapaNoIdioma).
 // As Evidências apontam para linhas reais de codigo/: mudar o código da Taverna as invalida.
 import type { Classe, Ligacao, RegiaoConhecida, RegiaoNova } from '@quiz/jogo';
 

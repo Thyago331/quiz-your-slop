@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Janela } from '@quiz/ui';
+import '@quiz/ui/estilo.css';
 
 createRoot(document.getElementById('raiz')!).render(
   <StrictMode>

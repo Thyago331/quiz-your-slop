@@ -1,0 +1,291 @@
+/* Base visual pixel do Jogo — variante D do protótipo (docs/prototipos/palco/index.html, spec §13).
+   Fontes empacotadas: o desktop roda sem Google Fonts. */
+@import '@fontsource/press-start-2p/400.css';
+@import '@fontsource/vt323/400.css';
+
+:root {
+  --px-fundo: #10101c;
+  --px-texto: #f4f0e8;
+  --px-apagado: #9aa0b0;
+  --px-ouro: #f1c40f;
+  --px-ouro-sombra: #8a5a00;
+  --px-vida: #e74c3c;
+  --px-ok: #4fd18b;
+  --px-erro: #ff6b6b;
+  --px-desatualizada: #ff9f43;
+  --px-janela-topo: #2b3a8f;
+  --px-janela-base: #141b4d;
+  --px-janela-borda: #f4f0e8;
+  --px-janela-contorno: #6b74c9;
+  --px-barra-vazia: #2a2a44;
+  --px-codigo-fundo: #0a0a12;
+  --px-codigo: #7fdbff;
+
+  /* mapa */
+  --px-agua: #2a5f9e;
+  --px-onda: #3f7fc7;
+  --px-terra: #3e8948;
+  --px-grama: #2f6d38;
+  --px-chao: #c8a165;
+  --px-ponte: #8a5a2b;
+  --px-ponte-tabua: #5d3a1a;
+  --px-nevoa: #d6d9e0;
+  --px-chamada: #f4f0e8;
+  --px-consulta: #7fdbff;
+  --px-evento: #f1c40f;
+  --px-dependencia: #c39bd3;
+
+  --px-fonte-titulo: 'Press Start 2P', ui-monospace, monospace;
+  --px-fonte-texto: 'VT323', ui-monospace, monospace;
+  --px-fonte-codigo: ui-monospace, monospace;
+}
+
+.pixel {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--px-fundo);
+  color: var(--px-texto);
+  font-family: var(--px-fonte-texto);
+  font-size: 22px;
+  line-height: 1.15;
+  image-rendering: pixelated;
+}
+.pixel *,
+.pixel *::before,
+.pixel *::after {
+  box-sizing: border-box;
+}
+.pixel h1,
+.pixel h2,
+.pixel h3,
+.pixel .px {
+  font-family: var(--px-fonte-titulo);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.pixel h2 {
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+.pixel code {
+  font-family: var(--px-fonte-codigo);
+  font-size: 17px;
+  color: var(--px-codigo);
+}
+.pixel :focus-visible {
+  outline: 3px solid var(--px-ouro);
+  outline-offset: 2px;
+}
+
+/* Janela azul de borda branca */
+.janela {
+  background: linear-gradient(var(--px-janela-topo), var(--px-janela-base));
+  border-radius: 2px;
+  padding: 14px 16px;
+  margin: 8px;
+  box-shadow:
+    0 0 0 4px var(--px-janela-borda),
+    0 0 0 8px var(--px-fundo),
+    0 0 0 10px var(--px-janela-contorno);
+}
+.janela-titulo {
+  font-family: var(--px-fonte-titulo);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 0 0 8px;
+  color: var(--px-ouro);
+}
+
+/* Menu com cursor ▶ */
+.menu {
+  display: flex;
+  flex-direction: column;
+}
+.menu-item {
+  font-family: var(--px-fonte-texto);
+  font-size: 22px;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  color: var(--px-texto);
+  padding: 2px 6px 2px 26px;
+  text-align: left;
+  position: relative;
+  cursor: pointer;
+}
+.menu-item[data-cursor='true'] {
+  color: var(--px-ouro);
+}
+.menu-item[data-cursor='true']::before {
+  content: '▶';
+  position: absolute;
+  left: 4px;
+  animation: px-piscar 0.8s steps(1) infinite;
+}
+.menu-item:disabled {
+  color: var(--px-apagado);
+  cursor: default;
+}
+.menu-item:focus-visible {
+  outline: none;
+  text-decoration: underline;
+}
+
+/* Barra de blocos */
+.barra {
+  display: inline-flex;
+  gap: 2px;
+  vertical-align: middle;
+}
+.barra i {
+  width: 10px;
+  height: 14px;
+  background: var(--px-barra-vazia);
+  display: inline-block;
+}
+.barra--ouro i.cheio {
+  background: var(--px-ouro);
+}
+.barra--vida i.cheio {
+  background: var(--px-vida);
+}
+
+.sprite {
+  display: inline-block;
+}
+
+/* Mapa-mundi */
+.mapa {
+  position: relative;
+}
+.mapa svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.mapa text {
+  font-family: var(--px-fonte-texto);
+  paint-order: stroke;
+  stroke: var(--px-fundo);
+  text-anchor: middle;
+}
+.mapa-agua {
+  fill: var(--px-agua);
+}
+.mapa-onda {
+  fill: var(--px-onda);
+}
+.mapa-terra {
+  fill: var(--px-terra);
+}
+.mapa-grama {
+  fill: var(--px-grama);
+}
+.mapa .mapa-territorio {
+  font-family: var(--px-fonte-titulo);
+  font-size: 8px;
+  fill: var(--px-texto);
+  stroke-width: 3px;
+  text-anchor: start;
+  opacity: 0.7;
+}
+.mapa-chao {
+  fill: var(--px-chao);
+}
+.mapa-ponte {
+  fill: var(--px-ponte);
+}
+.mapa-ponte-tabua {
+  fill: var(--px-ponte-tabua);
+}
+.mapa-rotulo {
+  font-size: 17px;
+  stroke-width: 3px;
+}
+.mapa-rotulo--chamada {
+  fill: var(--px-chamada);
+}
+.mapa-rotulo--consulta {
+  fill: var(--px-consulta);
+}
+.mapa-rotulo--evento {
+  fill: var(--px-evento);
+}
+.mapa-rotulo--dependencia {
+  fill: var(--px-dependencia);
+}
+.mapa-nevoa rect {
+  fill: var(--px-nevoa);
+  opacity: 0.85;
+}
+.mapa .mapa-nevoa-texto {
+  font-family: var(--px-fonte-titulo);
+  font-size: 12px;
+  fill: var(--px-fundo);
+  stroke: none;
+}
+.mapa-nome {
+  font-size: 20px;
+  fill: var(--px-texto);
+  stroke-width: 4px;
+}
+.mapa-moldura {
+  fill: none;
+  stroke-width: 3px;
+}
+.mapa-regiao--desbloqueada .mapa-moldura {
+  stroke: var(--px-texto);
+  stroke-dasharray: 6 6;
+}
+.mapa-regiao--revelada .mapa-moldura {
+  stroke: var(--px-ouro);
+}
+.mapa-regiao--desatualizada .mapa-moldura {
+  stroke: var(--px-desatualizada);
+  stroke-dasharray: 12 4;
+}
+.mapa-regiao--desatualizada .mapa-nome {
+  fill: var(--px-desatualizada);
+}
+.mapa-regiao--selecionada .mapa-moldura {
+  stroke-width: 4px;
+}
+.mapa .mapa-cursor {
+  font-size: 22px;
+  fill: var(--px-ouro);
+  stroke-width: 3px;
+  animation: px-piscar 0.8s steps(1) infinite;
+}
+.mapa-alvo {
+  position: absolute;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+.mapa-alvo:focus-visible {
+  outline: 3px solid var(--px-ouro);
+}
+
+.legenda {
+  margin: 0;
+}
+.legenda-revelada {
+  color: var(--px-ouro);
+}
+.legenda-desatualizada {
+  color: var(--px-desatualizada);
+}
+
+@keyframes px-piscar {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-item[data-cursor='true']::before,
+  .mapa .mapa-cursor {
+    animation: none;
+  }
+}

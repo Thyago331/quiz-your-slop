@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   // Monorepo: rastreia a partir da raiz para os pacotes do workspace entrarem na imagem.
   outputFileTracingRoot: path.join(process.cwd(), '../../'),
-  transpilePackages: ['@quiz/jogo', '@quiz/ui'],
+  transpilePackages: ['@quiz/jogo', '@quiz/taverna', '@quiz/ui'],
   reactStrictMode: true,
 };
 

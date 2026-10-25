@@ -1,0 +1,65 @@
+.tela {
+  padding: 14px 14px 40px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mapa {
+  margin: 18px 8px 8px;
+}
+
+.paineis {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+}
+
+@media (max-width: 800px) {
+  .paineis {
+    grid-template-columns: 1fr;
+  }
+}
+
+.texto {
+  margin: 6px 0;
+}
+
+.apagado {
+  color: var(--px-apagado);
+}
+
+.ouro {
+  color: var(--px-ouro);
+}
+
+.aviso {
+  margin: 10px 0 0;
+  color: var(--px-desatualizada);
+  font-size: 18px;
+}
+
+.ligacoes {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+}
+
+.chamada {
+  color: var(--px-chamada);
+}
+.consulta {
+  color: var(--px-consulta);
+}
+.evento {
+  color: var(--px-evento);
+}
+.dependencia {
+  color: var(--px-dependencia);
+}

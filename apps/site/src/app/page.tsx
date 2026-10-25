@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Janela } from '@quiz/ui';
 
 export default function Inicio() {
@@ -6,6 +7,9 @@ export default function Inicio() {
       <Janela>
         <h1>Quiz your slop</h1>
         <p>learn · gamification · unslop your code</p>
+        <p>
+          <Link href="/tutorial">▶ Tutorial — Taverna do Slop</Link>
+        </p>
       </Janela>
     </main>
   );

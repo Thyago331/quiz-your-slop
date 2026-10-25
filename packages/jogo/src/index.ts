@@ -20,3 +20,14 @@ export {
   type MotivoEvidenciaInvalida,
   type ResultadoEvidencia,
 } from './evidencia.ts';
+export {
+  iniciarMapa,
+  progresso,
+  revelar,
+  vizinhas,
+  type EstadoNoMapa,
+  type EstruturaMapa,
+  type LigacaoMapa,
+  type MapaAventura,
+  type ProgressoAventura,
+} from './mapa.ts';

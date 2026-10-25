@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@quiz/jogo": "workspace:*",
+    "@quiz/taverna": "workspace:*",
     "@quiz/ui": "workspace:*",
     "next": "16.4.2",
     "react": "19.3.0",

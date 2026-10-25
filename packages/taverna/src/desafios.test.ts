@@ -2,7 +2,7 @@ import { conferirEvidencia, conferirOpcaoApontar, type OpcaoApontar } from '@qui
 import { describe, expect, it } from 'vitest';
 import { ARQUIVOS } from './arquivos.gerado.ts';
 import { DESAFIOS } from './desafios.ts';
-import { REGIOES } from './mapa.ts';
+import { LIGACOES, REGIOES } from './mapa.ts';
 
 const ler = (caminho: string) => ARQUIVOS[caminho];
 const todos = Object.values(DESAFIOS).flat();
@@ -77,19 +77,31 @@ describe('Desafios da Taverna', () => {
     }
   });
 
-  it('a API de Pedidos tem os três Formatos, com Apontar e Traçar o fluxo de sobra', () => {
-    const api = DESAFIOS['api-pedidos'] ?? [];
-    const quantos = (formato: string) => api.filter((d) => d.formato === formato).length;
-    expect(quantos('multipla_escolha')).toBeGreaterThan(0);
-    expect(quantos('apontar')).toBeGreaterThanOrEqual(2);
-    expect(quantos('tracar_fluxo')).toBeGreaterThanOrEqual(2);
+  it('toda Região tem uma Expedição inteira, nos três Formatos, do mais fácil ao mais difícil', () => {
+    for (const regiao of REGIOES) {
+      const banco = DESAFIOS[regiao.id] ?? [];
+      expect(banco.length, regiao.id).toBeGreaterThanOrEqual(9);
+      expect(new Set(banco.map((d) => d.formato)), regiao.id).toEqual(
+        new Set(['multipla_escolha', 'apontar', 'tracar_fluxo']),
+      );
+      expect(
+        banco.map((d) => d.dificuldade),
+        regiao.id,
+      ).toEqual(expect.arrayContaining([1, 2, 3, 4, 5]));
+    }
+    expect(todos.length).toBeGreaterThanOrEqual(70);
   });
 
-  it('a API de Pedidos tem Desafios para uma Expedição inteira, do mais fácil ao mais difícil', () => {
-    const api = DESAFIOS['api-pedidos'] ?? [];
-    expect(api.length).toBeGreaterThanOrEqual(5);
-    expect(api.map((d) => d.dificuldade)).toContain(1);
-    expect(api.map((d) => d.dificuldade)).toContain(5);
+  it('a mistura mínima cabe em duas Expedições sem repetir: 2 Apontar e 2 Traçar o fluxo por Região', () => {
+    for (const regiao of REGIOES) {
+      const banco = DESAFIOS[regiao.id] ?? [];
+      const temLigacoes = LIGACOES.some(
+        (l) => l.origem.regiao_id === regiao.id || l.destino.regiao_id === regiao.id,
+      );
+      const quantos = (formato: string) => banco.filter((d) => d.formato === formato).length;
+      expect(quantos('apontar'), regiao.id).toBeGreaterThanOrEqual(2);
+      if (temLigacoes) expect(quantos('tracar_fluxo'), regiao.id).toBeGreaterThanOrEqual(2);
+    }
   });
 
   it('as Evidências de cada região ficam nos arquivos dela: nada da Névoa vaza', () => {
@@ -100,6 +112,10 @@ describe('Desafios da Taverna', () => {
         for (const ev of evidencias) expect(arquivos, desafio.id).toContain(ev.caminho);
       }
     }
+  });
+
+  it('exatamente um Desafio-isca no banco inteiro', () => {
+    expect(todos.filter((d) => d.isca)).toHaveLength(1);
   });
 
   it('a isca do Cofre do Anão: gabarito no comentário mentiroso, anulação no código de verdade', () => {
@@ -118,12 +134,5 @@ describe('Desafios da Taverna', () => {
     expect(anulacao?.evidencias.some((e) => e.trecho.includes('ledger.push'))).toBe(true);
     // Só a isca traz texto de anulação.
     expect(todos.filter((d) => d.anulacao).map((d) => d.id)).toEqual(['cofre-pagar-duas-vezes']);
-  });
-
-  it('o Cofre do Anão tem uma Expedição inteira, com os três Formatos', () => {
-    const cofre = DESAFIOS['cofre-anao'] ?? [];
-    expect(cofre.length).toBeGreaterThanOrEqual(5);
-    const formatos = new Set(cofre.map((d) => d.formato));
-    expect([...formatos].sort()).toEqual(['apontar', 'multipla_escolha', 'tracar_fluxo']);
   });
 });

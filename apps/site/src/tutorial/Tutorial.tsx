@@ -187,13 +187,10 @@ function TelaDoMapa({ estado, aventura, selecionada, onSelecionar, despachar }: 
 
   const acoes: ItemMenu[] = [];
   if (conquistavel && comDesafios) acoes.push({ id: 'partir', rotulo: '⚔ Partir em Expedição' });
-  // Até o banco de Desafios cobrir o mapa, as outras regiões seguem jogáveis assim.
-  if (conquistavel && !comDesafios) acoes.push({ id: 'revelar', rotulo: '⚠ Revelar (teste)' });
   acoes.push({ id: 'recomecar', rotulo: '↺ Recomeçar o Tutorial' });
 
   function escolher(acao: string) {
     if (acao === 'partir') partir(selecionada);
-    else if (acao === 'revelar') despachar({ tipo: 'revelarTeste', regiaoId: selecionada });
     else if (acao === 'recomecar') despachar({ tipo: 'recomecar' });
   }
 
@@ -243,11 +240,6 @@ function TelaDoMapa({ estado, aventura, selecionada, onSelecionar, despachar }: 
 
         <Janela>
           <Menu rotulo="Ações" itens={acoes} onEscolher={escolher} />
-          {conquistavel && !comDesafios && (
-            <p className={estilos.aviso}>
-              Esta região ainda não tem Desafios: a revelação de teste fica até eles chegarem.
-            </p>
-          )}
           {estadoRegiao === 'revelada' && (
             <p className={estilos.ouro}>★ Região revelada: o Guardião já foi derrotado.</p>
           )}

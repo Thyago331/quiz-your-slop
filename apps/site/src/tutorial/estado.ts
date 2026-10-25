@@ -13,7 +13,6 @@ import {
   podeContestar,
   responderDesafio,
   resultadoDaExpedicao,
-  revelar,
   type Aleatorio,
   type Aventura,
   type Classe,
@@ -60,8 +59,6 @@ export type AcaoTutorial =
   | { tipo: 'contestar'; argumento: string }
   | { tipo: 'avancar' }
   | { tipo: 'voltarAoMapa' }
-  /** Temporário: revela sem Expedição as regiões que ainda não têm Desafios. */
-  | { tipo: 'revelarTeste'; regiaoId: string }
   | { tipo: 'recomecar' };
 
 export const temDesafios = (regiaoId: string) => (DESAFIOS[regiaoId]?.length ?? 0) > 0;
@@ -149,16 +146,6 @@ export function tutorial(estado: EstadoTutorial, acao: AcaoTutorial): EstadoTuto
     }
     case 'voltarAoMapa':
       return expedicao?.fase === 'encerrada' ? { ...estado, expedicao: null } : estado;
-    case 'revelarTeste': {
-      if (!aventura || expedicao) return estado;
-      if (!emExpedicao(estado, acao.regiaoId) || temDesafios(acao.regiaoId)) return estado;
-      const mapa = revelar(aventura.mapa, acao.regiaoId);
-      return {
-        ...estado,
-        aventura: { ...aventura, mapa },
-        descobertas: saidasDaNevoa(aventura.mapa, mapa),
-      };
-    }
     case 'recomecar':
       return { ...ESTADO_INICIAL, xp: estado.xp };
   }

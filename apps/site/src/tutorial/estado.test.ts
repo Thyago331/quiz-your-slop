@@ -44,11 +44,11 @@ describe('estado do Tutorial', () => {
     expect(backend.aventura?.mapa.estados['api-pedidos']).toBe('desbloqueada');
   });
 
-  it('só se parte de região desbloqueada que já tem Desafios', () => {
+  it('só se parte de região desbloqueada', () => {
     expect(podePartir(backend, 'api-pedidos')).toBe(true);
     expect(podePartir(backend, 'cofre-anao')).toBe(false); // na Névoa
     const frontend = rodar([{ tipo: 'escolherClasse', classe: 'frontend' }]);
-    expect(podePartir(frontend, 'cardapio')).toBe(false); // ainda sem Desafios
+    expect(podePartir(frontend, 'cardapio')).toBe(true);
   });
 
   it('a vitória revela a região, soma o XP e mostra o que saiu da Névoa', () => {
@@ -196,12 +196,25 @@ describe('estado do Tutorial', () => {
     expect(JSON.parse(JSON.stringify(meio))).toEqual(meio);
   });
 
-  it('Revelar (teste) só vale para região sem Desafios', () => {
-    const frontend = rodar([{ tipo: 'escolherClasse', classe: 'frontend' }]);
-    const revelado = tutorial(frontend, { tipo: 'revelarTeste', regiaoId: 'cardapio' });
-    expect(revelado.aventura?.mapa.estados.cardapio).toBe('revelada');
-    expect(revelado.aventura?.mapa.estados['api-pedidos']).toBe('desbloqueada');
-    const api = tutorial(revelado, { tipo: 'revelarTeste', regiaoId: 'api-pedidos' });
-    expect(api).toBe(revelado);
-  });
+  it.each(['frontend', 'backend', 'fullstack'] as const)(
+    'o Tutorial inteiro é jogável: %s, acertando tudo, revela as 7 regiões',
+    (classe) => {
+      let estado = rodar([{ tipo: 'escolherClasse', classe }]);
+      const estados = () => Object.entries(estado.aventura?.mapa.estados ?? {});
+      for (let expedicoes = 0; expedicoes < 7; expedicoes++) {
+        const [regiaoId] = estados().find(([id]) => podePartir(estado, id)) ?? [];
+        if (!regiaoId) break;
+        const desafios = desafiosParaPartir(estado, regiaoId, () => 0.5);
+        estado = tutorial(estado, { tipo: 'partir', regiaoId, desafios });
+        while (estado.expedicao?.fase === 'respondendo') {
+          const k = estado.expedicao.atual;
+          const resposta = [...desafios[k]!.gabarito];
+          estado = rodar([{ tipo: 'responder', resposta }, { tipo: 'avancar' }], estado);
+        }
+        expect(estado.aventura?.mapa.estados[regiaoId], regiaoId).toBe('revelada');
+        estado = tutorial(estado, { tipo: 'voltarAoMapa' });
+      }
+      expect(estados().map(([, e]) => e)).toEqual(Array(7).fill('revelada'));
+    },
+  );
 });

@@ -134,10 +134,32 @@ export const es: Mensagens = {
       territorio: 'Territorio: {nome}',
       arquivos: '{n} archivos',
       semDetalhe: 'El Máster todavía va a detallar esta Región.',
-      expedicaoEmBreve: 'Las Expediciones en tu Proyecto llegan en una próxima versión del Juego.',
+      partir: '⚔ Partir en Expedición',
+      jaRevelada: 'Región revelada: su Guardián ya cayó.',
+      semExpedicao: 'Esta Región todavía no tiene Expedición.',
+      detalharDeNovo: 'Pedir el detalle de nuevo',
+      xp: 'XP {xp} · {titulo}',
       voltar: 'Volver al menú',
       acoes: 'Acciones',
       ajuda: '← ↑ → ↓ eligen la Región · Esc vuelve al menú',
+    },
+    expedicao: {
+      preparando: 'El Máster prepara la Expedición…',
+      pedido: '… Pidiendo {quantidade} Desafíos sobre {regiao} (pedido {n})',
+      tentativa: '… Leyendo el código (intento {n} de {de})',
+      recusada: '✘ Respuesta rechazada ({motivo}); pidiendo de nuevo',
+      conferida:
+        '{validos} de {quantidade} Desafíos verificados en el código · {descartados} descartados',
+      espera:
+        'El Máster lee el código y el Juego verifica cada Evidencia en el archivo. Tarda unos minutos.',
+      erro: 'El Máster no pudo preparar la Expedición.',
+      poucos: 'Solo {n} Desafíos pasaron la verificación del código (se necesitan {minimo}).',
+      tentarDeNovo: 'Intentar de nuevo',
+      voltar: '◀ Volver al mapa',
+      detalhando: 'El Máster está detallando {regiao}… ({n} de {total})',
+      detalhada: '✔ {regiao} detallada',
+      detalheFalhou:
+        '✘ El Máster no pudo detallar {regiao}; sigue desbloqueada y puedes pedirlo de nuevo desde el mapa.',
     },
     classe: {
       titulo: 'Elige tu Clase',

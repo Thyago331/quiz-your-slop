@@ -137,10 +137,32 @@ export const pt = {
       territorio: 'Território: {nome}',
       arquivos: '{n} arquivos',
       semDetalhe: 'O Mestre ainda vai detalhar esta região.',
-      expedicaoEmBreve: 'As Expedições no seu Projeto chegam numa próxima versão do Jogo.',
+      partir: '⚔ Partir em Expedição',
+      jaRevelada: 'Região revelada: o Guardião daqui já caiu.',
+      semExpedicao: 'Esta região ainda não tem Expedição.',
+      detalharDeNovo: 'Pedir o detalhe de novo',
+      xp: 'XP {xp} · {titulo}',
       voltar: 'Voltar ao menu',
       acoes: 'Ações',
       ajuda: '← ↑ → ↓ escolhem a região · Esc volta ao menu',
+    },
+    expedicao: {
+      preparando: 'O Mestre prepara a Expedição…',
+      pedido: '… Pedindo {quantidade} Desafios sobre {regiao} (pedido {n})',
+      tentativa: '… Lendo o código (tentativa {n} de {de})',
+      recusada: '✘ Resposta recusada ({motivo}); pedindo de novo',
+      conferida:
+        '{validos} de {quantidade} Desafios conferidos no código · {descartados} descartados',
+      espera:
+        'O Mestre lê o código e o Jogo confere cada Evidência no arquivo. Leva alguns minutos.',
+      erro: 'O Mestre não conseguiu preparar a Expedição.',
+      poucos: 'Só {n} Desafios passaram na conferência do código (são precisos {minimo}).',
+      tentarDeNovo: 'Tentar de novo',
+      voltar: '◀ Voltar ao mapa',
+      detalhando: 'O Mestre está detalhando {regiao}… ({n} de {total})',
+      detalhada: '✔ {regiao} detalhada',
+      detalheFalhou:
+        '✘ O Mestre não conseguiu detalhar {regiao}; ela fica desbloqueada e dá para pedir de novo no mapa.',
     },
     classe: {
       titulo: 'Escolha a sua Classe',

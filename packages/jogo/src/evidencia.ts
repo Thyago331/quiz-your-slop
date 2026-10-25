@@ -57,3 +57,38 @@ export function conferirOpcaoApontar(
   const nomeInteiro = new RegExp(`(?<![\\w$])${escapado}(?![\\w$])`);
   return nomeInteiro.test(conteudo) ? { ok: true } : { ok: false, motivo: 'simbolo_inexistente' };
 }
+
+export type EvidenciaConferida =
+  | { ok: true; evidencia: Evidencia; relocalizada: boolean }
+  | { ok: false; motivo: MotivoEvidenciaInvalida };
+
+/**
+ * Como conferirEvidencia, mas tolera linhas trocadas: se o trecho existe no arquivo, só que em
+ * outras linhas, a Evidência é corrigida para as linhas onde ele está (a mais perto da citada).
+ * O trecho continua sendo código de verdade; o Mestre só errou a conta das linhas.
+ */
+export function conferirOuRelocalizar(lerArquivo: LerArquivo, ev: Evidencia): EvidenciaConferida {
+  const conferida = conferirEvidencia(lerArquivo, ev);
+  if (conferida.ok) return { ok: true, evidencia: ev, relocalizada: false };
+  if (conferida.motivo === 'arquivo_inexistente') return conferida;
+  const alvo = semDiferencaDeEspaco(ev.trecho);
+  if (!alvo) return conferida;
+  const linhas = linhasDe(lerArquivo(ev.caminho) ?? '');
+  const tamanho = linhasDe(ev.trecho.replace(/^\s*\n|\n\s*$/g, '')).length;
+  let melhor: number | undefined;
+  for (let k = 0; k + tamanho <= linhas.length; k++) {
+    if (semDiferencaDeEspaco(linhas.slice(k, k + tamanho).join('\n')) !== alvo) continue;
+    const inicio = k + 1;
+    if (
+      melhor === undefined ||
+      Math.abs(inicio - ev.linha_inicio) < Math.abs(melhor - ev.linha_inicio)
+    )
+      melhor = inicio;
+  }
+  if (melhor === undefined) return conferida;
+  return {
+    ok: true,
+    evidencia: { ...ev, linha_inicio: melhor, linha_fim: melhor + tamanho - 1 },
+    relocalizada: true,
+  };
+}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { porcentagemDoProgresso, type AventuraNoProjeto } from '@quiz/jogo';
-import { emMaiusculas, formatar } from '@quiz/i18n';
+import { podePartir, porcentagemDoProgresso, tituloDoXp, type AventuraNoProjeto } from '@quiz/jogo';
+import { emMaiusculas, formatar, nomeDoTitulo } from '@quiz/i18n';
 import {
   Barra,
   Janela,
@@ -11,17 +11,38 @@ import {
   disporMapa,
   useIdioma,
   useMensagens,
+  type LigacaoNoMapa,
 } from '@quiz/ui';
+import { ListaDeLinhas, type Linha } from './Linhas.tsx';
 import { useEsc } from './TelaProvisoria.tsx';
 
 /** O nome do Projeto na tela (só nesta máquina): os repositórios, juntos. */
 export const nomeDoProjeto = (aventura: AventuraNoProjeto) =>
   aventura.repositorios.map((r) => r.nome).join(' + ');
 
-type TelaDoMapaProps = { aventura: AventuraNoProjeto; onVoltar: () => void };
+type TelaDoMapaProps = {
+  aventura: AventuraNoProjeto;
+  /** O XP do Jogador, somado em todas as Aventuras. */
+  xp: number;
+  /** O detalhe das vizinhas em andamento: enquanto houver, ninguém parte em Expedição. */
+  detalhes: { ocupado: boolean; linhas: readonly Linha[] };
+  /** Região onde o cursor começa (a da última Expedição, por exemplo). */
+  inicial?: string;
+  onPartir: (regiaoId: string) => void;
+  onDetalhar: (regiaoId: string) => void;
+  onVoltar: () => void;
+};
 
-/** O mapa do Projeto: Territórios como ilhas, a entrada desbloqueada e o resto na Névoa. */
-export function TelaDoMapa({ aventura, onVoltar }: TelaDoMapaProps) {
+/** O mapa do Projeto: Territórios como ilhas, as regiões fora da Névoa e as Ligações reveladas. */
+export function TelaDoMapa({
+  aventura,
+  xp,
+  detalhes,
+  inicial,
+  onPartir,
+  onDetalhar,
+  onVoltar,
+}: TelaDoMapaProps) {
   const idioma = useIdioma();
   const m = useMensagens();
   const t = m.ui.aventura;
@@ -33,12 +54,25 @@ export function TelaDoMapa({ aventura, onVoltar }: TelaDoMapaProps) {
   const conhecidas = aventura.regioes.filter(
     (r) => (aventura.mapa.estados[r.id] ?? 'nevoa') !== 'nevoa',
   );
-  const [selecionada, setSelecionada] = useState(conhecidas[0]?.id ?? null);
+  const [selecionada, setSelecionada] = useState(
+    conhecidas.find((r) => r.id === inicial)?.id ?? conhecidas[0]?.id ?? null,
+  );
   const regiao = aventura.regioes.find((r) => r.id === selecionada);
   const territorio = aventura.territorios.find((x) => x.id === regiao?.territorio_id);
   const estado = regiao ? (aventura.mapa.estados[regiao.id] ?? 'nevoa') : 'nevoa';
   const classe = classeNaTela(aventura.classe, idioma);
   const progresso = porcentagemDoProgresso(aventura.mapa);
+  const titulo = nomeDoTitulo(tituloDoXp(xp).atual.nome, idioma);
+  const conhecidasNoMapa = new Set(aventura.mapa.ligacoesConhecidas);
+  const ligacoes: LigacaoNoMapa[] = aventura.ligacoes
+    .filter((l) => conhecidasNoMapa.has(l.id))
+    .map(({ id, origem, destino, tipo, descricao }) => ({ id, origem, destino, tipo, descricao }));
+  const partir = (id: string) => {
+    if (!detalhes.ocupado && podePartir(aventura, id)) onPartir(id);
+  };
+  const semDetalhe = regiao !== undefined && estado !== 'nevoa' && regiao.arquivos.length === 0;
+  const situacao =
+    estado === 'revelada' ? t.jaRevelada : estado === 'desatualizada' ? t.semExpedicao : undefined;
 
   return (
     <main className="tela-mapa">
@@ -49,6 +83,7 @@ export function TelaDoMapa({ aventura, onVoltar }: TelaDoMapaProps) {
           <Barra valor={Math.round(progresso / 10)} maximo={10} rotulo={m.ui.aventura.titulo} />{' '}
           {progresso}%
         </span>
+        <span>{formatar(t.xp, { xp, titulo })}</span>
       </header>
       <div className="tela-mapa-mapa">
         <MapaMundi
@@ -56,9 +91,10 @@ export function TelaDoMapa({ aventura, onVoltar }: TelaDoMapaProps) {
           linhas={disposicao.linhas}
           ilhas={disposicao.ilhas}
           regioes={disposicao.regioes}
-          ligacoes={[]}
+          ligacoes={ligacoes}
           selecionada={selecionada}
           onSelecionar={setSelecionada}
+          onAtivar={partir}
           {...(selecionada && { heroi: selecionada })}
           {...(classe && { spriteHeroi: classe.sprite })}
           rotulo={t.titulo}
@@ -95,12 +131,31 @@ export function TelaDoMapa({ aventura, onVoltar }: TelaDoMapaProps) {
           {aventura.aviso_classe && <p className="nova-aviso">⚠ {aventura.aviso_classe}</p>}
         </Janela>
         <Janela>
-          <p className="tela-mapa-apagado">{t.expedicaoEmBreve}</p>
+          {situacao && <p className="tela-mapa-apagado">{situacao}</p>}
           <Menu
             rotulo={t.acoes}
-            itens={[{ id: 'voltar', rotulo: t.voltar }]}
-            onEscolher={onVoltar}
+            itens={[
+              ...(semDetalhe
+                ? [{ id: 'detalhar', rotulo: t.detalharDeNovo, desabilitado: detalhes.ocupado }]
+                : [
+                    {
+                      id: 'partir',
+                      rotulo: t.partir,
+                      desabilitado:
+                        detalhes.ocupado || !selecionada || !podePartir(aventura, selecionada),
+                    },
+                  ]),
+              { id: 'voltar', rotulo: t.voltar },
+            ]}
+            onEscolher={(id) => {
+              if (id === 'voltar') onVoltar();
+              else if (selecionada && id === 'partir') partir(selecionada);
+              else if (selecionada && id === 'detalhar') onDetalhar(selecionada);
+            }}
           />
+          {detalhes.linhas.length > 0 && (
+            <ListaDeLinhas linhas={detalhes.linhas} lendo={detalhes.ocupado} />
+          )}
           <p className="tela-mapa-apagado">{t.ajuda}</p>
           <LegendaMapa />
         </Janela>

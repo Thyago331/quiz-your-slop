@@ -3,8 +3,14 @@
 // arquivo local; `lerAventuraSalva` confere o que volta do disco.
 import type { Aventura } from './aventura.ts';
 import type { ArquivosDoProjeto, Repositorio } from './caminhos.ts';
-import { CLASSES, type Classe, type RegiaoConhecida } from './contrato.ts';
-import { ehIdDeAventura } from './envio.ts';
+import {
+  CLASSES,
+  type Classe,
+  type Evidencia,
+  type RegiaoConhecida,
+  type TipoLigacao,
+} from './contrato.ts';
+import { ESTATISTICAS_ZERADAS, ehIdDeAventura, type EstatisticasDoJogador } from './envio.ts';
 import { conferirEsquema, type Esquema } from './esquema.ts';
 import type { Idioma } from './idioma.ts';
 import { ESTADOS_NO_MAPA, iniciarMapa } from './mapa.ts';
@@ -16,12 +22,14 @@ import {
   type TerritorioConhecido,
   type Transporte,
 } from './mestre.ts';
+import type { LigacaoPreparada } from './preparacao.ts';
 
 /** As IAs que podem ser o Mestre (spec §7). */
 export const IAS_DO_MESTRE = ['claude_code', 'codex'] as const;
 export type IaDoMestre = (typeof IAS_DO_MESTRE)[number];
 
-export const VERSAO_DA_AVENTURA = 1;
+/** v2 (#35): XP, estatísticas e Ligações (as reveladas e as escondidas até a vitória). */
+export const VERSAO_DA_AVENTURA = 2;
 
 /** Um repositório do Projeto e o commit em que estava quando a Aventura foi criada. */
 export type RepositorioDaAventura = Repositorio & { commit: string };
@@ -36,6 +44,16 @@ export type RegiaoDoProjeto = {
   arquivos_semente: string[];
 };
 
+/** Uma Ligação já no mapa: quem fala com quem, como, e onde isso está no código. */
+export type LigacaoDoProjeto = {
+  id: string;
+  origem: string;
+  destino: string;
+  tipo: TipoLigacao;
+  descricao: string;
+  evidencias: Evidencia[];
+};
+
 export type AventuraNoProjeto = Aventura & {
   versao: typeof VERSAO_DA_AVENTURA;
   /** UUID: o id opaco que também vai no envio de progresso. */
@@ -47,6 +65,16 @@ export type AventuraNoProjeto = Aventura & {
   territorios: TerritorioConhecido[];
   regioes: RegiaoDoProjeto[];
   aviso_classe?: string;
+  /** O XP ganho nesta Aventura; o do Jogador é a soma de todas. */
+  xp: number;
+  estatisticas: EstatisticasDoJogador;
+  /** As Ligações reveladas (as mesmas de mapa.ligacoes, com o detalhe). */
+  ligacoes: LigacaoDoProjeto[];
+  /**
+   * Região → Ligações que `preparar_expedicao` trouxe, escondidas até a vitória; a chave presente
+   * (mesmo com lista vazia) quer dizer "já conhecidas", e a nova tentativa não as pede de novo.
+   */
+  ligacoes_escondidas: Record<string, LigacaoPreparada[]>;
 };
 
 export type GerarId = () => string;
@@ -93,6 +121,10 @@ export function montarAventura(dados: {
     mapa: iniciarMapa({ regioes: [entrada.id], ligacoes: [] }, entrada.id),
     vistos: {},
     ...(saida.aviso_classe !== undefined && { aviso_classe: saida.aviso_classe }),
+    xp: 0,
+    estatisticas: ESTATISTICAS_ZERADAS,
+    ligacoes: [],
+    ligacoes_escondidas: {},
   };
 }
 
@@ -161,8 +193,43 @@ export function aplicarDetalhe(
   const estados = { ...aventura.mapa.estados };
   delete estados[regiaoId];
   for (const n of novas) estados[n.id] = estado;
+  // As Ligações da região dividida passam à parte que tem o arquivo da Evidência (ou à primeira).
+  const parte = (evidencias: readonly Evidencia[]) =>
+    (
+      novas.find((n) => evidencias.some((e) => n.arquivos_semente.includes(e.caminho))) ??
+      (novas[0] as RegiaoDoProjeto)
+    ).id;
+  const trocar = (id: string, evidencias: readonly Evidencia[]) =>
+    id === regiaoId ? parte(evidencias) : id;
+  const ligacoes = aventura.ligacoes.map((l) => ({
+    ...l,
+    origem: trocar(l.origem, l.evidencias),
+    destino: trocar(l.destino, l.evidencias),
+  }));
+  const escondidas: Record<string, LigacaoPreparada[]> = {};
+  for (const [origem, lista] of Object.entries(aventura.ligacoes_escondidas)) {
+    const trocadas = lista.map((l) =>
+      'regiao_id' in l.destino && l.destino.regiao_id === regiaoId
+        ? { ...l, destino: { regiao_id: parte(l.evidencias) } }
+        : l,
+    );
+    // As escondidas da própria região dividida se perdem: cada parte pede as suas.
+    if (origem !== regiaoId) escondidas[origem] = trocadas;
+  }
+  const mapa = {
+    ...aventura.mapa,
+    estados,
+    ligacoes: ligacoes.map(({ id, origem, destino }) => ({ id, origem, destino })),
+  };
   return {
-    aventura: { ...aventura, territorios, regioes, mapa: { ...aventura.mapa, estados } },
+    aventura: {
+      ...aventura,
+      territorios,
+      regioes,
+      mapa,
+      ligacoes,
+      ligacoes_escondidas: escondidas,
+    },
     novas: novas.map((n) => n.id),
   };
 }
@@ -224,9 +291,45 @@ const objeto = (properties: Record<string, Esquema>, opcionais: string[] = []): 
   additionalProperties: false,
 });
 
+const inteiro: Esquema = { type: 'integer', minimum: 0 };
+const tipoDeLigacao: Esquema = {
+  type: 'string',
+  enum: ['chamada', 'consulta', 'evento', 'dependencia'],
+};
+const evidencias: Esquema = {
+  type: 'array',
+  items: objeto({ caminho: texto, linha_inicio: inteiro, linha_fim: inteiro, trecho: texto }),
+};
+const territorioNovo = objeto({ nome: texto, raizes: textos });
+const ligacaoEscondida = objeto({
+  id: texto,
+  tipo: tipoDeLigacao,
+  descricao: texto,
+  destino: objeto(
+    {
+      regiao_id: texto,
+      nova: objeto(
+        {
+          nome: texto,
+          resumo: texto,
+          territorio_id: { type: ['string', 'null'] },
+          territorio_novo: territorioNovo,
+          arquivos_semente: textos,
+        },
+        ['territorio_novo'],
+      ),
+    },
+    ['regiao_id', 'nova'],
+  ),
+  evidencias,
+});
+
+/** Os campos da v2; um arquivo da v1 chega sem eles e ganha os valores de uma Aventura nova. */
+const DA_V2 = ['xp', 'estatisticas', 'ligacoes', 'ligacoes_escondidas'] as const;
+
 const ESQUEMA_DA_AVENTURA_SALVA: Esquema = objeto(
   {
-    versao: { type: 'integer', enum: [VERSAO_DA_AVENTURA] },
+    versao: { type: 'integer', enum: [1, VERSAO_DA_AVENTURA] },
     id: texto,
     criada_em: texto,
     atualizada_em: texto,
@@ -260,11 +363,28 @@ const ESQUEMA_DA_AVENTURA_SALVA: Esquema = objeto(
     }),
     vistos: { type: 'object', additionalProperties: textos },
     aviso_classe: texto,
+    xp: inteiro,
+    estatisticas: objeto({ expedicoes: inteiro, acertos: inteiro, contestacoes_vencidas: inteiro }),
+    ligacoes: {
+      type: 'array',
+      items: objeto({
+        id: texto,
+        origem: texto,
+        destino: texto,
+        tipo: tipoDeLigacao,
+        descricao: texto,
+        evidencias,
+      }),
+    },
+    ligacoes_escondidas: {
+      type: 'object',
+      additionalProperties: { type: 'array', items: ligacaoEscondida },
+    },
   },
-  ['aviso_classe'],
+  ['aviso_classe', ...DA_V2],
 );
 
-/** O que voltou do disco, se for uma Aventura inteira e coerente; senão, undefined. */
+/** O que voltou do disco, se for uma Aventura inteira e coerente; senão, undefined. A v1 sobe para a v2. */
 export function lerAventuraSalva(conteudo: string): AventuraNoProjeto | undefined {
   let valor: unknown;
   try {
@@ -273,14 +393,29 @@ export function lerAventuraSalva(conteudo: string): AventuraNoProjeto | undefine
     return undefined;
   }
   if (conferirEsquema(ESQUEMA_DA_AVENTURA_SALVA, valor).length > 0) return undefined;
-  const a = valor as AventuraNoProjeto;
+  const lida = valor as Omit<AventuraNoProjeto, 'versao' | (typeof DA_V2)[number]> &
+    Partial<Pick<AventuraNoProjeto, (typeof DA_V2)[number]>> & { versao: number };
+  const presentes = DA_V2.filter((k) => k in lida).length;
+  // A v1 não tem nenhum dos campos novos; a v2 tem todos.
+  if (presentes !== (lida.versao === 1 ? 0 : DA_V2.length)) return undefined;
+  const a: AventuraNoProjeto = {
+    ...lida,
+    versao: VERSAO_DA_AVENTURA,
+    xp: lida.xp ?? 0,
+    estatisticas: lida.estatisticas ?? ESTATISTICAS_ZERADAS,
+    ligacoes: lida.ligacoes ?? [],
+    ligacoes_escondidas: lida.ligacoes_escondidas ?? {},
+  };
   if (!ehIdDeAventura(a.id) || a.id === 'tutorial') return undefined;
   const territorios = new Set(a.territorios.map((t) => t.id));
   const regioes = a.regioes.map((r) => r.id);
+  const existe = (id: string) => a.mapa.estados[id] !== undefined;
   const coerente =
     a.regioes.every((r) => territorios.has(r.territorio_id)) &&
     regioes.length === Object.keys(a.mapa.estados).length &&
-    regioes.every((id) => a.mapa.estados[id] !== undefined);
+    regioes.every(existe) &&
+    a.mapa.ligacoes.every((l) => existe(l.origem) && existe(l.destino)) &&
+    a.ligacoes.every((l) => existe(l.origem) && existe(l.destino));
   return coerente ? a : undefined;
 }
 

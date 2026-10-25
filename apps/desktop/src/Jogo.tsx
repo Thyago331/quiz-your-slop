@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   aventuraMaisRecente,
+  detalharVizinhas,
   lerAventuraSalva,
   porcentagemDoProgresso,
   type AventuraNoProjeto,
@@ -9,7 +10,10 @@ import { AUTONIMO, ETIQUETA, formatar, MENSAGENS } from '@quiz/i18n';
 import { IdiomaDaInterface, TelaInicial } from '@quiz/ui';
 import { idiomaSalvo, salvarIdioma } from './idioma.ts';
 import { NovaAventura } from './NovaAventura.tsx';
-import { carregarAventuras } from './sistema.ts';
+import type { Linha } from './Linhas.tsx';
+import { lerArquivosDoProjeto, transporteClaudeCode } from './mestre.ts';
+import { carregarAventuras, salvarAventura } from './sistema.ts';
+import { TelaDaExpedicao } from './TelaDaExpedicao.tsx';
 import { nomeDoProjeto, TelaDoMapa } from './TelaDoMapa.tsx';
 import { TelaDeIdioma } from './TelaDeIdioma.tsx';
 import { TelaProvisoria } from './TelaProvisoria.tsx';
@@ -36,6 +40,62 @@ export function Jogo() {
   // Ao voltar ao hub, o cursor fica no item que levou à tela.
   const [ultima, setUltima] = useState<TelaDoHub | undefined>();
   const voltar = useCallback(() => setTela('inicio'), []);
+  // A Expedição em curso (região) e a última, onde o cursor volta no mapa.
+  const [expedicao, setExpedicao] = useState<string | null>(null);
+  const [ultimaRegiao, setUltimaRegiao] = useState<string | undefined>();
+  const [detalhes, setDetalhes] = useState<{ ocupado: boolean; linhas: Linha[] }>({
+    ocupado: false,
+    linhas: [],
+  });
+  const voltarAoMapa = useCallback(() => setExpedicao(null), []);
+
+  /** Toda mudança de uma Aventura vai para o disco na hora (o estado inteiro mora no arquivo). */
+  const atualizar = useCallback((aventura: AventuraNoProjeto) => {
+    setAventuras((atuais) => [...atuais.filter((a) => a.id !== aventura.id), aventura]);
+    void salvarAventura(aventura.id, JSON.stringify(aventura)).catch(() => undefined);
+  }, []);
+
+  /** Detalha as regiões (vizinhas novas, ou uma que falhou antes), uma de cada vez. */
+  const detalhar = useCallback(
+    async (aventura: AventuraNoProjeto, ids: readonly string[]) => {
+      const t = MENSAGENS[idioma].ui.expedicao;
+      const nome = (id: string) => aventura.regioes.find((r) => r.id === id)?.nome ?? '???';
+      const linhas: Linha[] = [];
+      const mostrar = (linha: Linha, ocupado = true) => {
+        linhas.push(linha);
+        setDetalhes({ ocupado, linhas: [...linhas] });
+      };
+      setDetalhes({ ocupado: true, linhas: [] });
+      try {
+        const arquivos = await lerArquivosDoProjeto(aventura.repositorios);
+        await detalharVizinhas(transporteClaudeCode(aventura.repositorios), aventura, ids, {
+          idioma,
+          arquivos,
+          gerarId: () => crypto.randomUUID(),
+          aoAvancar: (e) => {
+            const regiao = nome(e.regiaoId);
+            if (e.tipo === 'detalhando') {
+              mostrar({
+                tipo: 'andamento',
+                texto: formatar(t.detalhando, { regiao, n: e.indice + 1, total: e.total }),
+              });
+            } else if (e.tipo === 'detalhada') {
+              atualizar(e.aventura);
+              mostrar({ tipo: 'ok', texto: formatar(t.detalhada, { regiao }) });
+            } else {
+              mostrar({ tipo: 'recusada', texto: formatar(t.detalheFalhou, { regiao }) });
+            }
+          },
+        });
+      } catch {
+        for (const id of ids) {
+          mostrar({ tipo: 'recusada', texto: formatar(t.detalheFalhou, { regiao: nome(id) }) });
+        }
+      }
+      setDetalhes({ ocupado: false, linhas: [...linhas] });
+    },
+    [atualizar, idioma],
+  );
 
   useEffect(() => {
     let vivo = true;
@@ -50,6 +110,7 @@ export function Jogo() {
     salvarIdioma(idioma);
   }, [idioma]);
 
+  const xpTotal = aventuras.reduce((soma, a) => soma + a.xp, 0);
   const t = MENSAGENS[idioma].ui.inicio;
   const nomes: Record<TelaDoHub, string> = {
     continuar: recente
@@ -95,8 +156,36 @@ export function Jogo() {
         onVoltar={voltar}
       />
     );
+  } else if (tela === 'continuar' && recente && expedicao) {
+    conteudo = (
+      <TelaDaExpedicao
+        key={`${recente.id}:${expedicao}`}
+        aventura={recente}
+        regiaoId={expedicao}
+        xpDosOutros={xpTotal - recente.xp}
+        onAtualizada={atualizar}
+        onVitoria={(c) => void detalhar(c.aventura, c.novas)}
+        detalhes={detalhes.linhas}
+        onVoltar={voltarAoMapa}
+      />
+    );
   } else if (tela === 'continuar' && recente) {
-    conteudo = <TelaDoMapa key={recente.id} aventura={recente} onVoltar={voltar} />;
+    conteudo = (
+      <TelaDoMapa
+        key={recente.id}
+        aventura={recente}
+        xp={xpTotal}
+        detalhes={detalhes}
+        {...(ultimaRegiao && { inicial: ultimaRegiao })}
+        onPartir={(id) => {
+          setUltimaRegiao(id);
+          setDetalhes({ ocupado: false, linhas: [] });
+          setExpedicao(id);
+        }}
+        onDetalhar={(id) => void detalhar(recente, [id])}
+        onVoltar={voltar}
+      />
+    );
   } else if (tela === 'nova') {
     conteudo = (
       <NovaAventura

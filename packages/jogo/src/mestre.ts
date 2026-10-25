@@ -93,16 +93,20 @@ export type SaidaDetalharRegiao = {
   dividir?: RegiaoNova[];
 };
 
-/** Chega com a Expedição no Projeto do Jogador (#35). */
 export type EntradaPrepararExpedicao = {
   idioma: Idioma;
   regiao: RegiaoConhecida;
   mapa: RegiaoConhecida[];
   classe: Classe;
+  /** Enunciados já vistos nesta região (não repetir). */
   desafios_anteriores: string[];
+  /** true = as Ligações já vieram numa tentativa anterior; o Mestre não precisa devolvê-las. */
   ligacoes_conhecidas: boolean;
   mudancas?: { diff?: string; arquivos_alterados: string[] };
+  /** Normalmente 5; menos ao repor Desafios descartados. */
   quantidade: number;
+  /** Além do contrato: os Territórios com id, para uma Ligação com região `nova` apontar o seu. */
+  territorios: TerritorioConhecido[];
 };
 export type SaidaPrepararExpedicao = {
   desafios: Desafio[];
@@ -198,15 +202,15 @@ export function esquemaDetalharRegiao(permitirDividir: boolean): Esquema {
 // ---------------------------------------------------------------------------------------------
 // Prompt
 
-const NOME_DO_IDIOMA: Readonly<Record<Idioma, string>> = {
+export const NOME_DO_IDIOMA: Readonly<Record<Idioma, string>> = {
   pt: 'Brazilian Portuguese (pt)',
   en: 'English (en)',
   es: 'Spanish (es)',
 };
 
-const PAPEL = `You are the Master (Mestre) of "Quiz your slop", a JRPG-style game in which the Player learns how their own software project works. You read the Project's code with read-only tools (Read, Grep, Glob) and never change anything. The Game keeps all memory: everything you need is in the context below, and every id is created by the Game — only reference ids you received.`;
+export const PAPEL = `You are the Master (Mestre) of "Quiz your slop", a JRPG-style game in which the Player learns how their own software project works. You read the Project's code with read-only tools (Read, Grep, Glob) and never change anything. The Game keeps all memory: everything you need is in the context below, and every id is created by the Game — only reference ids you received.`;
 
-const REGRAS_DE_CAMINHO = (varios: boolean) =>
+export const REGRAS_DE_CAMINHO = (varios: boolean) =>
   varios
     ? `Paths: the Project has several repositories (listed in the context). Every path you return is relative to its repository root and prefixed by the repository name and a colon, e.g. "loja-api:src/orders/service.ts". A repository root is "loja-api:.".`
     : `Paths: every path you return is relative to the repository root (no leading "/", no ".."), e.g. "src/orders/service.ts". The root itself is ".".`;
@@ -248,14 +252,15 @@ export function montarPrompt(
 // ---------------------------------------------------------------------------------------------
 // Chamada com novas tentativas
 
-type Conferencia<S> = { ok: true; valor: S } | { ok: false; problemas: string[] };
+export type Conferencia<S> = { ok: true; valor: S } | { ok: false; problemas: string[] };
 
-async function chamarComTentativas<S>(
-  chamada: 'criar_aventura' | 'detalhar_regiao',
+/** Uma chamada ao Mestre com as novas tentativas da regra 5 (saída inteira inválida). */
+export async function chamarComTentativas<S>(
+  chamada: NomeDaChamada,
   transporte: Transporte,
   prompt: (problemas: readonly string[]) => string,
   schema: Esquema,
-  conferir: (valor: unknown) => Conferencia<S>,
+  conferir: (valor: unknown) => Conferencia<S> | Promise<Conferencia<S>>,
   aoAcompanhar?: (evento: EventoDoMestre) => void,
 ): Promise<S> {
   const total = 1 + NOVAS_TENTATIVAS;
@@ -272,7 +277,7 @@ async function chamarComTentativas<S>(
       }
       const doEsquema = conferirEsquema(schema, valor);
       if (doEsquema.length > 0) throw new SaidaInvalida(doEsquema);
-      const conferida = conferir(valor);
+      const conferida = await conferir(valor);
       if (!conferida.ok) throw new SaidaInvalida(conferida.problemas);
       return conferida.valor;
     } catch (e) {
@@ -289,7 +294,7 @@ async function chamarComTentativas<S>(
  * Normaliza uma lista de caminhos. Caminho malformado (absoluto, `..`, prefixo errado) é problema;
  * caminho que não existe no Projeto é só descartado, desde que sobre algum.
  */
-function conferirCaminhos(
+export function conferirCaminhos(
   lista: readonly string[],
   onde: string,
   opcoes: OpcoesDaChamada,

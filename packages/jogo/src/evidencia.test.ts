@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { conferirEvidencia, conferirOpcaoApontar } from './evidencia.ts';
+import { conferirEvidencia, conferirOpcaoApontar, conferirOuRelocalizar } from './evidencia.ts';
 
 const arquivos: Record<string, string> = {
   'api/service.ts': 'function a() {\n  return 1;\n}\n\nexport { a };\n',
@@ -89,5 +89,42 @@ describe('conferirOpcaoApontar', () => {
         conferirOpcaoApontar(lerCodigo, { id: 'a', caminho: 'api/orders.ts', simbolo }),
       ).toEqual({ ok: false, motivo: 'simbolo_inexistente' });
     }
+  });
+});
+
+describe('conferirOuRelocalizar', () => {
+  const ler = (c: string) =>
+    c === 'a.ts' ? 'const a = 1;\n\nfunction f() {\n  return a;\n}\nf();\n' : undefined;
+
+  it('aceita a Evidência certa sem mexer nela', () => {
+    const ev = { caminho: 'a.ts', linha_inicio: 1, linha_fim: 1, trecho: 'const a = 1;' };
+    expect(conferirOuRelocalizar(ler, ev)).toEqual({
+      ok: true,
+      evidencia: ev,
+      relocalizada: false,
+    });
+  });
+
+  it('corrige as linhas quando o trecho existe em outro lugar do arquivo', () => {
+    const ev = {
+      caminho: 'a.ts',
+      linha_inicio: 9,
+      linha_fim: 10,
+      trecho: 'function f() {\n return a;',
+    };
+    expect(conferirOuRelocalizar(ler, ev)).toEqual({
+      ok: true,
+      evidencia: { ...ev, linha_inicio: 3, linha_fim: 4 },
+      relocalizada: true,
+    });
+  });
+
+  it('recusa trecho que não existe e arquivo ausente', () => {
+    const ev = { caminho: 'a.ts', linha_inicio: 1, linha_fim: 1, trecho: 'const b = 2;' };
+    expect(conferirOuRelocalizar(ler, ev)).toEqual({ ok: false, motivo: 'trecho_diferente' });
+    expect(conferirOuRelocalizar(ler, { ...ev, caminho: 'b.ts' })).toEqual({
+      ok: false,
+      motivo: 'arquivo_inexistente',
+    });
   });
 });

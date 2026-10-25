@@ -20,6 +20,8 @@ export { contestacaoRoteirizada, type Anulacao } from './contestacao.ts';
 export {
   conferirEvidencia,
   conferirOpcaoApontar,
+  conferirOuRelocalizar,
+  type EvidenciaConferida,
   type LerArquivo,
   type MotivoEvidenciaInvalida,
   type ResultadoEvidencia,
@@ -148,7 +150,34 @@ export {
   type AventuraNoProjeto,
   type GerarId,
   type IaDoMestre,
+  type LigacaoDoProjeto,
   type OpcoesDoDetalhe,
   type RegiaoDoProjeto,
   type RepositorioDaAventura,
 } from './criacao.ts';
+export {
+  DESAFIOS_POR_EXPEDICAO,
+  MINIMO_DE_DESAFIOS,
+  PoucosDesafios,
+  TENTATIVAS_DE_REPOSICAO,
+  esquemaPrepararExpedicao,
+  formatosFaltando,
+  montarPromptDaExpedicao,
+  prepararExpedicao,
+  type Descarte,
+  type EventoDaPreparacao,
+  type ExpedicaoPreparada,
+  type LerArquivoDoProjeto,
+  type LigacaoPreparada,
+  type OpcoesDaPreparacao,
+} from './preparacao.ts';
+export {
+  concluirNaAventura,
+  detalharVizinhas,
+  podePartir,
+  prepararNaAventura,
+  regioesDoExplorador,
+  type EventoDasVizinhas,
+  type ExpedicaoConcluida,
+  type OpcoesDaExpedicaoNoProjeto,
+} from './expedicaoNoProjeto.ts';

@@ -133,10 +133,32 @@ export const en: Mensagens = {
       territorio: 'Territory: {nome}',
       arquivos: '{n} files',
       semDetalhe: 'The Master will still detail this Region.',
-      expedicaoEmBreve: 'Expeditions on your Project arrive in a future version of the Game.',
+      partir: '⚔ Set out on an Expedition',
+      jaRevelada: 'Revealed Region: its Guardian has already fallen.',
+      semExpedicao: 'This Region has no Expedition yet.',
+      detalharDeNovo: 'Ask for the details again',
+      xp: 'XP {xp} · {titulo}',
       voltar: 'Back to the menu',
       acoes: 'Actions',
       ajuda: '← ↑ → ↓ choose the Region · Esc goes back to the menu',
+    },
+    expedicao: {
+      preparando: 'The Master is preparing the Expedition…',
+      pedido: '… Asking for {quantidade} Challenges about {regiao} (request {n})',
+      tentativa: '… Reading the code (attempt {n} of {de})',
+      recusada: '✘ Answer rejected ({motivo}); asking again',
+      conferida:
+        '{validos} of {quantidade} Challenges checked against the code · {descartados} discarded',
+      espera:
+        'The Master reads the code and the Game checks every Evidence in the file. It takes a few minutes.',
+      erro: 'The Master could not prepare the Expedition.',
+      poucos: 'Only {n} Challenges passed the code check ({minimo} are needed).',
+      tentarDeNovo: 'Try again',
+      voltar: '◀ Back to the map',
+      detalhando: 'The Master is detailing {regiao}… ({n} of {total})',
+      detalhada: '✔ {regiao} detailed',
+      detalheFalhou:
+        '✘ The Master could not detail {regiao}; it stays unlocked and you can ask again from the map.',
     },
     classe: {
       titulo: 'Choose your Class',

@@ -234,13 +234,30 @@ describe('lerAventuraSalva', () => {
     for (const ruim of [
       'não é json',
       JSON.stringify({ ...a, id: 'tutorial' }),
-      JSON.stringify({ ...a, versao: 2 }),
+      JSON.stringify({ ...a, versao: 3 }),
+      // v2 sem um dos campos novos, ou v1 com eles: nenhum dos dois existe.
+      JSON.stringify({ ...a, xp: undefined }),
+      JSON.stringify({ ...a, versao: 1 }),
+      JSON.stringify({
+        ...a,
+        ligacoes: [
+          { id: 'l', origem: 'x', destino: 'y', tipo: 'evento', descricao: 'd', evidencias: [] },
+        ],
+      }),
       JSON.stringify({ ...a, extra: true }),
       JSON.stringify({ ...a, mapa: { ...a.mapa, estados: {} } }),
       JSON.stringify({ ...a, territorios: [] }),
     ]) {
       expect(lerAventuraSalva(ruim)).toBeUndefined();
     }
+  });
+
+  it('sobe um arquivo da v1 para a v2, sem XP nem Ligações', () => {
+    const a = nova();
+    const { xp, estatisticas, ligacoes, ligacoes_escondidas, ...resto } = a;
+    expect([xp, ligacoes, ligacoes_escondidas, estatisticas.expedicoes]).toEqual([0, [], {}, 0]);
+    const v1 = JSON.stringify({ ...resto, versao: 1 });
+    expect(lerAventuraSalva(v1)).toEqual(a);
   });
 
   it('o Continuar abre a mexida por último', () => {

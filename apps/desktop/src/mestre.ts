@@ -3,11 +3,13 @@
 import {
   arquivosDoProjeto,
   desembrulharClaudeCode,
+  normalizarCaminho,
   type ArquivosDoProjeto,
+  type LerArquivoDoProjeto,
   type Repositorio,
   type Transporte,
 } from '@quiz/jogo';
-import { rodarGit, rodarMestre } from './sistema.ts';
+import { lerArquivo, rodarGit, rodarMestre } from './sistema.ts';
 
 /** A CLI roda na pasta do primeiro repositório; os outros entram só para leitura. */
 export function transporteClaudeCode(repositorios: readonly Repositorio[]): Transporte {
@@ -27,4 +29,28 @@ export async function lerArquivosDoProjeto(
     saidas[r.nome] = await rodarGit(r.caminho_local, { tipo: 'ls_files', caminhos: [] });
   }
   return arquivosDoProjeto(repositorios, saidas);
+}
+
+/**
+ * Lê arquivos do Projeto pelo caminho do Jogo (`repo:caminho` com vários repositórios) pela camada
+ * Rust, que confere a raiz. O que já foi lido fica no cache: a conferência das Evidências e o
+ * explorador de código leem os mesmos arquivos. Arquivo recusado (grande, binário) conta como ausente.
+ */
+export function leitorDoProjeto(repositorios: readonly Repositorio[]): {
+  ler: LerArquivoDoProjeto;
+  cache: Map<string, string | undefined>;
+} {
+  const cache = new Map<string, string | undefined>();
+  const ler: LerArquivoDoProjeto = async (caminho) => {
+    if (cache.has(caminho)) return cache.get(caminho);
+    const r = normalizarCaminho(repositorios, caminho);
+    const repositorio = r.ok && repositorios.find((x) => x.nome === r.partes.repositorio);
+    const conteudo =
+      r.ok && repositorio
+        ? await lerArquivo(repositorio.caminho_local, r.partes.relativo).catch(() => undefined)
+        : undefined;
+    cache.set(caminho, conteudo);
+    return conteudo;
+  };
+  return { ler, cache };
 }

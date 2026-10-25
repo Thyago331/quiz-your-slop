@@ -31,3 +31,4 @@ export {
   type MapaAventura,
   type ProgressoAventura,
 } from './mapa.ts';
+export { iniciarAventura, type Aventura } from './aventura.ts';

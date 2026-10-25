@@ -67,6 +67,8 @@ export type MapaMundiProps = {
   onSelecionar: (regiaoId: string) => void;
   /** Região onde o herói está. */
   heroi?: string;
+  /** O sprite do herói (o da Classe, por exemplo). */
+  spriteHeroi?: NomeSprite;
   rotulo?: string;
 };
 
@@ -192,6 +194,7 @@ export function MapaMundi({
   selecionada,
   onSelecionar,
   heroi,
+  spriteHeroi = 'heroi',
   rotulo = 'Mapa-mundi',
 }: MapaMundiProps) {
   const botoes = useRef(new Map<string, HTMLButtonElement>());
@@ -353,7 +356,7 @@ export function MapaMundi({
 
         {heroi && posicao.has(heroi) && (
           <Pixels
-            nome="heroi"
+            nome={spriteHeroi}
             x={(posicao.get(heroi)?.[0] ?? 0) * T + 30}
             y={(posicao.get(heroi)?.[1] ?? 0) * T + 6}
             escala={3}

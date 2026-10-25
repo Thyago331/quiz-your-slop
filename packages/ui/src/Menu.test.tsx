@@ -78,4 +78,19 @@ describe('Menu', () => {
     );
     expect(cursor()?.textContent).toBe('Nova Aventura');
   });
+
+  it('na horizontal, ← e → movem o cursor', async () => {
+    const user = userEvent.setup();
+    render(<Menu rotulo="Menu" itens={itens} horizontal onEscolher={() => {}} />);
+    await user.tab();
+    await user.keyboard('{ArrowRight}');
+    expect(cursor()?.textContent).toBe('Nova Aventura');
+    await user.keyboard('{ArrowLeft}{ArrowLeft}');
+    expect(cursor()?.textContent).toBe('Tutorial');
+  });
+
+  it('com autoFoco, o item sob o cursor recebe o foco ao aparecer', () => {
+    render(<Menu rotulo="Menu" itens={itens} autoFoco onEscolher={() => {}} />);
+    expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Continuar' }));
+  });
 });

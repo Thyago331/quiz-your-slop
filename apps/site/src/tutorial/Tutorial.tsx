@@ -1,9 +1,11 @@
 'use client';
 import { useState } from 'react';
-import { iniciarMapa, progresso, revelar, type EstruturaMapa } from '@quiz/jogo';
+import { iniciarAventura, progresso, revelar, type Aventura, type EstruturaMapa } from '@quiz/jogo';
 import { ENTRADAS, LIGACOES, REGIOES, TERRITORIOS } from '@quiz/taverna';
 import {
   Barra,
+  CLASSES,
+  EscolhaDeClasse,
   Janela,
   LegendaMapa,
   MapaMundi,
@@ -26,9 +28,6 @@ const ESTRUTURA: EstruturaMapa = {
   })),
 };
 
-// A escolha da Classe vem no próximo passo do Tutorial; por enquanto, a entrada do Frontend.
-const ENTRADA = ENTRADAS.frontend;
-
 const ilhas: IlhaNoMapa[] = TERRITORIOS.flatMap((t) => {
   const ilha = ILHAS[t.id];
   return ilha ? [{ id: t.id, nome: t.nome, ...ilha }] : [];
@@ -36,9 +35,53 @@ const ilhas: IlhaNoMapa[] = TERRITORIOS.flatMap((t) => {
 
 const nomeDaRegiao = (id: string) => REGIOES.find((r) => r.id === id)?.nome ?? id;
 
+// No Tutorial a Classe só define a entrada (spec §9): o cartão diz onde a Aventura começa.
+const CLASSES_DO_TUTORIAL = CLASSES.map((c) => ({
+  ...c,
+  detalhe: `Entrada: ${nomeDaRegiao(ENTRADAS[c.id])}`,
+}));
+
 export function Tutorial() {
-  const [mapa, setMapa] = useState(() => iniciarMapa(ESTRUTURA, ENTRADA));
-  const [selecionada, setSelecionada] = useState<string>(ENTRADA);
+  const [aventura, setAventura] = useState<Aventura | null>(null);
+
+  if (!aventura) {
+    return (
+      <main className={estilos.tela}>
+        <Janela className={estilos.hud}>
+          <div>
+            <span className="px">TUTORIAL</span>
+            <br />
+            TAVERNA DO SLOP
+          </div>
+          <div className={estilos.apagado}>Um Projeto feito sob medida para você aprender.</div>
+        </Janela>
+        <EscolhaDeClasse
+          classes={CLASSES_DO_TUTORIAL}
+          onEscolher={(classe) => setAventura(iniciarAventura(ESTRUTURA, classe, ENTRADAS))}
+        />
+      </main>
+    );
+  }
+  return (
+    <MapaDoTutorial
+      key={aventura.classe}
+      aventura={aventura}
+      onRecomecar={() => setAventura(null)}
+    />
+  );
+}
+
+function MapaDoTutorial({
+  aventura: inicio,
+  onRecomecar,
+}: {
+  aventura: Aventura;
+  onRecomecar: () => void;
+}) {
+  const entrada = ENTRADAS[inicio.classe];
+  const classe = CLASSES.find((c) => c.id === inicio.classe);
+  const [mapa, setMapa] = useState(inicio.mapa);
+  const [selecionada, setSelecionada] = useState<string>(entrada);
   const [descobertas, setDescobertas] = useState<string[]>([]);
 
   const regioes: RegiaoNoMapa[] = REGIOES.flatMap((r) => {
@@ -75,9 +118,7 @@ export function Tutorial() {
       );
       setMapa(depois);
     } else if (acao === 'recomecar') {
-      setMapa(iniciarMapa(ESTRUTURA, ENTRADA));
-      setSelecionada(ENTRADA);
-      setDescobertas([]);
+      onRecomecar();
     }
   }
 
@@ -87,7 +128,7 @@ export function Tutorial() {
         <div>
           <span className="px">TUTORIAL</span>
           <br />
-          TAVERNA DO SLOP · MAGO DO FRONTEND
+          TAVERNA DO SLOP · {classe?.nome.toUpperCase()}
         </div>
         <div>
           PROGRESSO DA AVENTURA{' '}
@@ -110,6 +151,7 @@ export function Tutorial() {
           selecionada={selecionada}
           onSelecionar={setSelecionada}
           heroi={selecionada}
+          spriteHeroi={classe?.sprite}
           rotulo="Mapa-mundi da Taverna do Slop"
         />
       </div>

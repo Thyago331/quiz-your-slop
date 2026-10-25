@@ -1,4 +1,5 @@
 export { Barra } from './Barra.tsx';
+export { CLASSES, EscolhaDeClasse, type ClasseNaTela } from './EscolhaDeClasse.tsx';
 export { Janela } from './Janela.tsx';
 export {
   LegendaMapa,

@@ -8,10 +8,22 @@ type MenuProps = {
   rotulo: string;
   itens: readonly ItemMenu[];
   onEscolher: (id: string) => void;
+  /** Itens lado a lado: ← → movem o cursor (↑ ↓ continuam valendo). */
+  horizontal?: boolean;
+  /** O item sob o cursor recebe o foco ao aparecer, para o teclado já funcionar. */
+  autoFoco?: boolean;
+  className?: string;
 };
 
 /** Menu de JRPG: cursor ▶, ↑ ↓ movem, Enter escolhe; o mouse faz o mesmo (spec §13). */
-export function Menu({ rotulo, itens, onEscolher }: MenuProps) {
+export function Menu({
+  rotulo,
+  itens,
+  onEscolher,
+  horizontal = false,
+  autoFoco = false,
+  className,
+}: MenuProps) {
   const [cursor, setCursor] = useState(0);
   const botoes = useRef<(HTMLButtonElement | null)[]>([]);
   // Se o item sob o cursor sumiu ou foi desabilitado, o cursor vai para o primeiro disponível.
@@ -34,14 +46,22 @@ export function Menu({ rotulo, itens, onEscolher }: MenuProps) {
   }
 
   function aoTeclar(evento: KeyboardEvent) {
-    if (evento.key === 'ArrowDown') mover(1);
-    else if (evento.key === 'ArrowUp') mover(-1);
+    const proximo = horizontal ? ['ArrowDown', 'ArrowRight'] : ['ArrowDown'];
+    const anterior = horizontal ? ['ArrowUp', 'ArrowLeft'] : ['ArrowUp'];
+    if (proximo.includes(evento.key)) mover(1);
+    else if (anterior.includes(evento.key)) mover(-1);
     else return;
     evento.preventDefault();
   }
 
   return (
-    <div className="menu" role="menu" aria-label={rotulo} onKeyDown={aoTeclar}>
+    <div
+      className={['menu', horizontal && 'menu--horizontal', className].filter(Boolean).join(' ')}
+      role="menu"
+      aria-label={rotulo}
+      aria-orientation={horizontal ? 'horizontal' : 'vertical'}
+      onKeyDown={aoTeclar}
+    >
       {itens.map((item, k) => (
         <button
           key={item.id}
@@ -53,6 +73,7 @@ export function Menu({ rotulo, itens, onEscolher }: MenuProps) {
           className="menu-item"
           data-cursor={k === atual}
           tabIndex={k === atual ? 0 : -1}
+          autoFocus={autoFoco && k === atual}
           disabled={item.desabilitado}
           onMouseEnter={() => disponivel(k) && setCursor(k)}
           onFocus={() => setCursor(k)}

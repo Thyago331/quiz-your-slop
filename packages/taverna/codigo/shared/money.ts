@@ -1,4 +1,4 @@
-// Money helpers shared by the web app, the API and the kitchen.
+// Money helpers shared by the web app and the API.
 // Prices are stored in gold coins. One gold coin is worth 100 copper.
 
 export const COPPER_PER_GOLD = 100;

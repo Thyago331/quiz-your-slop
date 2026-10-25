@@ -75,3 +75,15 @@ _Avoid_: Expirada, quebrada, stale
 **Desafio**:
 Uma pergunta sobre o código do projeto do Jogador, gerada pelo Mestre junto com o seu gabarito. (No tutorial, os Desafios já vêm prontos, sem Mestre.)
 _Avoid_: Pergunta, quiz, questão
+
+**Evidência**:
+O `caminho:linha` e o trecho de código que comprovam o gabarito de um Desafio; obrigatória em todo Desafio.
+_Avoid_: Fonte, referência, prova
+
+**Contestação**:
+O pedido do Jogador para o Mestre reavaliar um gabarito que ele acredita estar errado. Se o Mestre reconhece o erro, o Desafio é anulado e o Jogador ganha XP bônus de Caçador de Slop.
+_Avoid_: Reclamação, report, recurso
+
+**Formato de Desafio**:
+A forma de resposta de um Desafio. No MVP: **Múltipla escolha**, **Apontar no código** (escolher o arquivo/função certos) e **Traçar o fluxo** (ordenar os passos de um caminho pelo sistema). Todos têm gabarito objetivo.
+_Avoid_: Tipo de pergunta, modo

@@ -134,7 +134,7 @@ const envelope = (saida: unknown) =>
 
 const item = (nome: string | RegExp) => screen.getByRole('menuitem', { name: nome });
 
-function preparar(saidaPreparar: unknown = PREPARAR) {
+function preparar(saidaPreparar: unknown = PREPARAR, saidaContestar?: unknown) {
   vi.mocked(sistema.carregarAventuras).mockResolvedValue([JSON.stringify(guardada())]);
   vi.mocked(sistema.rodarGit).mockResolvedValue(Object.keys(ARQUIVOS).join('\0'));
   vi.mocked(sistema.lerArquivo).mockImplementation(async (_raiz, caminho) => {
@@ -146,9 +146,36 @@ function preparar(saidaPreparar: unknown = PREPARAR) {
   vi.mocked(sistema.rodarMestre).mockImplementation(async ({ prompt }) =>
     prompt.includes('Call: preparar_expedicao')
       ? envelope(saidaPreparar)
-      : envelope({ resumo: 'Cria e devolve pedidos.', arquivos: ['src/pedidos.ts'] }),
+      : prompt.includes('Call: contestar')
+        ? envelope(saidaContestar)
+        : envelope({ resumo: 'Cria e devolve pedidos.', arquivos: ['src/pedidos.ts'] }),
   );
 }
+
+/** Abre a Aventura guardada e parte em Expedição até o primeiro Desafio. */
+async function partir(user: ReturnType<typeof userEvent.setup>) {
+  render(<Jogo />);
+  await user.click(await screen.findByRole('menuitem', { name: 'Continuar — loja (0%)' }));
+  await user.click(item('⚔ Partir em Expedição'));
+  expect(await screen.findByText('Qual rota cria o pedido? (1)')).toBeTruthy();
+}
+
+/** Erra o primeiro Desafio e contesta com um argumento. */
+async function contestarOPrimeiro(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(item('GET /orders 1'));
+  expect(screen.getByRole('status').textContent).toMatch(/desviou/);
+  await user.click(item('⚑ Contestar o gabarito'));
+  await user.type(screen.getByLabelText('Por que o gabarito está errado?'), 'GET também cria');
+  await user.click(screen.getByRole('button', { name: '⚑ Enviar Contestação' }));
+}
+
+const vidaDoGuardiao = () =>
+  screen.getByRole('meter', { name: 'Vida do Guardião' }).getAttribute('aria-valuenow');
+
+const ultimaSalva = () => {
+  const salvas = vi.mocked(sistema.salvarAventura).mock.calls;
+  return lerAventuraSalva(salvas[salvas.length - 1]![1])!;
+};
 
 describe('Expedição no Projeto (desktop)', () => {
   beforeEach(() => {
@@ -178,9 +205,8 @@ describe('Expedição no Projeto (desktop)', () => {
     // A batalha: a entrada já tem o código aberto no explorador.
     expect(await screen.findByText('Qual rota cria o pedido? (1)')).toBeTruthy();
     expect(screen.getByText('📜 src/rotas.ts')).toBeTruthy();
-    // Contestação no desktop chega no #36.
     await user.click(item('POST /orders 1'));
-    expect(screen.queryByRole('menuitem', { name: /Contestar/ })).toBeNull();
+    expect(item('⚑ Contestar o gabarito')).toBeTruthy();
     // A Evidência abre o arquivo de verdade nas linhas dela.
     await user.click(screen.getAllByRole('button', { name: 'src/rotas.ts:3' })[0]!);
     expect(screen.getByLabelText('Código de src/rotas.ts, linhas 3 destacadas')).toBeTruthy();
@@ -212,6 +238,130 @@ describe('Expedição no Projeto (desktop)', () => {
     expect(screen.getByRole('button', { name: 'Rotas, revelada' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Serviço de pedidos, desbloqueada' })).toBeTruthy();
     expect(screen.getByText('XP 80 · Comitador Cego')).toBeTruthy();
+  });
+
+  it('Contestação anulada: o Mestre relê o código, GOLPE CRÍTICO, e o resumo conta o bônus', async () => {
+    preparar(PREPARAR, {
+      veredito: 'anulado',
+      explicacao: 'As duas rotas existem; o enunciado é ambíguo.',
+      evidencias: [evidencia, { ...evidencia, trecho: 'inventado' }],
+    });
+    const user = userEvent.setup();
+    await partir(user);
+    // O Mestre só responde quando o teste deixar: dá para ver a espera.
+    let liberar = () => {};
+    const espera = new Promise<void>((r) => (liberar = r));
+    const responder = vi.mocked(sistema.rodarMestre).getMockImplementation()!;
+    vi.mocked(sistema.rodarMestre).mockImplementation(async (pedido) => {
+      await espera;
+      return responder(pedido);
+    });
+    await contestarOPrimeiro(user);
+    expect(screen.getByText('O Mestre relê o código…')).toBeTruthy();
+    expect(screen.queryByRole('menuitem')).toBeNull();
+    liberar();
+
+    expect(await screen.findByText('🏹 GOLPE CRÍTICO — CAÇADOR DE SLOP')).toBeTruthy();
+    expect(
+      screen.getByText(/GOLPE CRÍTICO! Desafio anulado — Caçador de Slop! \+50 XP/),
+    ).toBeTruthy();
+    expect(screen.getByText(/o enunciado é ambíguo/)).toBeTruthy();
+    expect(screen.getByText(/O Mestre releu o código e deu razão a você/)).toBeTruthy();
+    expect(vidaDoGuardiao()).toBe('3');
+    expect(screen.queryByRole('menuitem', { name: /Contestar/ })).toBeNull();
+
+    const pedido = vi
+      .mocked(sistema.rodarMestre)
+      .mock.calls.map(([p]) => p)
+      .find((p) => p.prompt.includes('Call: contestar'))!;
+    expect(pedido.prompt).toContain('Brazilian Portuguese (pt)');
+    const contexto = JSON.parse(pedido.prompt.split('Context (JSON):\n')[1]!);
+    expect(contexto).toMatchObject({
+      idioma: 'pt',
+      resposta_jogador: ['b'],
+      argumento: 'GET também cria',
+      desafio: { enunciado: 'Qual rota cria o pedido? (1)', gabarito: ['a'] },
+    });
+
+    await user.click(item('Próximo Desafio'));
+    await user.click(item(/src\/pedidos\.ts → criarPedido/));
+    await user.click(item('Próximo Desafio'));
+    await user.click(item('POST /orders 3'));
+    await user.click(item('Próximo Desafio'));
+    await user.click(item('POST /orders 4'));
+    await user.click(item('Fim da batalha'));
+
+    expect(screen.getByText('VITÓRIA!')).toBeTruthy();
+    expect(
+      screen.getByText('🏹 Caçador de Slop: 1 Contestação vencida (+50 XP de bônus)'),
+    ).toBeTruthy();
+    expect(screen.getByText('+130 XP')).toBeTruthy();
+    const salva = ultimaSalva();
+    expect(salva.xp).toBe(130);
+    expect(salva.estatisticas).toEqual({ expedicoes: 1, acertos: 4, contestacoes_vencidas: 1 });
+  });
+
+  it('Contestação mantida: a explicação e as Evidências do Mestre, que abrem no explorador', async () => {
+    preparar(PREPARAR, {
+      veredito: 'mantido',
+      explicacao: 'Só o POST chama criarPedido.',
+      evidencias: [
+        {
+          caminho: 'src/pedidos.ts',
+          linha_inicio: 1,
+          linha_fim: 1,
+          trecho: 'export function criarPedido(dados) {',
+        },
+      ],
+    });
+    const user = userEvent.setup();
+    await partir(user);
+    await contestarOPrimeiro(user);
+    expect(await screen.findByText('⚑ GABARITO MANTIDO')).toBeTruthy();
+    expect(screen.getByText('Só o POST chama criarPedido.')).toBeTruthy();
+    expect(vidaDoGuardiao()).toBe('4');
+    await user.click(screen.getByRole('button', { name: 'src/pedidos.ts:1' }));
+    expect(screen.getByLabelText('Código de src/pedidos.ts, linhas 1 destacadas')).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: /Contestar/ })).toBeNull();
+  });
+
+  it('a Contestação falha: erro claro, tentar de novo; ou desistir sem perder nada', async () => {
+    preparar(PREPARAR, {
+      veredito: 'anulado',
+      explicacao: 'O gabarito errou.',
+      evidencias: [evidencia],
+    });
+    const user = userEvent.setup();
+    await partir(user);
+    const responder = vi.mocked(sistema.rodarMestre).getMockImplementation()!;
+    vi.mocked(sistema.rodarMestre).mockImplementation(async (pedido) => {
+      if (pedido.prompt.includes('Call: contestar'))
+        throw { codigo: 'tempo_esgotado', detalhe: { segundos: 600 } };
+      return responder(pedido);
+    });
+    await contestarOPrimeiro(user);
+    const alerta = await screen.findByRole('alert');
+    expect(alerta.textContent).toBe(
+      'O Mestre não conseguiu reavaliar o gabarito. O Mestre demorou demais (mais de 600 s).',
+    );
+
+    // Desistir: volta ao menu, sem veredito e sem perder nada.
+    await user.click(item('Desistir da Contestação (sem perder nada)'));
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(vidaDoGuardiao()).toBe('4');
+    expect(item('Próximo Desafio')).toBeTruthy();
+
+    // Contestar de novo; falha outra vez; agora o Mestre responde e o tentar de novo vale.
+    await user.click(item('⚑ Contestar o gabarito'));
+    await user.type(screen.getByLabelText('Por que o gabarito está errado?'), 'De novo');
+    await user.click(screen.getByRole('button', { name: '⚑ Enviar Contestação' }));
+    await screen.findByRole('alert');
+    vi.mocked(sistema.rodarMestre).mockImplementation(responder);
+    await user.click(item('Tentar de novo'));
+    expect(await screen.findByText('🏹 GOLPE CRÍTICO — CAÇADOR DE SLOP')).toBeTruthy();
+    expect(vidaDoGuardiao()).toBe('3');
+    const ultimo = vi.mocked(sistema.rodarMestre).mock.calls.at(-1)![0];
+    expect(ultimo.prompt).toContain('"argumento": "De novo"');
   });
 
   it('com menos de 3 Desafios conferidos, erro claro e tentar de novo', async () => {

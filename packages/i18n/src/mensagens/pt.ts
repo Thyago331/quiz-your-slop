@@ -206,6 +206,16 @@ export const pt = {
       cancelar: 'Cancelar',
       ordemCerta: 'Ordem certa',
       abrirEvidencia: 'Abrir no explorador de código',
+      seuArgumento: 'Seu argumento:',
+      relendo: 'O Mestre relê o código…',
+      relendoAjuda: 'Ele confere o seu argumento no código de verdade. Leva um ou dois minutos.',
+      contestacaoFalhou: 'O Mestre não conseguiu reavaliar o gabarito.',
+      tentarDeNovo: 'Tentar de novo',
+      desistir: 'Desistir da Contestação (sem perder nada)',
+      semProva:
+        'O Mestre quis anular, mas nenhuma Evidência dele bateu com o código: o gabarito fica mantido.',
+      cacadorNoProjeto:
+        'O Mestre releu o código e deu razão a você: o gabarito estava errado. Derrubar slop vale o bônus de Caçador de Slop.',
     },
     resumo: {
       vitoria: 'Vitória!',

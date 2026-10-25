@@ -148,6 +148,8 @@ saida: {
 }
 ```
 
+As Evidências do veredito passam pela mesma conferência da preparação; as que não batem com o arquivo são descartadas. Anular exige prova: um `anulado` sem nenhuma Evidência válida é recusado e pedido de novo (até 2 novas tentativas); se ainda assim não vier prova, o gabarito fica mantido, com a explicação e as Evidências do próprio Desafio, e o Jogador vê que o Mestre não conseguiu provar a anulação.
+
 No Tutorial, `contestar` não chama IA: um Desafio com `isca: true` é anulado com um texto fixo.
 
 ## Validação no Jogo

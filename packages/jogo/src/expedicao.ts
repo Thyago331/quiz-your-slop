@@ -7,8 +7,14 @@ import { CALIBRAGEM_PADRAO, type Calibragem } from './progressao.ts';
 /** O Guardião tem 4 vidas: 4 acertos o derrotam e revelam a região. */
 export const VIDAS_DO_GUARDIAO = 4;
 
+/**
+ * A reavaliação do gabarito: a saída de `contestar` já conferida. `semProva`: o Mestre quis anular,
+ * mas nenhuma Evidência dele bateu com o código, e o gabarito ficou mantido.
+ */
+export type Reavaliacao = SaidaContestar & { semProva?: true };
+
 /** O argumento do Jogador e o que o Mestre (ou o Tutorial) respondeu. */
-export type Contestacao = SaidaContestar & { argumento: string };
+export type Contestacao = Reavaliacao & { argumento: string };
 
 export type RespostaDada = {
   resposta: Resposta;
@@ -99,7 +105,7 @@ export function podeContestar(expedicao: Expedicao): boolean {
 export function contestarDesafio(
   expedicao: Expedicao,
   argumento: string,
-  saida: SaidaContestar,
+  saida: Reavaliacao,
 ): Expedicao {
   exigirFase(expedicao, 'corrigido', 'contestar');
   const resposta = expedicao.respostas[expedicao.atual];

@@ -276,6 +276,81 @@ describe('Batalha — Contestação', () => {
     expect(screen.getByRole('status').textContent).toMatch(/desviou/);
     expect(screen.queryByRole('menuitem', { name: /Contestar/ })).toBeNull();
   });
+
+  it('mantido pelo Mestre: as Evidências do veredito abrem no explorador', async () => {
+    const user = userEvent.setup();
+    const onAbrirEvidencia = vi.fn();
+    const mantido = contestarDesafio(errou, 'Discordo', {
+      veredito: 'mantido',
+      explicacao: 'O roteador registra POST /orders.',
+      evidencias: [codigoReal],
+    });
+    render(
+      <Batalha
+        expedicao={mantido}
+        estados={estados}
+        nomeRegiao="API de Pedidos"
+        heroi="cavaleiro"
+        onResponder={vi.fn()}
+        onAvancar={vi.fn()}
+        onContestar={vi.fn()}
+        onAbrirEvidencia={onAbrirEvidencia}
+      />,
+    );
+    expect(screen.getByText(/O roteador registra POST/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'api/src/payments/dwarfVault.ts:24' }));
+    expect(onAbrirEvidencia).toHaveBeenCalledWith(codigoReal);
+  });
+
+  it('mantido sem prova: avisa que nenhuma Evidência do Mestre bateu com o código', () => {
+    montar(
+      contestarDesafio(errou, 'Discordo', {
+        veredito: 'mantido',
+        explicacao: 'O `server.ts` registra a rota.',
+        evidencias: [],
+        semProva: true,
+      }),
+      true,
+    );
+    expect(screen.getByText(/nenhuma Evidência dele bateu com o código/)).toBeTruthy();
+  });
+
+  it('esperando o Mestre: "relê o código", sem menu; falhou: tentar de novo ou desistir', async () => {
+    const user = userEvent.setup();
+    const props = {
+      expedicao: errou,
+      estados,
+      nomeRegiao: 'API de Pedidos',
+      heroi: 'cavaleiro' as const,
+      onResponder: vi.fn(),
+      onAvancar: vi.fn(),
+      onContestar: vi.fn(),
+      onTentarContestarDeNovo: vi.fn(),
+      onDesistirDeContestar: vi.fn(),
+    };
+    const { rerender } = render(
+      <Batalha {...props} pedidoDeContestacao={{ estado: 'esperando', argumento: 'É POST' }} />,
+    );
+    expect(screen.getByText('O Mestre relê o código…')).toBeTruthy();
+    expect(screen.getByText(/Seu argumento: É POST/)).toBeTruthy();
+    expect(screen.queryByRole('menuitem')).toBeNull();
+
+    rerender(
+      <Batalha
+        {...props}
+        pedidoDeContestacao={{ estado: 'falhou', argumento: 'É POST', erro: 'CLI ausente.' }}
+      />,
+    );
+    expect(screen.getByRole('alert').textContent).toBe(
+      'O Mestre não conseguiu reavaliar o gabarito. CLI ausente.',
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Tentar de novo' }));
+    expect(props.onTentarContestarDeNovo).toHaveBeenCalled();
+    await user.click(
+      screen.getByRole('menuitem', { name: 'Desistir da Contestação (sem perder nada)' }),
+    );
+    expect(props.onDesistirDeContestar).toHaveBeenCalled();
+  });
 });
 
 describe('ResumoExpedicao', () => {

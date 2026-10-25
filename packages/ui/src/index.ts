@@ -1,5 +1,5 @@
 export { Barra } from './Barra.tsx';
-export { Batalha, ResumoExpedicao, textoDoPasso } from './Batalha.tsx';
+export { Batalha, ResumoExpedicao, textoDoPasso, type PedidoDeContestacao } from './Batalha.tsx';
 export { EvidenciaNaTela, Texto, localDaEvidencia } from './Codigo.tsx';
 export { classeNaTela, classesNaTela, type ClasseNaTela } from './classes.ts';
 export { EscolhaDeClasse } from './EscolhaDeClasse.tsx';

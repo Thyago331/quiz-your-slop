@@ -203,6 +203,16 @@ export const es: Mensagens = {
       cancelar: 'Cancelar',
       ordemCerta: 'Orden correcto',
       abrirEvidencia: 'Abrir en el explorador de código',
+      seuArgumento: 'Tu argumento:',
+      relendo: 'El Máster relee el código…',
+      relendoAjuda: 'Compara tu argumento con el código de verdad. Tarda uno o dos minutos.',
+      contestacaoFalhou: 'El Máster no pudo reevaluar la solución.',
+      tentarDeNovo: 'Intentar de nuevo',
+      desistir: 'Renunciar a la impugnación (no pierdes nada)',
+      semProva:
+        'El Máster quiso anularla, pero ninguna de sus Evidencias coincidió con el código: la solución se mantiene.',
+      cacadorNoProjeto:
+        'El Máster releyó el código y te dio la razón: la solución estaba equivocada. Derribar slop vale el bono de Cazador de Slop.',
     },
     resumo: {
       vitoria: '¡Victoria!',

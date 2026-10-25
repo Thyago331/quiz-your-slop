@@ -202,6 +202,16 @@ export const en: Mensagens = {
       cancelar: 'Cancel',
       ordemCerta: 'Correct order',
       abrirEvidencia: 'Open in the code explorer',
+      seuArgumento: 'Your argument:',
+      relendo: 'The Master rereads the code…',
+      relendoAjuda: 'It checks your argument against the real code. It takes a minute or two.',
+      contestacaoFalhou: 'The Master could not reassess the answer key.',
+      tentarDeNovo: 'Try again',
+      desistir: 'Give up the dispute (you lose nothing)',
+      semProva:
+        'The Master wanted to void it, but none of its Evidence matched the code: the answer key stands.',
+      cacadorNoProjeto:
+        'The Master reread the code and agreed with you: the answer key was wrong. Taking down slop earns the Slop Hunter bonus.',
     },
     resumo: {
       vitoria: 'Victory!',

@@ -285,26 +285,68 @@ function caminhoDoProjeto(ctx: Contexto, caminho: string, problemas: string[], o
   return r.caminho;
 }
 
-async function conferirEvidencias(
-  ctx: Contexto,
+/** O que a conferência de Evidências do Mestre precisa: os repositórios e os arquivos carregados. */
+export type LeituraDoProjeto = {
+  repositorios: OpcoesDaChamada['repositorios'];
+  /** Leitura síncrona do que já foi carregado (as funções de evidencia.ts são síncronas). */
+  lido: (caminho: string) => string | undefined;
+  carregar: (caminhos: readonly string[]) => Promise<void>;
+};
+
+/** Lê cada arquivo uma vez só; arquivo que falha ao ler conta como inexistente. */
+export function lerComCache(
+  lerArquivo: LerArquivoDoProjeto,
+): Pick<LeituraDoProjeto, 'lido' | 'carregar'> {
+  const lidos = new Map<string, string | undefined>();
+  return {
+    lido: (c) => lidos.get(c),
+    carregar: async (caminhos) => {
+      for (const c of new Set(caminhos)) {
+        if (!lidos.has(c)) lidos.set(c, await lerArquivo(c).catch(() => undefined));
+      }
+    },
+  };
+}
+
+/**
+ * Regra 2 para uma lista de Evidências do Mestre: ficam as que batem com o arquivo (com as linhas
+ * corrigidas, se o trecho só mudou de lugar); cada recusada vira um problema, com o motivo.
+ */
+export async function conferirEvidenciasDoMestre(
+  leitura: LeituraDoProjeto,
   lista: readonly Evidencia[],
   onde: string,
   problemas: string[],
 ): Promise<Evidencia[]> {
   const normalizadas = lista.map((ev, k) => {
-    const caminho = caminhoDoProjeto(ctx, ev.caminho, problemas, `${onde}[${k}]`);
-    return caminho === undefined ? undefined : { ...ev, caminho };
+    const r = normalizarCaminho(leitura.repositorios, ev.caminho);
+    if (r.ok) return { ...ev, caminho: r.caminho };
+    problemas.push(`${onde}[${k}]: ${r.motivo}`);
+    return undefined;
   });
-  await ctx.carregar(normalizadas.flatMap((ev) => (ev ? [ev.caminho] : [])));
+  await leitura.carregar(normalizadas.flatMap((ev) => (ev ? [ev.caminho] : [])));
   const certas: Evidencia[] = [];
   normalizadas.forEach((ev, k) => {
     if (!ev) return;
-    const r = conferirOuRelocalizar(ctx.lido, ev);
+    const r = conferirOuRelocalizar(leitura.lido, ev);
     if (r.ok) certas.push(r.evidencia);
     else problemas.push(`${onde}[${k}] ${ev.caminho}:${ev.linha_inicio}: ${r.motivo}`);
   });
   return certas;
 }
+
+const conferirEvidencias = (
+  ctx: Contexto,
+  lista: readonly Evidencia[],
+  onde: string,
+  problemas: string[],
+) =>
+  conferirEvidenciasDoMestre(
+    { repositorios: ctx.opcoes.repositorios, lido: ctx.lido, carregar: ctx.carregar },
+    lista,
+    onde,
+    problemas,
+  );
 
 function embaralhar<T>(itens: readonly T[], aleatorio: Aleatorio): T[] {
   const copia = [...itens];
@@ -495,15 +537,9 @@ export async function prepararExpedicao(
   opcoes: OpcoesDaPreparacao,
 ): Promise<ExpedicaoPreparada> {
   const varios = opcoes.repositorios.length > 1;
-  const lidos = new Map<string, string | undefined>();
   const ctx: Contexto = {
     opcoes,
-    lido: (c) => lidos.get(c),
-    carregar: async (caminhos) => {
-      for (const c of new Set(caminhos)) {
-        if (!lidos.has(c)) lidos.set(c, await opcoes.lerArquivo(c).catch(() => undefined));
-      }
-    },
+    ...lerComCache(opcoes.lerArquivo),
     regiaoId: entrada.regiao.id,
     regioes: new Set([entrada.regiao.id, ...entrada.mapa.map((r) => r.id)]),
     territorios: new Set([

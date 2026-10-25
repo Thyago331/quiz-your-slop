@@ -114,7 +114,7 @@ export type SaidaPrepararExpedicao = {
   arquivos_atualizados?: string[];
 };
 
-/** Chega com a Contestação real (#36). */
+/** A Contestação real: o Desafio jogado, o que o Jogador escolheu e o argumento dele. */
 export type EntradaContestar = {
   idioma: Idioma;
   desafio: Desafio;

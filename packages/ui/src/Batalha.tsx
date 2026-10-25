@@ -81,6 +81,11 @@ function RotuloDaOpcao({
   }
 }
 
+/** A Contestação a caminho do Mestre: esperando o veredito, ou a chamada falhou. */
+export type PedidoDeContestacao =
+  | { estado: 'esperando'; argumento: string }
+  | { estado: 'falhou'; argumento: string; erro: string };
+
 type BatalhaProps = {
   /** Em jogo: respondendo ou corrigido (a encerrada vira ResumoExpedicao). */
   expedicao: Expedicao;
@@ -92,6 +97,14 @@ type BatalhaProps = {
   onAvancar: () => void;
   /** Sem ele, não há Contestação nesta batalha. */
   onContestar?: (argumento: string) => void;
+  /** Contestação que espera o Mestre (no Projeto, o veredito leva um tempo e pode falhar). */
+  pedidoDeContestacao?: PedidoDeContestacao;
+  /** Depois de uma falha: pedir o veredito de novo, com o mesmo argumento. */
+  onTentarContestarDeNovo?: () => void;
+  /** Depois de uma falha: desistir de contestar, sem perder nada. */
+  onDesistirDeContestar?: () => void;
+  /** O texto do Caçador de Slop no veredito anulado (o padrão é o do Tutorial). */
+  textoDoCacador?: string;
   /** O bônus que a tela anuncia no GOLPE CRÍTICO. */
   xpCacadorDeSlop?: number;
   /** Com ele, cada Evidência abre o arquivo no explorador de código. */
@@ -107,6 +120,10 @@ export function Batalha({
   onResponder,
   onAvancar,
   onContestar,
+  pedidoDeContestacao,
+  onTentarContestarDeNovo,
+  onDesistirDeContestar,
+  textoDoCacador,
   xpCacadorDeSlop = CALIBRAGEM_PADRAO.xpCacadorDeSlop,
   onAbrirEvidencia,
 }: BatalhaProps) {
@@ -237,9 +254,16 @@ export function Batalha({
               <VereditoDaContestacao
                 contestacao={resposta.contestacao}
                 onAbrirEvidencia={onAbrirEvidencia}
+                textoDoCacador={textoDoCacador ?? t.cacadorDeSlop}
               />
             )}
-            {escrevendo ? (
+            {pedidoDeContestacao && !resposta.contestacao ? (
+              <ContestacaoPendente
+                pedido={pedidoDeContestacao}
+                onTentarDeNovo={() => onTentarContestarDeNovo?.()}
+                onDesistir={() => onDesistirDeContestar?.()}
+              />
+            ) : escrevendo ? (
               <FormularioDeContestacao
                 onEnviar={(argumento) => {
                   setContestando(null);
@@ -272,9 +296,11 @@ export function Batalha({
 function VereditoDaContestacao({
   contestacao,
   onAbrirEvidencia,
+  textoDoCacador,
 }: {
   contestacao: Contestacao;
   onAbrirEvidencia?: (evidencia: Evidencia) => void;
+  textoDoCacador: string;
 }) {
   const idioma = useIdioma();
   const t = useMensagens().ui.batalha;
@@ -282,9 +308,23 @@ function VereditoDaContestacao({
     return (
       <div className="contestacao contestacao--mantida">
         <p className="px contestacao-titulo">{emMaiusculas(idioma, t.mantido)}</p>
-        <p>
-          <Texto>{contestacao.explicacao}</Texto>
-        </p>
+        {contestacao.semProva ? (
+          <p>{t.semProva}</p>
+        ) : (
+          <>
+            <p>
+              <Texto>{contestacao.explicacao}</Texto>
+            </p>
+            {contestacao.evidencias.map((ev) => (
+              <EvidenciaNaTela
+                key={`${ev.caminho}:${ev.linha_inicio}`}
+                evidencia={ev}
+                onAbrir={onAbrirEvidencia}
+                rotuloAbrir={t.abrirEvidencia}
+              />
+            ))}
+          </>
+        )}
       </div>
     );
   }
@@ -302,7 +342,50 @@ function VereditoDaContestacao({
           rotuloAbrir={t.abrirEvidencia}
         />
       ))}
-      <p className="texto-ouro">{t.cacadorDeSlop}</p>
+      <p className="texto-ouro">{textoDoCacador}</p>
+    </div>
+  );
+}
+
+/** O Mestre relê o código (a CLI leva um tempo), ou não conseguiu: tentar de novo ou desistir. */
+function ContestacaoPendente({
+  pedido,
+  onTentarDeNovo,
+  onDesistir,
+}: {
+  pedido: PedidoDeContestacao;
+  onTentarDeNovo: () => void;
+  onDesistir: () => void;
+}) {
+  const t = useMensagens().ui.batalha;
+  return (
+    <div className="contestacao contestacao--pendente">
+      <p className="texto-apagado">
+        {t.seuArgumento} <Texto>{pedido.argumento}</Texto>
+      </p>
+      {pedido.estado === 'esperando' ? (
+        <>
+          <p role="status" className="contestacao-titulo">
+            {t.relendo}
+          </p>
+          <p className="texto-apagado">{t.relendoAjuda}</p>
+        </>
+      ) : (
+        <>
+          <p role="alert" className="texto-erro">
+            {t.contestacaoFalhou} {pedido.erro}
+          </p>
+          <Menu
+            rotulo={t.contestacaoFalhou}
+            autoFoco
+            itens={[
+              { id: 'de-novo', rotulo: t.tentarDeNovo },
+              { id: 'desistir', rotulo: t.desistir },
+            ]}
+            onEscolher={(id) => (id === 'desistir' ? onDesistir() : onTentarDeNovo())}
+          />
+        </>
+      )}
     </div>
   );
 }

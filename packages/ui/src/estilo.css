@@ -544,6 +544,22 @@
   color: var(--px-ouro);
   text-shadow: 2px 2px 0 var(--px-ouro-sombra);
 }
+.contestacao--pendente {
+  box-shadow: 0 0 0 3px var(--px-janela-borda);
+}
+.contestacao--pendente [role='status'] {
+  animation: px-relendo 1.2s steps(2) infinite;
+}
+@keyframes px-relendo {
+  50% {
+    opacity: 0.45;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .contestacao--pendente [role='status'] {
+    animation: none;
+  }
+}
 .contestacao-form {
   display: flex;
   flex-direction: column;

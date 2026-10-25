@@ -16,7 +16,14 @@ export type {
   SaidaContestar,
   TipoLigacao,
 } from './contrato.ts';
-export { contestacaoRoteirizada, type Anulacao } from './contestacao.ts';
+export {
+  ESQUEMA_CONTESTAR,
+  contestacaoRoteirizada,
+  contestar,
+  montarPromptDaContestacao,
+  type Anulacao,
+  type OpcoesDaContestacao,
+} from './contestacao.ts';
 export {
   conferirEvidencia,
   conferirOpcaoApontar,
@@ -72,6 +79,7 @@ export {
   vidasDoGuardiao,
   type Aleatorio,
   type Contestacao,
+  type Reavaliacao,
   type Expedicao,
   type FaseExpedicao,
   type OpcoesDaEscolha,
@@ -160,13 +168,16 @@ export {
   MINIMO_DE_DESAFIOS,
   PoucosDesafios,
   TENTATIVAS_DE_REPOSICAO,
+  conferirEvidenciasDoMestre,
   esquemaPrepararExpedicao,
+  lerComCache,
   formatosFaltando,
   montarPromptDaExpedicao,
   prepararExpedicao,
   type Descarte,
   type EventoDaPreparacao,
   type ExpedicaoPreparada,
+  type LeituraDoProjeto,
   type LerArquivoDoProjeto,
   type LigacaoPreparada,
   type OpcoesDaPreparacao,

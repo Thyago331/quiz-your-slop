@@ -5,11 +5,15 @@ import {
   arvoreDoExplorador,
   avancar,
   concluirNaAventura,
+  contestar,
+  contestarDesafio,
+  desafioAtual,
   iniciarExpedicao,
   prepararNaAventura,
   regioesDoExplorador,
   responderDesafio,
   tituloDoXp,
+  type ArquivosDoProjeto,
   type AventuraNoProjeto,
   type Expedicao,
   type ExpedicaoConcluida,
@@ -28,6 +32,7 @@ import {
   useIdioma,
   useMensagens,
   type ArquivoAberto,
+  type PedidoDeContestacao,
 } from '@quiz/ui';
 import { ListaDeLinhas, type Linha } from './Linhas.tsx';
 import { leitorDoProjeto, lerArquivosDoProjeto, transporteClaudeCode } from './mestre.ts';
@@ -37,7 +42,7 @@ import { useEsc } from './TelaProvisoria.tsx';
 type Fase =
   | { tipo: 'preparando'; linhas: Linha[] }
   | { tipo: 'erro'; linhas: Linha[]; erro: string }
-  | { tipo: 'batalha'; expedicao: Expedicao }
+  | { tipo: 'batalha'; expedicao: Expedicao; contestacao?: PedidoDeContestacao }
   | { tipo: 'resumo'; concluida: ExpedicaoConcluida; xpAntes: number };
 
 type TelaDaExpedicaoProps = {
@@ -56,7 +61,7 @@ type TelaDaExpedicaoProps = {
 
 /**
  * A Expedição no Projeto: o Mestre prepara (com tentativas e conferência à vista), a batalha com o
- * explorador do código de verdade ao lado, e o resumo. A Contestação no desktop chega no #36.
+ * explorador do código de verdade ao lado, a Contestação com o Mestre e o resumo.
  */
 export function TelaDaExpedicao({
   aventura,
@@ -76,6 +81,8 @@ export function TelaDaExpedicao({
   const [fase, setFase] = useState<Fase>({ tipo: 'preparando', linhas: [] });
   const leitor = useMemo(() => leitorDoProjeto(aventura.repositorios), [aventura.repositorios]);
   const [todos, setTodos] = useState<string[]>([]);
+  // Os arquivos commitados, lidos na preparação: a Contestação confere caminhos com eles.
+  const arquivosDoProjeto = useRef<ArquivosDoProjeto | undefined>(undefined);
   // Cada preparação tem um número: voltar no meio faz a resposta antiga ser ignorada.
   const geracao = useRef(0);
   const iniciou = useRef(false);
@@ -101,6 +108,7 @@ export function TelaDaExpedicao({
     setFase({ tipo: 'preparando', linhas: [] });
     try {
       const arquivos = await lerArquivosDoProjeto(atual.current.repositorios);
+      arquivosDoProjeto.current = arquivos;
       if (vale()) setTodos([...arquivos.arquivos]);
       const r = await prepararNaAventura(
         transporteClaudeCode(atual.current.repositorios),
@@ -162,6 +170,36 @@ export function TelaDaExpedicao({
     void preparar();
   }, [preparar]);
 
+  /**
+   * A Contestação real: o Mestre relê o código (uma CLI inteira, leva um tempo). O veredito só vale
+   * para a batalha que o pediu; falha vira erro com tentar de novo ou desistir, sem perder nada.
+   */
+  async function contestarNoMestre(expedicao: Expedicao, argumento: string) {
+    const mesma = (f: Fase): f is Extract<Fase, { tipo: 'batalha' }> =>
+      f.tipo === 'batalha' && f.expedicao === expedicao;
+    setFase({ tipo: 'batalha', expedicao, contestacao: { estado: 'esperando', argumento } });
+    try {
+      const resposta = expedicao.respostas[expedicao.atual]?.resposta ?? [];
+      const reavaliacao = await contestar(
+        transporteClaudeCode(atual.current.repositorios),
+        { idioma, desafio: desafioAtual(expedicao), resposta_jogador: [...resposta], argumento },
+        {
+          repositorios: atual.current.repositorios,
+          lerArquivo: leitor.ler,
+          ...(arquivosDoProjeto.current && { arquivos: arquivosDoProjeto.current }),
+        },
+      );
+      setFase((f) =>
+        mesma(f)
+          ? { tipo: 'batalha', expedicao: contestarDesafio(expedicao, argumento, reavaliacao) }
+          : f,
+      );
+    } catch (e) {
+      const erro = mensagemDoErro(e, m.ui.nova.erros);
+      setFase((f) => (mesma(f) ? { ...f, contestacao: { estado: 'falhou', argumento, erro } } : f));
+    }
+  }
+
   function seguir(expedicao: Expedicao) {
     const proxima = avancar(expedicao);
     if (proxima.fase !== 'encerrada') {
@@ -188,10 +226,16 @@ export function TelaDaExpedicao({
           heroi={classe?.sprite ?? 'heroi'}
           leitor={leitor}
           todos={todos}
+          {...(fase.contestacao && { contestacao: fase.contestacao })}
           onResponder={(resposta) =>
             setFase({ tipo: 'batalha', expedicao: responderDesafio(fase.expedicao, resposta) })
           }
           onAvancar={() => seguir(fase.expedicao)}
+          onContestar={(argumento) => void contestarNoMestre(fase.expedicao, argumento.trim())}
+          onTentarContestarDeNovo={() =>
+            fase.contestacao && void contestarNoMestre(fase.expedicao, fase.contestacao.argumento)
+          }
+          onDesistirDeContestar={() => setFase({ tipo: 'batalha', expedicao: fase.expedicao })}
         />
       </main>
     );
@@ -266,8 +310,12 @@ type BatalhaNoProjetoProps = {
   heroi: Parameters<typeof Batalha>[0]['heroi'];
   leitor: ReturnType<typeof leitorDoProjeto>;
   todos: readonly string[];
+  contestacao?: PedidoDeContestacao;
   onResponder: (resposta: string[]) => void;
   onAvancar: () => void;
+  onContestar: (argumento: string) => void;
+  onTentarContestarDeNovo: () => void;
+  onDesistirDeContestar: () => void;
 };
 
 /**
@@ -281,9 +329,14 @@ function BatalhaNoProjeto({
   heroi,
   leitor,
   todos,
+  contestacao,
   onResponder,
   onAvancar,
+  onContestar,
+  onTentarContestarDeNovo,
+  onDesistirDeContestar,
 }: BatalhaNoProjetoProps) {
+  const m = useMensagens();
   const semente = aventura.regioes.find((r) => r.id === expedicao.regiaoId)?.arquivos_semente[0];
   const [aberto, setAberto] = useState<ArquivoAberto | null>(semente ? { caminho: semente } : null);
   const [aba, setAba] = useState<'principal' | 'codigo'>('principal');
@@ -339,6 +392,11 @@ function BatalhaNoProjeto({
           heroi={heroi}
           onResponder={onResponder}
           onAvancar={onAvancar}
+          onContestar={onContestar}
+          {...(contestacao && { pedidoDeContestacao: contestacao })}
+          onTentarContestarDeNovo={onTentarContestarDeNovo}
+          onDesistirDeContestar={onDesistirDeContestar}
+          textoDoCacador={m.ui.batalha.cacadorNoProjeto}
           onAbrirEvidencia={(ev) => {
             setAberto({ caminho: ev.caminho, inicio: ev.linha_inicio, fim: ev.linha_fim });
             setAba('codigo');

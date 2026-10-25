@@ -34,3 +34,11 @@ export { SeletorDeIdioma, type OpcaoDeIdioma } from './SeletorDeIdioma.tsx';
 export { Pixels, Sprite } from './Sprite.tsx';
 export { TelaInicial } from './TelaInicial.tsx';
 export { PALETA, SPRITES, type NomeSprite } from './sprites.ts';
+export {
+  PREFIXO_DA_NEVOA,
+  disporMapa,
+  spriteDaRegiao,
+  type DisposicaoDoMapa,
+  type RegiaoParaDispor,
+  type TerritorioParaDispor,
+} from './disposicao.ts';

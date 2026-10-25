@@ -1,6 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
-import { atualizar, ehErroDoSistema, lerArquivo, rodarGit, rodarMestre } from './sistema.ts';
+import {
+  atualizar,
+  carregarAventuras,
+  comandoDoMestre,
+  detectarMestre,
+  ehErroDoSistema,
+  escolherPasta,
+  lerArquivo,
+  rodarGit,
+  rodarMestre,
+  salvarAventura,
+} from './sistema.ts';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => '') }));
 const chamada = () => vi.mocked(invoke).mock.calls.at(-1);
@@ -21,6 +32,19 @@ describe('sistema', () => {
     expect(chamada()).toEqual(['ler_arquivo', { raiz: '/p', caminho: 'src/a.ts' }]);
     await atualizar();
     expect(chamada()).toEqual(['atualizar']);
+    await escolherPasta();
+    expect(chamada()).toEqual(['escolher_pasta']);
+    await detectarMestre('claude_code');
+    expect(chamada()).toEqual(['detectar_mestre', { ia: 'claude_code' }]);
+    await comandoDoMestre('claude_code', '/a', ['/b']);
+    expect(chamada()).toEqual([
+      'comando_do_mestre',
+      { ia: 'claude_code', raiz: '/a', raizesExtras: ['/b'] },
+    ]);
+    await salvarAventura('id', '{}');
+    expect(chamada()).toEqual(['salvar_aventura', { id: 'id', json: '{}' }]);
+    await carregarAventuras();
+    expect(chamada()).toEqual(['carregar_aventuras']);
   });
 
   it('reconhece os erros da camada Rust', () => {

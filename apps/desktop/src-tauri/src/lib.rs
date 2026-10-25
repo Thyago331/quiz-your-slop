@@ -1,10 +1,13 @@
 //! A camada fina em Rust do Jogo desktop (spec §11): uma lista fechada de comandos e nada mais.
 //! A interface não tem plugin de sistema de arquivos, shell, rede ou abertura de URLs; tudo o que
-//! ela pode pedir ao sistema está nos quatro comandos abaixo (e em capabilities/principal.json).
+//! ela pode pedir ao sistema está nos comandos abaixo e em nova_aventura.rs (e em
+//! capabilities/principal.json). O plugin de diálogo só é usado do Rust, pelo `escolher_pasta`.
 
+mod aventuras;
 mod erro;
 mod git;
 mod mestre;
+mod nova_aventura;
 mod processo;
 mod projeto;
 
@@ -48,11 +51,18 @@ async fn atualizar() -> Resultado<()> {
 
 pub fn rodar() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             rodar_mestre,
             rodar_git,
             ler_arquivo,
-            atualizar
+            atualizar,
+            // Nova Aventura (#34)
+            nova_aventura::escolher_pasta,
+            nova_aventura::detectar_mestre,
+            nova_aventura::comando_do_mestre,
+            nova_aventura::salvar_aventura,
+            nova_aventura::carregar_aventuras,
         ])
         .run(tauri::generate_context!())
         .expect("falha ao abrir o Jogo");

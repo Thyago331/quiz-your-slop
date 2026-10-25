@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-comando-do-mestre"
+description = "Enables the comando_do_mestre command without any pre-configured scope."
+commands.allow = ["comando_do_mestre"]
+
+[[permission]]
+identifier = "deny-comando-do-mestre"
+description = "Denies the comando_do_mestre command without any pre-configured scope."
+commands.deny = ["comando_do_mestre"]

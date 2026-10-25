@@ -1,7 +1,17 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "principal",
-  "description": "A janela do Jogo: só os quatro comandos da camada Rust, nenhuma API de sistema do Tauri.",
+  "description": "A janela do Jogo: só os comandos da camada Rust, nenhuma API de sistema do Tauri nem de plugin (o seletor de pastas é chamado do Rust, por escolher_pasta).",
   "windows": ["principal"],
-  "permissions": ["allow-rodar-mestre", "allow-rodar-git", "allow-ler-arquivo", "allow-atualizar"]
+  "permissions": [
+    "allow-rodar-mestre",
+    "allow-rodar-git",
+    "allow-ler-arquivo",
+    "allow-atualizar",
+    "allow-escolher-pasta",
+    "allow-detectar-mestre",
+    "allow-comando-do-mestre",
+    "allow-salvar-aventura",
+    "allow-carregar-aventuras"
+  ]
 }

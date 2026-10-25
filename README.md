@@ -34,7 +34,7 @@ pnpm --filter @quiz/desktop tauri build --debug  # binário e pacotes em src-tau
 cd apps/desktop/src-tauri && cargo test && cargo clippy -- -D warnings
 ```
 
-A camada Rust expõe só `rodar_mestre`, `rodar_git`, `ler_arquivo` e `atualizar` (`src-tauri/src/lib.rs`); a interface os chama por `apps/desktop/src/sistema.ts`.
+A camada Rust expõe só `rodar_mestre`, `rodar_git`, `ler_arquivo` e `atualizar` (`src-tauri/src/lib.rs`) e, para a Nova Aventura, `escolher_pasta`, `detectar_mestre`, `comando_do_mestre`, `salvar_aventura` e `carregar_aventuras` (`src-tauri/src/nova_aventura.rs`); a interface os chama por `apps/desktop/src/sistema.ts`. O seletor de pastas vem do `tauri-plugin-dialog`, mas só o Rust o usa: a janela não recebe nenhuma permissão `dialog:*` (`capabilities/principal.json`). Cada Aventura fica em `<dados do app>/aventuras/<uuid>.json` (no Linux, `~/.local/share/software.rapidsolutions.quizyourslop/`), nunca dentro do Projeto.
 
 ### Conta (login com GitHub) e Postgres
 

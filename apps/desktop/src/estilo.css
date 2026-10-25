@@ -12,3 +12,154 @@
   margin: 12px 0 0;
   color: var(--px-apagado);
 }
+
+/* Nova Aventura em 5 passos (protótipo variante D, ?tela=nova). */
+.nova-aventura {
+  min-height: 100vh;
+  padding: 24px 16px;
+  display: grid;
+  place-items: start center;
+}
+.nova-janela {
+  width: min(900px, 100%);
+}
+.nova-trilha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+}
+.nova-trilha li {
+  font-family: var(--px-fonte-titulo);
+  font-size: 10px;
+  padding: 6px 8px;
+  background: var(--px-barra-vazia);
+}
+.nova-trilha .nova-trilha--atual {
+  background: var(--px-ouro);
+  color: var(--px-fundo);
+}
+.nova-trilha .nova-trilha--feito {
+  background: #2f7d32;
+}
+.nova-pergunta {
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 6px 0 12px;
+}
+.nova-pastas {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+  word-break: break-all;
+}
+.nova-ok {
+  color: var(--px-ok);
+}
+.nova-ouro {
+  color: var(--px-ouro);
+}
+.nova-aviso {
+  color: var(--px-desatualizada);
+}
+.nova-apagado,
+.nova-ajuda,
+.tela-mapa-apagado {
+  color: var(--px-apagado);
+}
+.nova-ajuda {
+  margin: 12px 0 0;
+}
+.nova-so-ler {
+  margin: 14px 0 4px;
+  padding: 10px 14px;
+  background: #2a1f10;
+  box-shadow: 0 0 0 3px var(--px-janela-borda);
+}
+.nova-so-ler p {
+  margin: 4px 0;
+}
+.nova-so-ler-titulo {
+  color: var(--px-ouro);
+}
+.nova-comando {
+  display: block;
+  padding: 8px 10px;
+  background: var(--px-codigo-fundo);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+}
+.nova-leitura {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+.nova-linhas {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.nova-linha--ok {
+  color: var(--px-texto);
+}
+.nova-linha--andamento {
+  color: var(--px-apagado);
+}
+.nova-linha--recusada {
+  color: var(--px-desatualizada);
+}
+.nova-lendo {
+  color: var(--px-ouro);
+  animation: nova-pisca 1s steps(1) infinite;
+}
+@keyframes nova-pisca {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nova-lendo {
+    animation: none;
+  }
+}
+.nova-candidata {
+  display: inline-flex;
+  flex-direction: column;
+}
+.nova-aventura .escolha-classe {
+  margin: 0 0 12px;
+}
+
+/* Mapa do Projeto */
+.tela-mapa {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 14px 14px 40px;
+}
+.tela-mapa-hud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  align-items: center;
+  justify-content: space-between;
+}
+.tela-mapa-hud .px {
+  color: var(--px-ouro);
+}
+.tela-mapa-mapa {
+  margin: 18px 8px 8px;
+}
+.tela-mapa-paineis {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+.tela-mapa-arquivos {
+  margin: 0;
+  padding: 0 0 0 18px;
+  word-break: break-all;
+}

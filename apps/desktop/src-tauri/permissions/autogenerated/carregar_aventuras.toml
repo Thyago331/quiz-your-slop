@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-carregar-aventuras"
+description = "Enables the carregar_aventuras command without any pre-configured scope."
+commands.allow = ["carregar_aventuras"]
+
+[[permission]]
+identifier = "deny-carregar-aventuras"
+description = "Denies the carregar_aventuras command without any pre-configured scope."
+commands.deny = ["carregar_aventuras"]

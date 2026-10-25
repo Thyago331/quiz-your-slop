@@ -1,10 +1,11 @@
 // A ponte com a camada Rust (src-tauri): o único lugar do Jogo que chama `invoke`. Cada função é um
-// dos quatro comandos da lista fechada; os tipos espelham os do Rust (serde) e qualquer outro
-// formato é recusado lá.
+// dos comandos da lista fechada; os tipos espelham os do Rust (serde) e qualquer outro formato é
+// recusado lá.
 import { invoke } from '@tauri-apps/api/core';
+import type { IaDoMestre } from '@quiz/jogo';
 
 /** As IAs que podem ser o Mestre (spec §7). */
-export type Ia = 'claude_code' | 'codex';
+export type Ia = IaDoMestre;
 
 export type PedidoMestre = {
   ia: Ia;
@@ -14,6 +15,8 @@ export type PedidoMestre = {
   prompt: string;
   /** O JSON Schema da saída da chamada. */
   schema: Record<string, unknown>;
+  /** Os outros repositórios de um Projeto com mais de um (entram só para leitura). */
+  raizes_extras?: string[];
 };
 
 /** Os únicos `git` permitidos; `de`/`ate` são `HEAD` ou um hash. */
@@ -70,3 +73,27 @@ export const lerArquivo = (raiz: string, caminho: string) =>
 
 /** Por enquanto sempre recusa com `nao_implementado`. */
 export const atualizar = () => invoke<null>('atualizar');
+
+// Nova Aventura (#34) ---------------------------------------------------------------------------
+
+/** O que a camada Rust sabe da CLI de uma IA (src-tauri/src/mestre.rs, `Deteccao`). */
+export type DeteccaoDoMestre =
+  | { estado: 'ausente' }
+  | { estado: 'sem_modo_restrito'; versao: string; faltando: string[] }
+  | { estado: 'pronta'; versao: string };
+
+/** O seletor de pastas do sistema; null se o Jogador cancelou. */
+export const escolherPasta = () => invoke<string | null>('escolher_pasta');
+
+export const detectarMestre = (ia: Ia) => invoke<DeteccaoDoMestre>('detectar_mestre', { ia });
+
+/** O comando exato que `rodarMestre` roda nestas pastas (o mesmo montador de argumentos). */
+export const comandoDoMestre = (ia: Ia, raiz: string, raizesExtras: string[]) =>
+  invoke<string>('comando_do_mestre', { ia, raiz, raizesExtras });
+
+/** Grava a Aventura na pasta de dados do app (nunca no Projeto). */
+export const salvarAventura = (id: string, json: string) =>
+  invoke<null>('salvar_aventura', { id, json });
+
+/** O conteúdo de cada Aventura guardada, para o Jogo conferir. */
+export const carregarAventuras = () => invoke<string[]>('carregar_aventuras');

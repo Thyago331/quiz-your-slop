@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import {
-  atualizar,
   carregarAventuras,
   comandoDoMestre,
   detectarMestre,
@@ -13,8 +12,14 @@ import {
   salvarAventura,
 } from './sistema.ts';
 import { cancelarEntrada, ehErroDeLogin, entrar, sair, sessaoAtual } from './sistema.ts';
+import { instalarAtualizacao, verificarAtualizacao } from './sistema.ts';
 
-vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => '') }));
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(async () => ''),
+  Channel: class {
+    onmessage: (m: unknown) => void = () => undefined;
+  },
+}));
 const chamada = () => vi.mocked(invoke).mock.calls.at(-1);
 
 describe('sistema', () => {
@@ -31,8 +36,8 @@ describe('sistema', () => {
     expect(chamada()).toEqual(['rodar_git', { raiz: '/p', comando: { tipo: 'rev_parse_head' } }]);
     await lerArquivo('/p', 'src/a.ts');
     expect(chamada()).toEqual(['ler_arquivo', { raiz: '/p', caminho: 'src/a.ts' }]);
-    await atualizar();
-    expect(chamada()).toEqual(['atualizar']);
+    await verificarAtualizacao();
+    expect(chamada()).toEqual(['verificar_atualizacao']);
     await escolherPasta();
     expect(chamada()).toEqual(['escolher_pasta']);
     await detectarMestre('claude_code');
@@ -49,7 +54,7 @@ describe('sistema', () => {
   });
 
   it('reconhece os erros da camada Rust', () => {
-    expect(ehErroDoSistema({ codigo: 'nao_implementado' })).toBe(true);
+    expect(ehErroDoSistema({ codigo: 'atualizacao', detalhe: 'rede' })).toBe(true);
     expect(ehErroDoSistema({ codigo: 'caminho_recusado', detalhe: '../x' })).toBe(true);
     expect(ehErroDoSistema({ codigo: 'outro' })).toBe(false);
     expect(ehErroDoSistema('falhou')).toBe(false);
@@ -73,6 +78,23 @@ describe('sistema: login', () => {
   it('reconhece os erros do login', () => {
     expect(ehErroDeLogin({ codigo: 'cancelado' })).toBe(true);
     expect(ehErroDeLogin({ codigo: 'site', detalhe: { status: 401 } })).toBe(true);
-    expect(ehErroDeLogin({ codigo: 'nao_implementado' })).toBe(false);
+    expect(ehErroDeLogin({ codigo: 'atualizacao', detalhe: 'rede' })).toBe(false);
+  });
+});
+
+describe('sistema: atualização', () => {
+  beforeEach(() => vi.mocked(invoke).mockClear());
+
+  it('instala pelo canal de progresso, sem passar URL nem arquivo', async () => {
+    const vistos: unknown[] = [];
+    await instalarAtualizacao((p) => vistos.push(p));
+    const [comando, args] = chamada() as [
+      string,
+      { aoProgredir: { onmessage: (m: unknown) => void } },
+    ];
+    expect(comando).toBe('instalar_atualizacao');
+    expect(Object.keys(args)).toEqual(['aoProgredir']);
+    args.aoProgredir.onmessage({ etapa: 'instalando' });
+    expect(vistos).toEqual([{ etapa: 'instalando' }]);
   });
 });

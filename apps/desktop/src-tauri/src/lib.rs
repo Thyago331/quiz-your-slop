@@ -1,9 +1,11 @@
 //! A camada fina em Rust do Jogo desktop (spec §11): uma lista fechada de comandos e nada mais.
 //! A interface não tem plugin de sistema de arquivos, shell, rede ou abertura de URLs; tudo o que
 //! ela pode pedir ao sistema está nos comandos abaixo, em nova_aventura.rs e nos de login
-//! (src/login), listados em capabilities/principal.json. O plugin de diálogo só é usado do Rust,
-//! pelo `escolher_pasta`; o login abre o navegador só na página do próprio site.
+//! (src/login) e da atualização (src/atualizacao.rs), listados em capabilities/principal.json. Os
+//! plugins de diálogo e de atualização só são usados do Rust (`escolher_pasta`, atualizacao.rs); o
+//! login abre o navegador só na página do próprio site.
 
+mod atualizacao;
 mod aventuras;
 mod erro;
 mod git;
@@ -45,20 +47,16 @@ async fn ler_arquivo(raiz: String, caminho: String) -> Resultado<String> {
         .await
 }
 
-/// Atualização automática pelas Releases do GitHub: chega com o ticket de distribuição.
-#[tauri::command]
-async fn atualizar() -> Resultado<()> {
-    Err(Erro::NaoImplementado)
-}
-
 pub fn rodar() {
-    tauri::Builder::default()
+    atualizacao::preparar(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             rodar_mestre,
             rodar_git,
             ler_arquivo,
-            atualizar,
+            // Atualização automática (src/atualizacao.rs)
+            atualizacao::verificar_atualizacao,
+            atualizacao::instalar_atualizacao,
             // Nova Aventura (#34)
             nova_aventura::escolher_pasta,
             nova_aventura::detectar_mestre,

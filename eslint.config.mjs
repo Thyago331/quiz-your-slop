@@ -43,7 +43,7 @@ export default tseslint.config(
   },
   {
     // Scripts de build rodam no Node.
-    files: ['packages/*/scripts/**/*.mjs'],
+    files: ['packages/*/scripts/**/*.mjs', 'apps/desktop/scripts/**/*.mjs'],
     languageOptions: { globals: { process: 'readonly', console: 'readonly' } },
   },
   {

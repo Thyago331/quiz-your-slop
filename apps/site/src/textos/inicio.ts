@@ -44,9 +44,17 @@ const pt = {
   jogarTutorial: 'Jogar o Tutorial',
   conhecerTaverna: 'Conheça a Taverna do Slop',
   avisoLogin: 'O login pede só identidade e e-mail — nenhum acesso aos seus repositórios.',
-  desktop:
-    'Jogo desktop para Windows e Linux (AppImage, .deb): em breve no GitHub Releases, com ' +
-    'checksums SHA-256 e attestations.',
+  desktop: {
+    titulo: 'Baixe o Jogo desktop',
+    texto:
+      'Grátis, para Windows e Linux, direto do GitHub Releases. Nada é assinado pelo sistema: ' +
+      'cada versão traz checksums SHA-256 e attestations para você conferir.',
+    windows: 'Windows (.exe)',
+    appimage: 'Linux (AppImage)',
+    deb: 'Linux (.deb)',
+    verificar: 'Verificar o download',
+    mais: 'Mais sobre o download',
+  },
   passosTitulo: 'Como se joga',
   passos: [
     {
@@ -88,9 +96,17 @@ export const INICIO: PorIdioma<typeof pt> = {
     jogarTutorial: 'Play the Tutorial',
     conhecerTaverna: 'Meet the Slop Tavern',
     avisoLogin: 'Sign-in asks only for identity and email — no access to your repositories.',
-    desktop:
-      'Desktop game for Windows and Linux (AppImage, .deb): coming soon on GitHub Releases, with ' +
-      'SHA-256 checksums and attestations.',
+    desktop: {
+      titulo: 'Download the desktop Game',
+      texto:
+        'Free, for Windows and Linux, straight from GitHub Releases. Nothing is signed by the ' +
+        'operating system: every version ships SHA-256 checksums and attestations for you to check.',
+      windows: 'Windows (.exe)',
+      appimage: 'Linux (AppImage)',
+      deb: 'Linux (.deb)',
+      verificar: 'Verify the download',
+      mais: 'More about the download',
+    },
     passosTitulo: 'How to play',
     passos: [
       {
@@ -130,9 +146,17 @@ export const INICIO: PorIdioma<typeof pt> = {
     conhecerTaverna: 'Conoce la Taberna del Slop',
     avisoLogin:
       'El inicio de sesión pide solo identidad y correo — ningún acceso a tus repositorios.',
-    desktop:
-      'Juego de escritorio para Windows y Linux (AppImage, .deb): pronto en GitHub Releases, con ' +
-      'checksums SHA-256 y attestations.',
+    desktop: {
+      titulo: 'Descarga el Juego de escritorio',
+      texto:
+        'Gratis, para Windows y Linux, directo de GitHub Releases. Nada está firmado por el ' +
+        'sistema: cada versión trae checksums SHA-256 y attestations para que lo compruebes.',
+      windows: 'Windows (.exe)',
+      appimage: 'Linux (AppImage)',
+      deb: 'Linux (.deb)',
+      verificar: 'Verificar la descarga',
+      mais: 'Más sobre la descarga',
+    },
     passosTitulo: 'Cómo se juega',
     passos: [
       {

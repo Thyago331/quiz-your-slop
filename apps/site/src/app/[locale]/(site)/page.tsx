@@ -1,14 +1,17 @@
 import NextLink from 'next/link';
 import { Janela, Sprite } from '@quiz/ui';
 import { auth } from '@/auth';
+import { ARTEFATOS, urlDaUltimaVersao } from '@/baixar/artefatos';
 import { caminhoDoLogin } from '@/i18n/caminhos';
 import { idiomaDaRequisicao } from '@/i18n/idioma';
 import { Link } from '@/i18n/navigation';
 import { JsonLd } from '@/seo/JsonLd';
 import { softwareApplication } from '@/seo/jsonld';
 import { metadadosDaPagina } from '@/seo/metadados';
+import { PAGINA as BAIXAR } from '@/textos/baixar';
 import { INICIO, PAGINA } from '@/textos/inicio';
 import { PAGINA as TAVERNA } from '@/textos/taverna';
+import { PAGINA as VERIFICAR } from '@/textos/verificar';
 import { MapaDaVitrine } from '@/vitrine/MapaDaVitrine';
 import estilo from './Site.module.css';
 
@@ -56,7 +59,6 @@ export default async function Inicio() {
             </ul>
             <div className={`${estilo.apagado} ${estilo.pequeno}`}>{t.avisoLogin}</div>
           </Janela>
-          <p className={estilo.apagado}>{t.desktop}</p>
           <p>
             {t.semIa} <Link href="/lista-de-espera">▶ {t.semIaLink}</Link>
           </p>
@@ -76,6 +78,30 @@ export default async function Inicio() {
           </Janela>
         ))}
       </section>
+
+      <h2 className={`px ${estilo.tituloDownload}`} id="baixar">
+        {t.desktop.titulo}
+      </h2>
+      <Janela className={estilo.download}>
+        <p>{t.desktop.texto}</p>
+        <ul className={estilo.menu}>
+          {ARTEFATOS.map(({ id, arquivo }, i) => (
+            <li key={id}>
+              <a
+                href={urlDaUltimaVersao(arquivo)}
+                className={i === 0 ? estilo.atual : undefined}
+                download
+              >
+                {t.desktop[id]}
+              </a>
+            </li>
+          ))}
+        </ul>
+        <p className={estilo.pequeno}>
+          <Link href={VERIFICAR.caminho}>▶ {t.desktop.verificar}</Link>{' '}
+          <Link href={BAIXAR.caminho}>▶ {t.desktop.mais}</Link>
+        </p>
+      </Janela>
     </>
   );
 }

@@ -196,3 +196,42 @@
 .conta-espera {
   max-width: 640px;
 }
+
+/* O aviso de versão nova no hub (Atualizacao.tsx). */
+.atualizacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  background: #2a1f10;
+  box-shadow: 0 0 0 3px var(--px-ouro-sombra);
+}
+.atualizacao-nova {
+  color: var(--px-ouro);
+}
+.atualizacao-botao {
+  font-family: var(--px-fonte-titulo);
+  font-size: 10px;
+  padding: 6px 10px;
+  border: 0;
+  background: var(--px-ouro);
+  color: var(--px-fundo);
+  box-shadow: 0 3px 0 var(--px-ouro-sombra);
+  cursor: pointer;
+}
+.atualizacao-botao:hover,
+.atualizacao-botao:focus-visible {
+  outline: 3px solid var(--px-texto);
+  outline-offset: 2px;
+}
+.atualizacao .texto-erro {
+  flex-basis: 100%;
+  margin: 0;
+}
+.atualizacao-falha {
+  margin: 8px 0 0;
+  font-size: 0.9em;
+  color: var(--px-apagado);
+}

@@ -30,6 +30,7 @@ export function softwareApplication(
     applicationCategory: 'GameApplication',
     applicationSubCategory: 'Educational game',
     operatingSystem: 'Windows, Linux',
+    downloadUrl: urlNoIdioma(idioma, '/baixar', env),
     inLanguage: ETIQUETA[idioma],
     isAccessibleForFree: true,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'BRL' },

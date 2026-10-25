@@ -29,6 +29,9 @@ open = "5.4.5"
 getrandom = "0.3.4"
 sha2 = "0.10"
 base64 = "0.22"
+# Atualização automática (src/atualizacao.rs): como o diálogo, só chamado do Rust; a janela não
+# recebe nenhuma permissão updater:*. O reinício é o AppHandle::restart do próprio Tauri.
+tauri-plugin-updater = "2.14.0"
 
 [profile.release]
 codegen-units = 1

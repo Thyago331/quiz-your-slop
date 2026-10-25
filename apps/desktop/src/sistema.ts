@@ -1,7 +1,7 @@
 // A ponte com a camada Rust (src-tauri): o único lugar do Jogo que chama `invoke`. Cada função é um
 // dos comandos da lista fechada; os tipos espelham os do Rust (serde) e qualquer outro formato é
 // recusado lá.
-import { invoke } from '@tauri-apps/api/core';
+import { Channel, invoke } from '@tauri-apps/api/core';
 import type { IaDoMestre } from '@quiz/jogo';
 import type { Idioma } from '@quiz/i18n';
 
@@ -29,7 +29,7 @@ export type ComandoGit =
 
 /** O que a camada Rust devolve ao recusar ou falhar (src-tauri/src/erro.rs). */
 export type ErroDoSistema =
-  | { codigo: 'nao_implementado' }
+  | { codigo: 'atualizacao'; detalhe: string }
   | { codigo: 'raiz_invalida'; detalhe: string }
   | { codigo: 'caminho_recusado'; detalhe: string }
   | { codigo: 'argumento_recusado'; detalhe: string }
@@ -41,7 +41,7 @@ export type ErroDoSistema =
   | { codigo: 'io'; detalhe: string };
 
 const CODIGOS: readonly ErroDoSistema['codigo'][] = [
-  'nao_implementado',
+  'atualizacao',
   'raiz_invalida',
   'caminho_recusado',
   'argumento_recusado',
@@ -72,8 +72,28 @@ export const rodarGit = (raiz: string, comando: ComandoGit) =>
 export const lerArquivo = (raiz: string, caminho: string) =>
   invoke<string>('ler_arquivo', { raiz, caminho });
 
-/** Por enquanto sempre recusa com `nao_implementado`. */
-export const atualizar = () => invoke<null>('atualizar');
+// Atualização automática (src-tauri/src/atualizacao.rs) -------------------------------------------
+
+/** O `latest.json` da última Release tem versão mais nova que esta? */
+export type Verificacao =
+  | { disponivel: false; versao: null; notas: null }
+  | { disponivel: true; versao: string; notas: string | null };
+
+/** `porcentagem` é null quando o tamanho do download não é conhecido. */
+export type ProgressoDaAtualizacao =
+  { etapa: 'baixando'; porcentagem: number | null } | { etapa: 'instalando' };
+
+export const verificarAtualizacao = () => invoke<Verificacao>('verificar_atualizacao');
+
+/**
+ * Baixa a versão achada pela última verificação, confere a assinatura com a chave do projeto,
+ * instala e reinicia o Jogo (a promessa só volta se falhar).
+ */
+export function instalarAtualizacao(aoProgredir: (p: ProgressoDaAtualizacao) => void) {
+  const canal = new Channel<ProgressoDaAtualizacao>();
+  canal.onmessage = aoProgredir;
+  return invoke<null>('instalar_atualizacao', { aoProgredir: canal });
+}
 
 // Nova Aventura (#34) ---------------------------------------------------------------------------
 

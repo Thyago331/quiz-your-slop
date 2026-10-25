@@ -9,6 +9,7 @@ import {
 } from '@quiz/jogo';
 import { AUTONIMO, ETIQUETA, formatar, MENSAGENS } from '@quiz/i18n';
 import { IdiomaDaInterface, TelaInicial } from '@quiz/ui';
+import { AvisoDeAtualizacao, useAtualizacao } from './Atualizacao.tsx';
 import { detectarNoProjeto } from './desatualizacao.ts';
 import { ITEM_DA_CONTA, ResumoDaConta, TelaDeEntrada, itemDaConta, useConta } from './Conta.tsx';
 import { idiomaSalvo, salvarIdioma } from './idioma.ts';
@@ -45,6 +46,7 @@ export function Jogo() {
   const [ultima, setUltima] = useState<string | undefined>();
   const voltar = useCallback(() => setTela('inicio'), []);
   const conta = useConta(idioma);
+  const atualizacao = useAtualizacao();
   // A Expedição em curso (região) e a última, onde o cursor volta no mapa.
   const [expedicao, setExpedicao] = useState<string | null>(null);
   const [ultimaRegiao, setUltimaRegiao] = useState<string | undefined>();
@@ -187,6 +189,7 @@ export function Jogo() {
         }}
       >
         <ResumoDaConta {...conta} />
+        <AvisoDeAtualizacao {...atualizacao} />
       </TelaInicial>
     );
   } else if (tela === 'idioma') {

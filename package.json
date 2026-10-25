@@ -1,0 +1,27 @@
+{
+  "name": "quiz-your-slop",
+  "private": true,
+  "description": "Um game show/RPG em que o Jogador aprende como o próprio projeto funciona, com a IA dele como Mestre.",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @quiz/site dev",
+    "dev:desktop": "pnpm --filter @quiz/desktop dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint packages apps/desktop && pnpm --filter @quiz/site lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "prettier": "^3.6.0",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.46.0"
+  }
+}

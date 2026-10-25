@@ -1,0 +1,8 @@
+node_modules
+.next
+dist
+pnpm-lock.yaml
+docs
+CONTEXT.md
+CLAUDE.md
+apps/desktop/src-tauri/target

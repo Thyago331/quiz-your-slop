@@ -1,0 +1,19 @@
+{
+  "name": "@quiz/jogo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Regras do Jogo: estados de região, Expedição, correção de Desafios, XP e validação do contrato com o Mestre. Puro: sem DOM, sem framework.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.0"
+  }
+}

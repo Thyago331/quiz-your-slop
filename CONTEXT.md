@@ -25,7 +25,7 @@ Uma sessão curta dentro de uma Aventura, focada numa região do mapa, composta 
 _Avoid_: Sessão, rodada, missão, nível
 
 **Progresso da Aventura**:
-A fração das regiões do mapa de uma Aventura que já foram reveladas.
+A fração das regiões já conhecidas (fora da Névoa) de uma Aventura que estão reveladas; pode cair quando novas regiões são descobertas ou ficam desatualizadas.
 _Avoid_: Conclusão, porcentagem
 
 **XP**:
@@ -34,11 +34,31 @@ _Avoid_: Pontos, score, moeda
 
 **Título**:
 O nome cosmético do nível de XP do Jogador: Comitador Cego → Leitor de Diff → Arqueólogo de Código → Unslopper.
-_Avoid_: Rank, patente, classe
+_Avoid_: Rank, patente
 
 **Névoa**:
 O que cobre as regiões do mapa ainda não desbloqueadas; no início da Aventura, só a região de entrada está fora dela.
 _Avoid_: Fog, oculto, bloqueado
+
+**Classe**:
+O papel que o Jogador escolhe para uma Aventura — Backend, Frontend ou Fullstack; define a região de entrada e o foco dos Desafios.
+_Avoid_: Perfil, papel, role
+
+**Projeto**:
+O conjunto de um ou mais repositórios do Jogador sobre o qual uma Aventura acontece, tratado como um sistema único.
+_Avoid_: Repo, codebase, workspace
+
+**Território**:
+Agrupamento visual das Regiões de uma mesma aplicação ou serviço do Projeto (um repositório, ou uma app dentro de um monorepo). Não tem estado nem Expedição própria.
+_Avoid_: Reino, continente, app, serviço
+
+**Região**:
+Uma responsabilidade funcional do projeto do Jogador (ex.: Autenticação, API de pedidos, Esquema do banco), definida pelo Mestre e associada aos arquivos que a compõem, independentemente das pastas.
+_Avoid_: Módulo, pasta, pacote, área, zona
+
+**Ligação**:
+Uma comunicação concreta entre duas Regiões — Chamada (HTTP/gRPC/GraphQL), Consulta (banco), Evento (fila/tópico) ou Dependência direta (import). Duas Regiões são vizinhas se e somente se existe uma Ligação entre elas.
+_Avoid_: Conexão, aresta, estrada, relação
 
 **Região desbloqueada**:
 Uma região fora da Névoa, visível e disponível para Expedições, mas ainda não conquistada.

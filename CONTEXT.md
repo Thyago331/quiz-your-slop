@@ -36,6 +36,10 @@ _Avoid_: Pontos, score, moeda
 O nome cosmético do nível de XP do Jogador: Comitador Cego → Leitor de Diff → Arqueólogo de Código → Unslopper.
 _Avoid_: Rank, patente
 
+**Guardião**:
+O adversário de uma Expedição, que representa a região sendo conquistada; cada acerto tira uma de suas 4 vidas, e derrotá-lo revela a região. Errar não custa nada ao Jogador.
+_Avoid_: Chefe, boss, monstro, inimigo
+
 **Névoa**:
 O que cobre as regiões do mapa ainda não desbloqueadas; no início da Aventura, só a região de entrada está fora dela.
 _Avoid_: Fog, oculto, bloqueado

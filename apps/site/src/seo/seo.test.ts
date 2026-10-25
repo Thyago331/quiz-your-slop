@@ -105,7 +105,7 @@ describe('rastreio', () => {
     expect(regras[0]).toEqual({
       userAgent: '*',
       allow: '/',
-      disallow: ['/api/', '/entrar', '/tutorial'],
+      disallow: ['/api/', '/entrar', '/tutorial', '/lista-de-espera'],
     });
     expect(regras[1]?.userAgent).toContain('ClaudeBot');
   });

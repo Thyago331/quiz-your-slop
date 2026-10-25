@@ -49,9 +49,10 @@ export const PERGUNTAS: readonly Pergunta[] = [
     id: 'sem-ia',
     pergunta: 'Não tenho Claude Code nem Codex. E agora?',
     resposta:
-      'Você pode jogar o Tutorial da Taverna do Slop, que não precisa de IA. Adaptadores para ' +
-      'Gemini CLI, Cursor e Copilot ficam para depois do MVP.',
-    link: { href: '/taverna-do-slop', rotulo: 'Conheça a Taverna do Slop' },
+      'Você pode jogar o Tutorial da Taverna do Slop, que não precisa de IA, e entrar na lista de ' +
+      'espera dizendo qual IA usa (Gemini CLI, Cursor, Copilot ou outra). A lista orienta qual ' +
+      'adaptador vem a seguir.',
+    link: { href: '/lista-de-espera', rotulo: 'Lista de espera por IA' },
   },
   {
     id: 'editar',

@@ -63,6 +63,8 @@ export const SECOES: readonly Secao[] = [
       'Para jogar, inclusive o Tutorial, é preciso uma conta. O login é só com GitHub, com o escopo ' +
         'mínimo (read:user user:email): nome, avatar e e-mail. Nenhum acesso aos seus repositórios.',
       'A sessão fica num cookie cifrado, usado só para saber quem está jogando.',
+      'Se você entrar na lista de espera por IA, guardamos também a IA que escolheu (e o nome ' +
+        'que escreveu, se for "outra"), ligada à sua conta.',
     ],
   },
   {

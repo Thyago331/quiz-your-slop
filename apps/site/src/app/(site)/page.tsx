@@ -52,6 +52,9 @@ export default async function Inicio() {
             <div className={`${estilo.apagado} ${estilo.pequeno}`}>{INICIO.avisoLogin}</div>
           </Janela>
           <p className={estilo.apagado}>{INICIO.desktop}</p>
+          <p>
+            {INICIO.semIa} <Link href="/lista-de-espera">▶ {INICIO.semIaLink}</Link>
+          </p>
         </div>
         <Janela className={estilo.mapa}>
           <MapaDaVitrine rotulo={TAVERNA.titulo} />

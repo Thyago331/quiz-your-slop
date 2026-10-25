@@ -25,7 +25,7 @@ describe.skipIf(!url)('Jogador no Postgres', () => {
   });
 
   it('migra uma vez só', async () => {
-    expect(await migrar(sql)).toEqual(['0001-jogador']);
+    expect(await migrar(sql)).toEqual(['0001-jogador', '0002-lista-de-espera']);
     expect(await migrar(sql)).toEqual([]);
   });
 

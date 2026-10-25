@@ -15,4 +15,4 @@ export const PAGINAS_PUBLICAS: readonly DadosDaPagina[] = [
 ];
 
 /** Caminhos que não interessam a buscadores: login, áreas com conta e rotas da API. */
-export const CAMINHOS_FECHADOS = ['/api/', '/entrar', '/tutorial'] as const;
+export const CAMINHOS_FECHADOS = ['/api/', '/entrar', '/tutorial', '/lista-de-espera'] as const;

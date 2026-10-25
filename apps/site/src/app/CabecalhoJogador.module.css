@@ -1,0 +1,15 @@
+.cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 8px 16px;
+}
+
+.cabecalho img {
+  image-rendering: pixelated;
+}
+
+.cabecalho form {
+  margin: 0;
+}

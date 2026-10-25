@@ -62,4 +62,17 @@ describe('MapaMundi', () => {
     expect(screen.getByRole('button', { name: 'Beta, desbloqueada' }).tabIndex).toBe(0);
     expect(screen.getByRole('button', { name: 'Alfa, revelada' }).tabIndex).toBe(-1);
   });
+
+  it('clicar ou Enter ativa a região (para partir em Expedição); as setas só selecionam', async () => {
+    const user = userEvent.setup();
+    const onAtivar = vi.fn();
+    montar({ onAtivar });
+    await user.click(screen.getByRole('button', { name: 'Beta, desbloqueada' }));
+    expect(onAtivar).toHaveBeenLastCalledWith('b');
+    screen.getByRole('button', { name: 'Alfa, revelada' }).focus();
+    await user.keyboard('{ArrowDown}');
+    expect(onAtivar).toHaveBeenCalledTimes(1);
+    await user.keyboard('{Enter}');
+    expect(onAtivar).toHaveBeenLastCalledWith('c');
+  });
 });

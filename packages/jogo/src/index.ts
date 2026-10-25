@@ -31,4 +31,31 @@ export {
   type MapaAventura,
   type ProgressoAventura,
 } from './mapa.ts';
-export { iniciarAventura, type Aventura } from './aventura.ts';
+export { concluirExpedicao, iniciarAventura, type Aventura } from './aventura.ts';
+export { corrigir, type Resposta } from './correcao.ts';
+export {
+  VIDAS_DO_GUARDIAO,
+  acertosDa,
+  avancar,
+  chaveDoDesafio,
+  desafioAtual,
+  desafiosJogados,
+  escolherDesafios,
+  guardiaoDerrotado,
+  iniciarExpedicao,
+  responderDesafio,
+  resultadoDaExpedicao,
+  vidasDoGuardiao,
+  type Aleatorio,
+  type Expedicao,
+  type FaseExpedicao,
+  type RespostaDada,
+  type ResultadoExpedicao,
+} from './expedicao.ts';
+export {
+  CALIBRAGEM_PADRAO,
+  tituloDoXp,
+  type Calibragem,
+  type Titulo,
+  type TituloDoXp,
+} from './progressao.ts';

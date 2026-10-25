@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
-import { iniciarAventura, progresso, revelar, type Aventura, type EstruturaMapa } from '@quiz/jogo';
+import { useReducer, useState } from 'react';
+import { progresso, resultadoDaExpedicao, tituloDoXp, type Aventura } from '@quiz/jogo';
 import { ENTRADAS, LIGACOES, REGIOES, TERRITORIOS } from '@quiz/taverna';
 import {
   Barra,
+  Batalha,
   CLASSES,
   EscolhaDeClasse,
   Janela,
@@ -12,21 +13,23 @@ import {
   Menu,
   ROTULO_ESTADO,
   ROTULO_LIGACAO,
+  ResumoExpedicao,
+  type ItemMenu,
   type IlhaNoMapa,
   type LigacaoNoMapa,
   type RegiaoNoMapa,
 } from '@quiz/ui';
 import { COLUNAS, CONSTRUCOES, ILHAS, LINHAS } from './disposicao';
+import {
+  ESTADO_INICIAL,
+  desafiosParaPartir,
+  podePartir,
+  temDesafios,
+  tutorial,
+  type AcaoTutorial,
+  type EstadoTutorial,
+} from './estado';
 import estilos from './Tutorial.module.css';
-
-const ESTRUTURA: EstruturaMapa = {
-  regioes: REGIOES.map((r) => r.id),
-  ligacoes: LIGACOES.map((l) => ({
-    id: l.id,
-    origem: l.origem.regiao_id,
-    destino: l.destino.regiao_id,
-  })),
-};
 
 const ilhas: IlhaNoMapa[] = TERRITORIOS.flatMap((t) => {
   const ilha = ILHAS[t.id];
@@ -42,52 +45,119 @@ const CLASSES_DO_TUTORIAL = CLASSES.map((c) => ({
 }));
 
 export function Tutorial() {
-  const [aventura, setAventura] = useState<Aventura | null>(null);
+  const [estado, despachar] = useReducer(tutorial, ESTADO_INICIAL);
+  const [selecionada, setSelecionada] = useState<string | null>(null);
+  const { aventura, expedicao } = estado;
+  const classe = CLASSES.find((c) => c.id === aventura?.classe);
 
+  let tela;
   if (!aventura) {
-    return (
-      <main className={estilos.tela}>
-        <Janela className={estilos.hud}>
-          <div>
-            <span className="px">TUTORIAL</span>
-            <br />
-            TAVERNA DO SLOP
-          </div>
-          <div className={estilos.apagado}>Um Projeto feito sob medida para você aprender.</div>
-        </Janela>
-        <EscolhaDeClasse
-          classes={CLASSES_DO_TUTORIAL}
-          onEscolher={(classe) => setAventura(iniciarAventura(ESTRUTURA, classe, ENTRADAS))}
-        />
-      </main>
+    tela = (
+      <EscolhaDeClasse
+        classes={CLASSES_DO_TUTORIAL}
+        onEscolher={(escolhida) => {
+          setSelecionada(ENTRADAS[escolhida]);
+          despachar({ tipo: 'escolherClasse', classe: escolhida });
+        }}
+      />
+    );
+  } else if (expedicao && expedicao.fase !== 'encerrada') {
+    tela = (
+      <Batalha
+        expedicao={expedicao}
+        nomeRegiao={nomeDaRegiao(expedicao.regiaoId)}
+        heroi={classe?.sprite ?? 'heroi'}
+        onResponder={(resposta) => despachar({ tipo: 'responder', resposta })}
+        onAvancar={() => despachar({ tipo: 'avancar' })}
+      />
+    );
+  } else if (expedicao) {
+    const resultado = resultadoDaExpedicao(expedicao);
+    const antes = tituloDoXp(estado.xp - resultado.xp).atual.nome;
+    const agora = tituloDoXp(estado.xp).atual.nome;
+    tela = (
+      <ResumoExpedicao
+        resultado={resultado}
+        nomeRegiao={nomeDaRegiao(expedicao.regiaoId)}
+        descobertas={estado.descobertas.map(nomeDaRegiao)}
+        novoTitulo={agora !== antes ? agora : undefined}
+        onVoltar={() => despachar({ tipo: 'voltarAoMapa' })}
+      />
+    );
+  } else {
+    tela = (
+      <TelaDoMapa
+        estado={estado}
+        aventura={aventura}
+        selecionada={selecionada ?? ENTRADAS[aventura.classe]}
+        onSelecionar={setSelecionada}
+        despachar={despachar}
+      />
     );
   }
+
   return (
-    <MapaDoTutorial
-      key={aventura.classe}
-      aventura={aventura}
-      onRecomecar={() => setAventura(null)}
-    />
+    <main className={estilos.tela}>
+      <Hud estado={estado} nomeClasse={classe?.nome} />
+      {tela}
+    </main>
   );
 }
 
-function MapaDoTutorial({
-  aventura: inicio,
-  onRecomecar,
-}: {
+function Hud({ estado, nomeClasse }: { estado: EstadoTutorial; nomeClasse?: string }) {
+  const { xp, aventura } = estado;
+  const { atual, proximo } = tituloDoXp(xp);
+  const passo = proximo ? (xp - atual.xpMinimo) / (proximo.xpMinimo - atual.xpMinimo) : 1;
+  const mapa = aventura && progresso(aventura.mapa);
+  const porcento =
+    mapa && mapa.conhecidas > 0 ? Math.round((100 * mapa.reveladas) / mapa.conhecidas) : 0;
+  return (
+    <Janela className={estilos.hud}>
+      <div>
+        <span className="px">TUTORIAL</span>
+        <br />
+        TAVERNA DO SLOP{nomeClasse && ` · ${nomeClasse.toUpperCase()}`}
+      </div>
+      <div>
+        <span className={`px ${estilos.titulo}`}>{atual.nome}</span>
+        <br />
+        XP {xp}{' '}
+        <Barra valor={Math.round(passo * 10)} maximo={10} rotulo="XP até o próximo Título" />{' '}
+        {proximo && <span className={estilos.apagado}>→ {proximo.nome}</span>}
+      </div>
+      {mapa && (
+        <div>
+          PROGRESSO DA AVENTURA{' '}
+          <Barra valor={Math.round(porcento / 10)} maximo={10} rotulo="Progresso da Aventura" />{' '}
+          {porcento}%
+          <br />
+          <span className={estilos.apagado}>
+            {mapa.reveladas} de {mapa.conhecidas} regiões conhecidas reveladas
+          </span>
+        </div>
+      )}
+    </Janela>
+  );
+}
+
+type TelaDoMapaProps = {
+  estado: EstadoTutorial;
   aventura: Aventura;
-  onRecomecar: () => void;
-}) {
-  const entrada = ENTRADAS[inicio.classe];
-  const classe = CLASSES.find((c) => c.id === inicio.classe);
-  const [mapa, setMapa] = useState(inicio.mapa);
-  const [selecionada, setSelecionada] = useState<string>(entrada);
-  const [descobertas, setDescobertas] = useState<string[]>([]);
+  selecionada: string;
+  onSelecionar: (regiaoId: string) => void;
+  despachar: (acao: AcaoTutorial) => void;
+};
+
+function TelaDoMapa({ estado, aventura, selecionada, onSelecionar, despachar }: TelaDoMapaProps) {
+  const { mapa } = aventura;
+  const classe = CLASSES.find((c) => c.id === aventura.classe);
 
   const regioes: RegiaoNoMapa[] = REGIOES.flatMap((r) => {
     const construcao = CONSTRUCOES[r.id];
-    const estado = mapa.estados[r.id];
-    return construcao && estado ? [{ id: r.id, nome: r.nome, estado, ...construcao }] : [];
+    const estadoRegiao = mapa.estados[r.id];
+    return construcao && estadoRegiao
+      ? [{ id: r.id, nome: r.nome, estado: estadoRegiao, ...construcao }]
+      : [];
   });
   const ligacoes: LigacaoNoMapa[] = LIGACOES.filter((l) =>
     mapa.ligacoesConhecidas.includes(l.id),
@@ -99,48 +169,34 @@ function MapaDoTutorial({
     descricao: l.descricao,
   }));
 
-  const { reveladas, conhecidas } = progresso(mapa);
-  const porcento = conhecidas === 0 ? 0 : Math.round((100 * reveladas) / conhecidas);
   const regiao = REGIOES.find((r) => r.id === selecionada);
-  const estado = mapa.estados[selecionada] ?? 'nevoa';
+  const estadoRegiao = mapa.estados[selecionada] ?? 'nevoa';
   const territorio = TERRITORIOS.find((t) => t.id === regiao?.territorio_id);
   const ligacoesDaRegiao = ligacoes.filter(
     (l) => l.origem === selecionada || l.destino === selecionada,
   );
+  const conquistavel = estadoRegiao === 'desbloqueada' || estadoRegiao === 'desatualizada';
+  const comDesafios = temDesafios(selecionada);
+
+  function partir(regiaoId: string) {
+    if (!podePartir(estado, regiaoId)) return;
+    despachar({ tipo: 'partir', regiaoId, desafios: desafiosParaPartir(estado, regiaoId) });
+  }
+
+  const acoes: ItemMenu[] = [];
+  if (conquistavel && comDesafios) acoes.push({ id: 'partir', rotulo: '⚔ Partir em Expedição' });
+  // Até o banco de Desafios cobrir o mapa, as outras regiões seguem jogáveis assim.
+  if (conquistavel && !comDesafios) acoes.push({ id: 'revelar', rotulo: '⚠ Revelar (teste)' });
+  acoes.push({ id: 'recomecar', rotulo: '↺ Recomeçar o Tutorial' });
 
   function escolher(acao: string) {
-    if (acao === 'revelar') {
-      const depois = revelar(mapa, selecionada);
-      setDescobertas(
-        Object.keys(depois.estados).filter(
-          (id) => mapa.estados[id] === 'nevoa' && depois.estados[id] !== 'nevoa',
-        ),
-      );
-      setMapa(depois);
-    } else if (acao === 'recomecar') {
-      onRecomecar();
-    }
+    if (acao === 'partir') partir(selecionada);
+    else if (acao === 'revelar') despachar({ tipo: 'revelarTeste', regiaoId: selecionada });
+    else if (acao === 'recomecar') despachar({ tipo: 'recomecar' });
   }
 
   return (
-    <main className={estilos.tela}>
-      <Janela className={estilos.hud}>
-        <div>
-          <span className="px">TUTORIAL</span>
-          <br />
-          TAVERNA DO SLOP · {classe?.nome.toUpperCase()}
-        </div>
-        <div>
-          PROGRESSO DA AVENTURA{' '}
-          <Barra valor={Math.round(porcento / 10)} maximo={10} rotulo="Progresso da Aventura" />{' '}
-          {porcento}%
-          <br />
-          <span className={estilos.apagado}>
-            {reveladas} de {conhecidas} regiões conhecidas reveladas
-          </span>
-        </div>
-      </Janela>
-
+    <>
       <div className={estilos.mapa}>
         <MapaMundi
           colunas={COLUNAS}
@@ -149,7 +205,8 @@ function MapaDoTutorial({
           regioes={regioes}
           ligacoes={ligacoes}
           selecionada={selecionada}
-          onSelecionar={setSelecionada}
+          onSelecionar={onSelecionar}
+          onAtivar={partir}
           heroi={selecionada}
           spriteHeroi={classe?.sprite}
           rotulo="Mapa-mundi da Taverna do Slop"
@@ -159,7 +216,7 @@ function MapaDoTutorial({
       <div className={estilos.paineis}>
         <Janela titulo={regiao?.nome.toUpperCase()}>
           <div className={estilos.apagado}>
-            {territorio?.nome} · {ROTULO_ESTADO[estado]}
+            {territorio?.nome} · {ROTULO_ESTADO[estadoRegiao]}
           </div>
           <p className={estilos.texto}>{regiao?.resumo}</p>
           {ligacoesDaRegiao.length > 0 && (
@@ -172,37 +229,34 @@ function MapaDoTutorial({
               ))}
             </ul>
           )}
-          {descobertas.length > 0 && (
+          {estado.descobertas.length > 0 && (
             <p className={estilos.texto} role="status">
               A Névoa recua! Descobertas:{' '}
-              <span className={estilos.ouro}>{descobertas.map(nomeDaRegiao).join(', ')}</span>
+              <span className={estilos.ouro}>
+                {estado.descobertas.map(nomeDaRegiao).join(', ')}
+              </span>
             </p>
           )}
         </Janela>
 
         <Janela>
-          <Menu
-            rotulo="Ações"
-            itens={[
-              {
-                id: 'revelar',
-                rotulo: '⚠ Revelar (teste)',
-                desabilitado: estado !== 'desbloqueada' && estado !== 'desatualizada',
-              },
-              { id: 'recomecar', rotulo: '↺ Recomeçar o Tutorial' },
-            ]}
-            onEscolher={escolher}
-          />
-          <p className={estilos.aviso}>
-            Ação temporária: no Jogo, a região é revelada vencendo uma Expedição contra o Guardião.
-          </p>
+          <Menu rotulo="Ações" itens={acoes} onEscolher={escolher} />
+          {conquistavel && !comDesafios && (
+            <p className={estilos.aviso}>
+              Esta região ainda não tem Desafios: a revelação de teste fica até eles chegarem.
+            </p>
+          )}
+          {estadoRegiao === 'revelada' && (
+            <p className={estilos.ouro}>★ Região revelada: o Guardião já foi derrotado.</p>
+          )}
         </Janela>
       </div>
 
       <Janela>
-        ▶ Setas andam pelo mapa · Tab chega ao menu · Enter escolhe.
+        ▶ Setas andam pelo mapa · Enter ou clique numa região desbloqueada parte em Expedição · Tab
+        chega ao menu.
         <LegendaMapa />
       </Janela>
-    </main>
+    </>
   );
 }

@@ -8,3 +8,4 @@ export {
   type RegiaoTaverna,
   type TerritorioTaverna,
 } from './mapa.ts';
+export { DESAFIOS, type DesafioTaverna } from './desafios.ts';

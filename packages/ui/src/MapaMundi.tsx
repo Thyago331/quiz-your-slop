@@ -65,6 +65,8 @@ export type MapaMundiProps = {
   ligacoes: readonly LigacaoNoMapa[];
   selecionada: string | null;
   onSelecionar: (regiaoId: string) => void;
+  /** Clique ou Enter numa região (as setas só selecionam): é por aqui que se parte em Expedição. */
+  onAtivar?: (regiaoId: string) => void;
   /** Região onde o herói está. */
   heroi?: string;
   /** O sprite do herói (o da Classe, por exemplo). */
@@ -193,6 +195,7 @@ export function MapaMundi({
   ligacoes,
   selecionada,
   onSelecionar,
+  onAtivar,
   heroi,
   spriteHeroi = 'heroi',
   rotulo = 'Mapa-mundi',
@@ -383,7 +386,10 @@ export function MapaMundi({
           aria-label={`${r.nome}, ${ROTULO_ESTADO[r.estado]}`}
           aria-pressed={r.id === selecionada}
           tabIndex={r.id === comFoco?.id ? 0 : -1}
-          onClick={() => onSelecionar(r.id)}
+          onClick={() => {
+            onSelecionar(r.id);
+            onAtivar?.(r.id);
+          }}
           onKeyDown={(e) => aoTeclar(e, r)}
         />
       ))}

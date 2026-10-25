@@ -343,6 +343,132 @@
   color: var(--px-desatualizada);
 }
 
+/* Utilitários de cor do texto */
+.texto-apagado {
+  color: var(--px-apagado);
+}
+.texto-ouro {
+  color: var(--px-ouro);
+}
+.texto-ok {
+  color: var(--px-ok);
+}
+.texto-erro {
+  color: var(--px-erro);
+}
+
+/* Batalha contra o Guardião */
+.batalha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+}
+.arena {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 12px 10px;
+  margin: 8px;
+  background: repeating-linear-gradient(0deg, #1b2a1f 0 24px, #1f3123 24px 48px);
+  box-shadow: 0 0 0 4px var(--px-fundo);
+}
+.arena-titulo {
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.arena-luta {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: clamp(24px, 12vw, 160px);
+  margin-bottom: 8px;
+}
+.guardiao {
+  display: inline-block;
+  animation: px-flutuar 1.2s steps(2) infinite;
+}
+.guardiao--golpe {
+  animation: px-golpe 0.4s steps(4) 2;
+}
+.desafio-enunciado {
+  margin: 6px 0 10px;
+}
+.opcoes-corrigidas {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0 6px;
+}
+.opcao--certa {
+  color: var(--px-ok);
+}
+.opcao--errada {
+  color: var(--px-erro);
+  text-decoration: line-through;
+}
+
+/* Evidência em pergaminho: código em monoespaçada normal (spec §13) */
+.evidencia {
+  margin: 10px 0;
+}
+.evidencia figcaption {
+  color: var(--px-apagado);
+}
+.codigo {
+  background: var(--px-codigo-fundo);
+  color: #c9f7c9;
+  font: 15px/1.5 var(--px-fonte-codigo);
+  padding: 10px;
+  margin: 6px 3px;
+  overflow-x: auto;
+  box-shadow: 0 0 0 3px var(--px-janela-borda);
+}
+.codigo-linha {
+  display: block;
+  white-space: pre;
+}
+.codigo-numero {
+  display: inline-block;
+  min-width: 3ch;
+  margin-right: 1.5ch;
+  text-align: right;
+  color: var(--px-apagado);
+  user-select: none;
+}
+
+/* Resumo da Expedição */
+.resumo {
+  max-width: 820px;
+  margin: 18px auto;
+}
+.grande {
+  font-family: var(--px-fonte-titulo);
+  font-size: 28px;
+  line-height: 1.4;
+  color: var(--px-ouro);
+  text-align: center;
+  margin: 8px 0 16px;
+  text-shadow: 4px 4px 0 var(--px-ouro-sombra);
+}
+
+@keyframes px-flutuar {
+  50% {
+    transform: translateY(-6px);
+  }
+}
+@keyframes px-golpe {
+  0%,
+  100% {
+    transform: none;
+    filter: none;
+  }
+  25% {
+    transform: translateX(-8px);
+    filter: brightness(3);
+  }
+  75% {
+    transform: translateX(8px);
+  }
+}
 @keyframes px-piscar {
   50% {
     opacity: 0;
@@ -350,7 +476,9 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .menu-item[data-cursor='true']::before,
-  .mapa .mapa-cursor {
+  .mapa .mapa-cursor,
+  .guardiao,
+  .guardiao--golpe {
     animation: none;
   }
 }

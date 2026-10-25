@@ -63,3 +63,8 @@
 .dependencia {
   color: var(--px-dependencia);
 }
+
+.titulo {
+  font-size: 12px;
+  color: var(--px-ouro);
+}

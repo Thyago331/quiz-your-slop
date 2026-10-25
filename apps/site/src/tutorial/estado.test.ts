@@ -92,6 +92,97 @@ describe('estado do Tutorial', () => {
     expect(nova.filter((id) => !vistos.has(id ?? '')).length).toBeGreaterThanOrEqual(4);
   });
 
+  describe('Contestação roteirizada no Cofre do Anão', () => {
+    // Backend vence a API de Pedidos e desbloqueia o Cofre.
+    const comCofre = rodar([{ tipo: 'voltarAoMapa' }], batalhar(backend, [true, true, true, true]));
+    const partirNoCofre = (aleatorio = primeiro) => {
+      const desafios = desafiosParaPartir(comCofre, 'cofre-anao', aleatorio);
+      return {
+        desafios,
+        estado: tutorial(comCofre, { tipo: 'partir', regiaoId: 'cofre-anao', desafios }),
+      };
+    };
+    /** Joga até a isca, acertando o resto, e responde a isca com a resposta de verdade. */
+    function ateAIsca() {
+      const { desafios, estado } = partirNoCofre();
+      const k = desafios.findIndex((d) => d.isca);
+      let atual = estado;
+      for (const desafio of desafios.slice(0, k)) {
+        atual = rodar(
+          [{ tipo: 'responder', resposta: [...desafio.gabarito] }, { tipo: 'avancar' }],
+          atual,
+        );
+      }
+      return { desafios, k, estado: tutorial(atual, { tipo: 'responder', resposta: ['c'] }) };
+    }
+
+    it('a primeira Expedição do Cofre sempre traz a isca, com a mistura mínima', () => {
+      expect(podePartir(comCofre, 'cofre-anao')).toBe(true);
+      for (const aleatorio of [primeiro, () => 0.5, () => 0.999]) {
+        const desafios = desafiosParaPartir(comCofre, 'cofre-anao', aleatorio);
+        expect(desafios).toHaveLength(5);
+        expect(desafios.filter((d) => d.isca)).toHaveLength(1);
+        expect(desafios.map((d) => d.formato)).toEqual(
+          expect.arrayContaining(['apontar', 'tracar_fluxo']),
+        );
+      }
+    });
+
+    it('quem acerta de verdade a isca erra pelo gabarito; contestando, o Desafio é anulado', () => {
+      const { estado, k } = ateAIsca();
+      expect(estado.expedicao?.respostas[k]?.acertou).toBe(false);
+      const contestado = tutorial(estado, {
+        tipo: 'contestar',
+        argumento: 'charge() não confere nada',
+      });
+      expect(contestado.expedicao?.respostas[k]?.contestacao).toMatchObject({
+        veredito: 'anulado',
+        argumento: 'charge() não confere nada',
+      });
+      expect(contestado.expedicao?.respostas[k]?.contestacao?.evidencias[0]?.trecho).toMatch(
+        /ledger\.push/,
+      );
+    });
+
+    it('a Contestação vencida dá o bônus de Caçador de Slop no fim da Expedição', () => {
+      const { estado, desafios, k } = ateAIsca();
+      let atual = rodar(
+        [{ tipo: 'contestar', argumento: 'O comentário mente.' }, { tipo: 'avancar' }],
+        estado,
+      );
+      for (const desafio of desafios.slice(k + 1)) {
+        if (atual.expedicao?.fase === 'encerrada') break;
+        atual = rodar(
+          [{ tipo: 'responder', resposta: errada(desafio) }, { tipo: 'avancar' }],
+          atual,
+        );
+      }
+      expect(atual.expedicao?.fase).toBe('encerrada');
+      // k acertos antes da isca + a isca anulada, cada um 20 XP, e 50 do bônus.
+      expect(atual.xp - comCofre.xp).toBe((k + 1) * 20 + 50);
+    });
+
+    it('contestar um Desafio comum mantém o gabarito, com a explicação do Desafio', () => {
+      const { desafios, estado } = partirNoCofre();
+      const comum = desafios.find((d) => !d.isca)!;
+      expect(desafios[0]).toBe(comum);
+      const corrigido = tutorial(estado, { tipo: 'responder', resposta: errada(comum) });
+      const contestado = tutorial(corrigido, { tipo: 'contestar', argumento: 'Discordo.' });
+      expect(contestado.expedicao?.respostas[0]?.contestacao).toMatchObject({
+        veredito: 'mantido',
+        explicacao: comum.explicacao,
+      });
+      expect(contestado.expedicao?.respostas[0]?.acertou).toBe(false);
+    });
+
+    it('sem argumento, ou fora da correção, contestar não faz nada', () => {
+      const { estado } = partirNoCofre();
+      expect(tutorial(estado, { tipo: 'contestar', argumento: 'Antes da hora' })).toBe(estado);
+      const { estado: corrigido } = ateAIsca();
+      expect(tutorial(corrigido, { tipo: 'contestar', argumento: '   ' })).toBe(corrigido);
+    });
+  });
+
   it('recomeçar volta à escolha da Classe; o XP é do Jogador e fica', () => {
     const fim = rodar(
       [{ tipo: 'voltarAoMapa' }, { tipo: 'recomecar' }],

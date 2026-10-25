@@ -92,10 +92,38 @@ describe('Desafios da Taverna', () => {
     expect(api.map((d) => d.dificuldade)).toContain(5);
   });
 
-  it('as Evidências da API de Pedidos ficam nos arquivos dela: nada da Névoa vaza', () => {
-    const arquivos = REGIOES.find((r) => r.id === 'api-pedidos')?.arquivos ?? [];
-    for (const desafio of DESAFIOS['api-pedidos'] ?? []) {
-      for (const ev of desafio.evidencias) expect(arquivos, desafio.id).toContain(ev.caminho);
+  it('as Evidências de cada região ficam nos arquivos dela: nada da Névoa vaza', () => {
+    for (const [regiaoId, desafios] of Object.entries(DESAFIOS)) {
+      const arquivos = REGIOES.find((r) => r.id === regiaoId)?.arquivos ?? [];
+      for (const desafio of desafios) {
+        const evidencias = [...desafio.evidencias, ...(desafio.anulacao?.evidencias ?? [])];
+        for (const ev of evidencias) expect(arquivos, desafio.id).toContain(ev.caminho);
+      }
     }
+  });
+
+  it('a isca do Cofre do Anão: gabarito no comentário mentiroso, anulação no código de verdade', () => {
+    const iscas = todos.filter((d) => d.isca);
+    expect(iscas.map((d) => d.id)).toEqual(['cofre-pagar-duas-vezes']);
+    const [isca] = iscas;
+    expect(isca?.evidencias.map((e) => `${e.caminho}:${e.linha_inicio}`)).toEqual([
+      'api/src/payments/dwarfVault.ts:3',
+    ]);
+    expect(isca?.evidencias[0]?.trecho).toMatch(/idempotent/);
+    const anulacao = isca?.anulacao;
+    expect(anulacao?.explicacao).toMatch(/mente/);
+    for (const ev of anulacao?.evidencias ?? []) {
+      expect(conferirEvidencia(ler, ev), ev.caminho).toEqual({ ok: true });
+    }
+    expect(anulacao?.evidencias.some((e) => e.trecho.includes('ledger.push'))).toBe(true);
+    // Só a isca traz texto de anulação.
+    expect(todos.filter((d) => d.anulacao).map((d) => d.id)).toEqual(['cofre-pagar-duas-vezes']);
+  });
+
+  it('o Cofre do Anão tem uma Expedição inteira, com os três Formatos', () => {
+    const cofre = DESAFIOS['cofre-anao'] ?? [];
+    expect(cofre.length).toBeGreaterThanOrEqual(5);
+    const formatos = new Set(cofre.map((d) => d.formato));
+    expect([...formatos].sort()).toEqual(['apontar', 'multipla_escolha', 'tracar_fluxo']);
   });
 });

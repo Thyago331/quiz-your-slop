@@ -12,8 +12,10 @@ export type {
   OpcaoTracarFluxo,
   RegiaoConhecida,
   RegiaoNova,
+  SaidaContestar,
   TipoLigacao,
 } from './contrato.ts';
+export { contestacaoRoteirizada, type Anulacao } from './contestacao.ts';
 export {
   conferirEvidencia,
   conferirOpcaoApontar,
@@ -37,19 +39,24 @@ export {
 export { concluirExpedicao, iniciarAventura, type Aventura } from './aventura.ts';
 export { corrigir, type Resposta } from './correcao.ts';
 export {
+  ARGUMENTO_MAXIMO,
   VIDAS_DO_GUARDIAO,
   acertosDa,
   avancar,
   chaveDoDesafio,
+  contestacoesVencidas,
+  contestarDesafio,
   desafioAtual,
   desafiosJogados,
   escolherDesafios,
   guardiaoDerrotado,
   iniciarExpedicao,
+  podeContestar,
   responderDesafio,
   resultadoDaExpedicao,
   vidasDoGuardiao,
   type Aleatorio,
+  type Contestacao,
   type Expedicao,
   type FaseExpedicao,
   type OpcoesDaEscolha,

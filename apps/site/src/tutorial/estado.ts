@@ -1,11 +1,16 @@
 // O estado do Tutorial num objeto só, serializável: XP do Jogador, a Aventura e a Expedição em
 // curso. Por enquanto vive em memória; guardá-lo no servidor é um passo seguinte.
 import {
+  ARGUMENTO_MAXIMO,
   avancar,
   concluirExpedicao,
+  contestacaoRoteirizada,
+  contestarDesafio,
+  desafioAtual,
   escolherDesafios,
   iniciarAventura,
   iniciarExpedicao,
+  podeContestar,
   responderDesafio,
   resultadoDaExpedicao,
   revelar,
@@ -51,6 +56,8 @@ export type AcaoTutorial =
   /** Os Desafios vêm sorteados de fora (desafiosParaPartir), para o redutor ficar puro. */
   | { tipo: 'partir'; regiaoId: string; desafios: readonly Desafio[] }
   | { tipo: 'responder'; resposta: string[] }
+  /** Contestação roteirizada: sem Mestre, só a isca é anulada. */
+  | { tipo: 'contestar'; argumento: string }
   | { tipo: 'avancar' }
   | { tipo: 'voltarAoMapa' }
   /** Temporário: revela sem Expedição as regiões que ainda não têm Desafios. */
@@ -88,6 +95,12 @@ export function desafiosParaPartir(
   });
 }
 
+/** O texto de anulação mora no banco da Taverna, junto da isca. */
+const anulacaoDo = (desafio: Desafio) =>
+  Object.values(DESAFIOS)
+    .flat()
+    .find((d) => d.id === desafio.id)?.anulacao;
+
 const saidasDaNevoa = (antes: MapaAventura, depois: MapaAventura) =>
   Object.keys(depois.estados).filter(
     (id) => antes.estados[id] === 'nevoa' && depois.estados[id] !== 'nevoa',
@@ -113,6 +126,14 @@ export function tutorial(estado: EstadoTutorial, acao: AcaoTutorial): EstadoTuto
     case 'responder':
       if (expedicao?.fase !== 'respondendo') return estado;
       return { ...estado, expedicao: responderDesafio(expedicao, acao.resposta) };
+    case 'contestar': {
+      const argumento = acao.argumento.trim();
+      if (!expedicao || !podeContestar(expedicao)) return estado;
+      if (argumento.length === 0 || argumento.length > ARGUMENTO_MAXIMO) return estado;
+      const desafio = desafioAtual(expedicao);
+      const saida = contestacaoRoteirizada(desafio, anulacaoDo(desafio));
+      return { ...estado, expedicao: contestarDesafio(expedicao, argumento, saida) };
+    }
     case 'avancar': {
       if (!aventura || expedicao?.fase !== 'corrigido') return estado;
       const seguinte = avancar(expedicao);

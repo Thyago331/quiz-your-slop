@@ -5,7 +5,7 @@ export type Titulo = { nome: string; xpMinimo: number };
 
 export type Calibragem = {
   xpPorAcerto: number;
-  /** Bônus da Contestação vencida; entra em uso quando a Contestação chegar ao Jogo. */
+  /** Bônus de Caçador de Slop: Contestação vencida (Desafio anulado). */
   xpCacadorDeSlop: number;
   /** Em ordem crescente de xpMinimo; o primeiro começa em 0. */
   titulos: readonly Titulo[];

@@ -1,13 +1,24 @@
 // A Expedição: uma batalha contra o Guardião da região (spec §3, §13). Imutável, como o mapa: cada
 // passo devolve outra Expedição, e o objeto inteiro é serializável.
-import type { Desafio, FormatoDesafio } from './contrato.ts';
+import type { Desafio, FormatoDesafio, SaidaContestar } from './contrato.ts';
 import { corrigir, type Resposta } from './correcao.ts';
 import { CALIBRAGEM_PADRAO, type Calibragem } from './progressao.ts';
 
 /** O Guardião tem 4 vidas: 4 acertos o derrotam e revelam a região. */
 export const VIDAS_DO_GUARDIAO = 4;
 
-export type RespostaDada = { resposta: Resposta; acertou: boolean };
+/** O argumento do Jogador e o que o Mestre (ou o Tutorial) respondeu. */
+export type Contestacao = SaidaContestar & { argumento: string };
+
+export type RespostaDada = {
+  resposta: Resposta;
+  /** A correção original, mesmo que a Contestação anule o Desafio depois. */
+  acertou: boolean;
+  contestacao?: Contestacao;
+};
+
+/** O argumento da Contestação é curto: uma ou duas frases. */
+export const ARGUMENTO_MAXIMO = 280;
 
 export type FaseExpedicao = 'respondendo' | 'corrigido' | 'encerrada';
 
@@ -32,8 +43,16 @@ export function desafioAtual(expedicao: Expedicao): Desafio {
   return desafio;
 }
 
+/** Um Desafio anulado por Contestação conta como acerto (spec §3). */
+const contaComoAcerto = (r: RespostaDada) => r.acertou || r.contestacao?.veredito === 'anulado';
+
 export function acertosDa(expedicao: Expedicao): number {
-  return expedicao.respostas.filter((r) => r.acertou).length;
+  return expedicao.respostas.filter(contaComoAcerto).length;
+}
+
+/** Contestações vencidas (Desafios anulados): cada uma vale o bônus de Caçador de Slop. */
+export function contestacoesVencidas(expedicao: Expedicao): number {
+  return expedicao.respostas.filter((r) => r.contestacao?.veredito === 'anulado').length;
 }
 
 export function vidasDoGuardiao(expedicao: Expedicao): number {
@@ -61,6 +80,34 @@ export function responderDesafio(expedicao: Expedicao, resposta: Resposta): Expe
   };
 }
 
+/** Depois da correção, o Desafio em jogo ainda não contestado pode ser contestado. */
+export function podeContestar(expedicao: Expedicao): boolean {
+  return expedicao.fase === 'corrigido' && !expedicao.respostas[expedicao.atual]?.contestacao;
+}
+
+/**
+ * O Jogador contesta o gabarito do Desafio recém-corrigido; `saida` é a reavaliação (do Mestre,
+ * ou roteirizada no Tutorial). Anulado, o Desafio passa a contar como acerto — e pode ser o golpe
+ * que derruba o Guardião. A Expedição continua no mesmo Desafio, esperando o avançar.
+ */
+export function contestarDesafio(
+  expedicao: Expedicao,
+  argumento: string,
+  saida: SaidaContestar,
+): Expedicao {
+  exigirFase(expedicao, 'corrigido', 'contestar');
+  const resposta = expedicao.respostas[expedicao.atual];
+  if (!resposta) throw new Error(`Desafio sem resposta: ${expedicao.atual}`);
+  if (resposta.contestacao) throw new Error('Este Desafio já foi contestado');
+  const texto = argumento.trim();
+  if (texto.length === 0 || texto.length > ARGUMENTO_MAXIMO) {
+    throw new Error(`O argumento precisa ter de 1 a ${ARGUMENTO_MAXIMO} caracteres`);
+  }
+  const respostas = [...expedicao.respostas];
+  respostas[expedicao.atual] = { ...resposta, contestacao: { argumento: texto, ...saida } };
+  return { ...expedicao, respostas };
+}
+
 /**
  * Depois da correção, segue para o próximo Desafio. A Expedição encerra quando o Guardião cai (o
  * Desafio que sobra fica para outra vez) ou quando os Desafios acabam.
@@ -82,7 +129,10 @@ export type ResultadoExpedicao = {
   venceu: boolean;
   acertos: number;
   respondidos: number;
+  /** Acertos e bônus de Caçador de Slop. */
   xp: number;
+  /** Desafios anulados por Contestação (já contados nos acertos). */
+  contestacoesVencidas: number;
   /** Caminhos das Evidências dos Desafios jogados, sem repetir, na ordem em que apareceram. */
   arquivosCitados: string[];
 };
@@ -94,13 +144,15 @@ export function resultadoDaExpedicao(
 ): ResultadoExpedicao {
   exigirFase(expedicao, 'encerrada', 'resumir');
   const acertos = acertosDa(expedicao);
+  const vencidas = contestacoesVencidas(expedicao);
   const arquivos = desafiosJogados(expedicao).flatMap((d) => d.evidencias.map((e) => e.caminho));
   return {
     regiaoId: expedicao.regiaoId,
     venceu: guardiaoDerrotado(expedicao),
     acertos,
     respondidos: expedicao.respostas.length,
-    xp: acertos * calibragem.xpPorAcerto,
+    xp: acertos * calibragem.xpPorAcerto + vencidas * calibragem.xpCacadorDeSlop,
+    contestacoesVencidas: vencidas,
     arquivosCitados: [...new Set(arquivos)],
   };
 }
@@ -132,12 +184,13 @@ export type OpcoesDaEscolha = {
 
 /**
  * Mistura mínima (contrato, Validação 4): falta um Formato exigido e o banco tem um → ele entra no
- * lugar do último sorteado que não seja o único de outro Formato exigido.
+ * lugar do último sorteado que não seja o único de outro Formato exigido nem intocável (a isca).
  */
 function garantirMistura(
   escolhidos: Desafio[],
   prioridade: readonly Desafio[],
   exigidos: readonly FormatoDesafio[],
+  intocaveis: readonly Desafio[],
 ): Desafio[] {
   const resultado = [...escolhidos];
   const quantosDe = (formato: FormatoDesafio) =>
@@ -149,7 +202,8 @@ function garantirMistura(
     let k = resultado.length - 1;
     while (k >= 0) {
       const atual = resultado[k] as Desafio;
-      if (!exigidos.includes(atual.formato) || quantosDe(atual.formato) > 1) break;
+      const sobra = !exigidos.includes(atual.formato) || quantosDe(atual.formato) > 1;
+      if (sobra && !intocaveis.includes(atual)) break;
       k--;
     }
     if (k >= 0) resultado[k] = candidato;
@@ -158,8 +212,8 @@ function garantirMistura(
 }
 
 /**
- * Os Desafios de uma nova tentativa: sorteia primeiro entre os ainda não vistos e completa com os
- * já vistos, respeitando a mistura mínima de Formatos quando o banco permite; a Expedição os
+ * Os Desafios de uma nova tentativa: sorteia primeiro entre os ainda não vistos (a isca não vista
+ * sempre entra) e completa com os já vistos, respeitando a mistura mínima de Formatos quando o banco permite; a Expedição os
  * enfrenta em dificuldade crescente (spec §5).
  */
 export function escolherDesafios(
@@ -170,9 +224,18 @@ export function escolherDesafios(
   const jaVistos = new Set(vistos);
   const novos = banco.filter((d) => !jaVistos.has(chaveDoDesafio(d)));
   const repetidos = banco.filter((d) => jaVistos.has(chaveDoDesafio(d)));
-  const prioridade = [...embaralhar(novos, aleatorio), ...embaralhar(repetidos, aleatorio)];
+  // A isca da Contestação roteirizada ainda não vista vem na frente: o Tutorial não a esconde.
+  const iscas = novos.filter((d) => d.isca);
+  const prioridade = [
+    ...embaralhar(iscas, aleatorio),
+    ...embaralhar(
+      novos.filter((d) => !d.isca),
+      aleatorio,
+    ),
+    ...embaralhar(repetidos, aleatorio),
+  ];
   const exigidos: FormatoDesafio[] = temLigacoes ? ['apontar', 'tracar_fluxo'] : ['apontar'];
-  return garantirMistura(prioridade.slice(0, quantidade), prioridade, exigidos).sort(
+  return garantirMistura(prioridade.slice(0, quantidade), prioridade, exigidos, iscas).sort(
     (a, b) => a.dificuldade - b.dificuldade,
   );
 }

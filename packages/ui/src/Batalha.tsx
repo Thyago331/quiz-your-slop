@@ -1,10 +1,15 @@
 'use client';
+import { useState } from 'react';
 import {
+  ARGUMENTO_MAXIMO,
+  CALIBRAGEM_PADRAO,
   desafioAtual,
   guardiaoDerrotado,
   passoDoFluxo,
+  podeContestar,
   vidasDoGuardiao,
   VIDAS_DO_GUARDIAO,
+  type Contestacao,
   type Desafio,
   type Expedicao,
   type FormatoDesafio,
@@ -82,7 +87,17 @@ type BatalhaProps = {
   heroi: NomeSprite;
   onResponder: (resposta: string[]) => void;
   onAvancar: () => void;
+  /** Sem ele, não há Contestação nesta batalha. */
+  onContestar?: (argumento: string) => void;
+  /** O bônus que a tela anuncia no GOLPE CRÍTICO. */
+  xpCacadorDeSlop?: number;
 };
+
+/** O que o GOLPE CRÍTICO ensina: vale para toda isca, não só para a do Tutorial. */
+export const TEXTO_CACADOR_DE_SLOP =
+  'Comentário também é código, e pode mentir. O gabarito acreditou no que a função diz de si ' +
+  'mesma; você leu o que ela faz. Desconfie, leia o código e conteste: derrubar um gabarito ' +
+  'errado vale o bônus de Caçador de Slop.';
 
 /** A Expedição como batalha contra o Guardião da região (variante D, spec §13). */
 export function Batalha({
@@ -92,13 +107,24 @@ export function Batalha({
   heroi,
   onResponder,
   onAvancar,
+  onContestar,
+  xpCacadorDeSlop = CALIBRAGEM_PADRAO.xpCacadorDeSlop,
 }: BatalhaProps) {
+  const [contestando, setContestando] = useState<number | null>(null);
   const desafio = desafioAtual(expedicao);
   const numero = expedicao.atual + 1;
   const resposta =
     expedicao.fase === 'corrigido' ? expedicao.respostas[expedicao.atual] : undefined;
   const vidas = vidasDoGuardiao(expedicao);
   const ultimo = guardiaoDerrotado(expedicao) || numero >= expedicao.desafios.length;
+  const anulado = resposta?.contestacao?.veredito === 'anulado';
+  const golpe = anulado
+    ? 'guardiao guardiao--critico'
+    : resposta?.acertou
+      ? 'guardiao guardiao--golpe'
+      : 'guardiao';
+  const contestavel = onContestar !== undefined && podeContestar(expedicao);
+  const escrevendo = contestavel && contestando === expedicao.atual;
 
   return (
     <div className="batalha">
@@ -106,7 +132,7 @@ export function Batalha({
         <div className="px arena-titulo">GUARDIÃO · {nomeRegiao.toUpperCase()}</div>
         <div className="arena-luta">
           <Sprite nome={heroi} escala={10} titulo="Você" />
-          <span className={resposta?.acertou ? 'guardiao guardiao--golpe' : 'guardiao'}>
+          <span className={golpe}>
             <Sprite nome="slime" escala={14} titulo={`Guardião de ${nomeRegiao}`} />
           </span>
         </div>
@@ -156,10 +182,15 @@ export function Batalha({
         ) : (
           <>
             <OpcoesCorrigidas desafio={desafio} resposta={resposta} estados={estados} />
-            <p role="status" className={resposta.acertou ? 'texto-ok' : 'texto-erro'}>
-              {resposta.acertou
-                ? 'ACERTOU! O Guardião sofreu dano.'
-                : 'O Guardião desviou! (Você não perde nada.)'}
+            <p
+              role="status"
+              className={anulado ? 'texto-ouro' : resposta.acertou ? 'texto-ok' : 'texto-erro'}
+            >
+              {anulado
+                ? `GOLPE CRÍTICO! Desafio anulado — Caçador de Slop! +${xpCacadorDeSlop} XP`
+                : resposta.acertou
+                  ? 'ACERTOU! O Guardião sofreu dano.'
+                  : 'O Guardião desviou! (Você não perde nada.)'}
             </p>
             <p>
               <Texto>{desafio.explicacao}</Texto>
@@ -167,17 +198,103 @@ export function Batalha({
             {desafio.evidencias.map((ev) => (
               <EvidenciaNaTela key={`${ev.caminho}:${ev.linha_inicio}`} evidencia={ev} />
             ))}
-            <Menu
-              key={`seguir-${numero}`}
-              rotulo="Seguir"
-              autoFoco
-              itens={[{ id: 'avancar', rotulo: ultimo ? 'Fim da batalha' : 'Próximo Desafio' }]}
-              onEscolher={onAvancar}
-            />
+            {resposta.contestacao && <VereditoDaContestacao contestacao={resposta.contestacao} />}
+            {escrevendo ? (
+              <FormularioDeContestacao
+                onEnviar={(argumento) => {
+                  setContestando(null);
+                  onContestar?.(argumento);
+                }}
+                onCancelar={() => setContestando(null)}
+              />
+            ) : (
+              <Menu
+                key={`seguir-${numero}-${resposta.contestacao ? 'contestado' : ''}`}
+                rotulo="Seguir"
+                autoFoco
+                itens={[
+                  { id: 'avancar', rotulo: ultimo ? 'Fim da batalha' : 'Próximo Desafio' },
+                  ...(contestavel ? [{ id: 'contestar', rotulo: '⚑ Contestar o gabarito' }] : []),
+                ]}
+                onEscolher={(id) =>
+                  id === 'contestar' ? setContestando(expedicao.atual) : onAvancar()
+                }
+              />
+            )}
           </>
         )}
       </Janela>
     </div>
+  );
+}
+
+/** O veredito da Contestação: GOLPE CRÍTICO com o código de verdade, ou gabarito mantido. */
+function VereditoDaContestacao({ contestacao }: { contestacao: Contestacao }) {
+  if (contestacao.veredito === 'mantido') {
+    return (
+      <div className="contestacao contestacao--mantida">
+        <p className="px contestacao-titulo">⚑ GABARITO MANTIDO</p>
+        <p>
+          <Texto>{contestacao.explicacao}</Texto>
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="contestacao contestacao--critico">
+      <p className="px contestacao-titulo">🏹 GOLPE CRÍTICO — CAÇADOR DE SLOP</p>
+      <p>
+        <Texto>{contestacao.explicacao}</Texto>
+      </p>
+      {contestacao.evidencias.map((ev) => (
+        <EvidenciaNaTela key={`${ev.caminho}:${ev.linha_inicio}`} evidencia={ev} />
+      ))}
+      <p className="texto-ouro">{TEXTO_CACADOR_DE_SLOP}</p>
+    </div>
+  );
+}
+
+function FormularioDeContestacao({
+  onEnviar,
+  onCancelar,
+}: {
+  onEnviar: (argumento: string) => void;
+  onCancelar: () => void;
+}) {
+  const [argumento, setArgumento] = useState('');
+  const vazio = argumento.trim().length === 0;
+  return (
+    <form
+      className="contestacao-form"
+      onSubmit={(evento) => {
+        evento.preventDefault();
+        if (!vazio) onEnviar(argumento);
+      }}
+    >
+      <label htmlFor="argumento-contestacao">Por que o gabarito está errado?</label>
+      <textarea
+        id="argumento-contestacao"
+        autoFocus
+        rows={3}
+        maxLength={ARGUMENTO_MAXIMO}
+        value={argumento}
+        onChange={(evento) => setArgumento(evento.target.value)}
+        onKeyDown={(evento) => {
+          if (evento.key === 'Escape') onCancelar();
+        }}
+      />
+      <div className="texto-apagado">
+        {argumento.length}/{ARGUMENTO_MAXIMO}
+      </div>
+      <div className="contestacao-botoes">
+        <button type="submit" className="menu-item" disabled={vazio}>
+          ⚑ Enviar Contestação
+        </button>
+        <button type="button" className="menu-item" onClick={onCancelar}>
+          Cancelar
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -235,6 +352,7 @@ type ResumoExpedicaoProps = {
   /** Presente quando o XP ganho trouxe um Título novo. */
   novoTitulo?: string;
   onVoltar: () => void;
+  xpCacadorDeSlop?: number;
 };
 
 /** Tela de VITÓRIA (ou de "o Guardião resistiu") com o resumo da Expedição (spec §3). */
@@ -244,8 +362,10 @@ export function ResumoExpedicao({
   descobertas,
   novoTitulo,
   onVoltar,
+  xpCacadorDeSlop = CALIBRAGEM_PADRAO.xpCacadorDeSlop,
 }: ResumoExpedicaoProps) {
-  const { venceu, acertos, respondidos, xp, arquivosCitados } = resultado;
+  const { venceu, acertos, respondidos, xp, contestacoesVencidas, arquivosCitados } = resultado;
+  const bonus = contestacoesVencidas * xpCacadorDeSlop;
   return (
     <Janela className="resumo">
       <div className="grande">{venceu ? 'VITÓRIA!' : 'O GUARDIÃO RESISTIU'}</div>
@@ -257,6 +377,13 @@ export function ResumoExpedicao({
       <p>
         Acertos: {acertos}/{respondidos} · <span className="texto-ouro">+{xp} XP</span>
       </p>
+      {contestacoesVencidas > 0 && (
+        <p className="texto-ouro">
+          🏹 Caçador de Slop: {contestacoesVencidas}{' '}
+          {contestacoesVencidas === 1 ? 'Contestação vencida' : 'Contestações vencidas'} (+{bonus}{' '}
+          XP de bônus)
+        </p>
+      )}
       {novoTitulo && <p className="texto-ouro">⬆ Novo Título: {novoTitulo}</p>}
       {venceu && descobertas.length > 0 && (
         <p>

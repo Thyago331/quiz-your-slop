@@ -1,5 +1,6 @@
 import {
   avancar,
+  contestarDesafio,
   iniciarExpedicao,
   responderDesafio,
   type Desafio,
@@ -35,9 +36,10 @@ const inicio = iniciarExpedicao('api', ['d1', 'd2', 'd3', 'd4', 'd5'].map(desafi
 
 const estados = { api: 'desbloqueada', livro: 'nevoa', cofre: 'revelada' } as const;
 
-function montar(expedicao = inicio) {
+function montar(expedicao = inicio, comContestacao = false) {
   const onResponder = vi.fn();
   const onAvancar = vi.fn();
+  const onContestar = vi.fn();
   render(
     <Batalha
       expedicao={expedicao}
@@ -46,9 +48,10 @@ function montar(expedicao = inicio) {
       heroi="cavaleiro"
       onResponder={onResponder}
       onAvancar={onAvancar}
+      onContestar={comContestacao ? onContestar : undefined}
     />,
   );
-  return { onResponder, onAvancar };
+  return { onResponder, onAvancar, onContestar };
 }
 
 describe('Batalha', () => {
@@ -193,6 +196,79 @@ describe('Batalha — Traçar o fluxo', () => {
   });
 });
 
+describe('Batalha — Contestação', () => {
+  const errou = responderDesafio(inicio, ['a']);
+  const codigoReal = {
+    caminho: 'api/src/payments/dwarfVault.ts',
+    linha_inicio: 24,
+    linha_fim: 24,
+    trecho: '  ledger.push(receipt);',
+  };
+
+  it('depois da correção, contestar abre o argumento; enviar só com texto', async () => {
+    const user = userEvent.setup();
+    const { onContestar, onAvancar } = montar(errou, true);
+    await user.click(screen.getByRole('menuitem', { name: '⚑ Contestar o gabarito' }));
+    const campo = screen.getByRole('textbox', { name: 'Por que o gabarito está errado?' });
+    expect(document.activeElement).toBe(campo);
+    expect(campo.getAttribute('maxlength')).toBe('280');
+    const enviar = screen.getByRole('button', { name: /Enviar Contestação/ }) as HTMLButtonElement;
+    expect(enviar.disabled).toBe(true);
+    await user.type(campo, 'O comentário mente');
+    expect(screen.getByText('18/280')).toBeTruthy();
+    await user.click(enviar);
+    expect(onContestar).toHaveBeenCalledWith('O comentário mente');
+    expect(onAvancar).not.toHaveBeenCalled();
+  });
+
+  it('cancelar volta ao menu sem contestar', async () => {
+    const user = userEvent.setup();
+    const { onContestar } = montar(errou, true);
+    await user.click(screen.getByRole('menuitem', { name: '⚑ Contestar o gabarito' }));
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.getByRole('menuitem', { name: 'Próximo Desafio' })).toBeTruthy();
+    expect(onContestar).not.toHaveBeenCalled();
+  });
+
+  it('sem onContestar (ou antes da correção) não há Contestação', () => {
+    montar(errou);
+    expect(screen.queryByRole('menuitem', { name: /Contestar/ })).toBeNull();
+  });
+
+  it('anulado: GOLPE CRÍTICO, o código de verdade e o texto que explica a mecânica', () => {
+    const anulado = contestarDesafio(errou, 'O comentário mente', {
+      veredito: 'anulado',
+      explicacao: 'Nenhuma linha confere pedido repetido.',
+      evidencias: [codigoReal],
+    });
+    montar(anulado, true);
+    expect(screen.getByRole('status').textContent).toBe(
+      'GOLPE CRÍTICO! Desafio anulado — Caçador de Slop! +50 XP',
+    );
+    expect(
+      screen.getByRole('meter', { name: 'Vida do Guardião' }).getAttribute('aria-valuenow'),
+    ).toBe('3');
+    expect(screen.getByText(/Nenhuma linha confere pedido repetido/)).toBeTruthy();
+    expect(screen.getByText('api/src/payments/dwarfVault.ts:24')).toBeTruthy();
+    expect(screen.getByText(/Comentário também é código, e pode mentir/)).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: /Contestar/ })).toBeNull();
+  });
+
+  it('mantido: GABARITO MANTIDO com a explicação; não se contesta de novo', () => {
+    const mantido = contestarDesafio(errou, 'Discordo', {
+      veredito: 'mantido',
+      explicacao: 'O `server.ts` registra a rota.',
+      evidencias: [],
+    });
+    montar(mantido, true);
+    expect(screen.getByText('⚑ GABARITO MANTIDO')).toBeTruthy();
+    expect(screen.getAllByText(/registra a rota/)).toHaveLength(2);
+    expect(screen.getByRole('status').textContent).toMatch(/desviou/);
+    expect(screen.queryByRole('menuitem', { name: /Contestar/ })).toBeNull();
+  });
+});
+
 describe('ResumoExpedicao', () => {
   const vitoria: ResultadoExpedicao = {
     regiaoId: 'api',
@@ -200,6 +276,7 @@ describe('ResumoExpedicao', () => {
     acertos: 4,
     respondidos: 5,
     xp: 80,
+    contestacoesVencidas: 0,
     arquivosCitados: ['api/src/server.ts', 'api/src/orders/service.ts'],
   };
 
@@ -224,6 +301,21 @@ describe('ResumoExpedicao', () => {
     expect(screen.getByText('api/src/orders/service.ts')).toBeTruthy();
     await user.keyboard('{Enter}');
     expect(onVoltar).toHaveBeenCalledTimes(1);
+  });
+
+  it('a Contestação vencida aparece como bônus de Caçador de Slop', () => {
+    render(
+      <ResumoExpedicao
+        resultado={{ ...vitoria, xp: 130, contestacoesVencidas: 1 }}
+        nomeRegiao="Cofre do Anão"
+        descobertas={[]}
+        onVoltar={() => {}}
+      />,
+    );
+    expect(screen.getByText(/\+130 XP/)).toBeTruthy();
+    expect(
+      screen.getByText(/Caçador de Slop: 1 Contestação vencida \(\+50 XP de bônus\)/),
+    ).toBeTruthy();
   });
 
   it('quando os Desafios acabam antes, o Guardião resiste e a região continua desbloqueada', () => {

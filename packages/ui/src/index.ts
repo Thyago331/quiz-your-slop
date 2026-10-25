@@ -1,5 +1,11 @@
 export { Barra } from './Barra.tsx';
-export { Batalha, ROTULO_FORMATO, ResumoExpedicao, textoDoPasso } from './Batalha.tsx';
+export {
+  Batalha,
+  ROTULO_FORMATO,
+  ResumoExpedicao,
+  TEXTO_CACADOR_DE_SLOP,
+  textoDoPasso,
+} from './Batalha.tsx';
 export { EvidenciaNaTela, Texto, localDaEvidencia } from './Codigo.tsx';
 export { CLASSES, EscolhaDeClasse, type ClasseNaTela } from './EscolhaDeClasse.tsx';
 export { Janela } from './Janela.tsx';

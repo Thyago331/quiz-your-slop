@@ -73,3 +73,10 @@ export type Ligacao = {
   /** Onde a comunicação acontece no código. */
   evidencias: Evidencia[];
 };
+
+/** Saída da chamada `contestar` (contrato §4): o Mestre reavalia o gabarito contestado. */
+export type SaidaContestar = {
+  veredito: 'mantido' | 'anulado';
+  explicacao: string;
+  evidencias: Evidencia[];
+};

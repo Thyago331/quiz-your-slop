@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import type { Desafio } from './contrato.ts';
+import type { Desafio, SaidaContestar } from './contrato.ts';
 import { CALIBRAGEM_PADRAO } from './progressao.ts';
 import {
+  ARGUMENTO_MAXIMO,
   avancar,
+  contestacoesVencidas,
+  contestarDesafio,
+  podeContestar,
   desafioAtual,
   escolherDesafios,
   guardiaoDerrotado,
@@ -125,6 +129,7 @@ describe('Expedição', () => {
       acertos: 4,
       respondidos: 4,
       xp: 80,
+      contestacoesVencidas: 0,
       arquivosCitados: ['api/x.ts', 'api/y.ts', 'api/z.ts'],
     });
   });
@@ -147,6 +152,86 @@ describe('Expedição', () => {
 
   it('só há resumo de Expedição encerrada', () => {
     expect(() => resultadoDaExpedicao(iniciarExpedicao('api', cinco))).toThrow(/encerrada/);
+  });
+});
+
+describe('Contestação', () => {
+  const anulado: SaidaContestar = {
+    veredito: 'anulado',
+    explicacao: 'O comentário mente.',
+    evidencias: [],
+  };
+  const mantido: SaidaContestar = { veredito: 'mantido', explicacao: 'Releia.', evidencias: [] };
+  const errou = responderDesafio(iniciarExpedicao('api', cinco), ['errada']);
+
+  it('depois da correção o Jogador pode contestar, uma vez por Desafio', () => {
+    expect(podeContestar(iniciarExpedicao('api', cinco))).toBe(false);
+    expect(podeContestar(errou)).toBe(true);
+    const contestado = contestarDesafio(errou, 'O código não confere nada.', mantido);
+    expect(podeContestar(contestado)).toBe(false);
+    expect(() => contestarDesafio(contestado, 'De novo!', mantido)).toThrow(/contestado/);
+  });
+
+  it('só se contesta o Desafio já corrigido', () => {
+    expect(() => contestarDesafio(iniciarExpedicao('api', cinco), 'x', mantido)).toThrow(
+      /corrigido/,
+    );
+  });
+
+  it('guarda o argumento e o veredito na resposta, e continua no mesmo Desafio', () => {
+    const contestado = contestarDesafio(errou, '  O código não confere nada.  ', mantido);
+    expect(contestado.fase).toBe('corrigido');
+    expect(contestado.respostas[0]).toEqual({
+      resposta: ['errada'],
+      acertou: false,
+      contestacao: { argumento: 'O código não confere nada.', ...mantido },
+    });
+  });
+
+  it('o argumento é curto e não vazio', () => {
+    expect(() => contestarDesafio(errou, '   ', mantido)).toThrow(/argumento/);
+    const longo = 'x'.repeat(ARGUMENTO_MAXIMO + 1);
+    expect(() => contestarDesafio(errou, longo, mantido)).toThrow(/argumento/);
+    expect(() => contestarDesafio(errou, 'x'.repeat(ARGUMENTO_MAXIMO), mantido)).not.toThrow();
+  });
+
+  it('gabarito mantido não muda nada no placar', () => {
+    const contestado = contestarDesafio(errou, 'Acho que está errado.', mantido);
+    expect(vidasDoGuardiao(contestado)).toBe(4);
+    expect(contestacoesVencidas(contestado)).toBe(0);
+  });
+
+  it('Desafio anulado conta como acerto na regra dos 4: o Guardião perde uma vida', () => {
+    const contestado = contestarDesafio(errou, 'O comentário mente.', anulado);
+    expect(vidasDoGuardiao(contestado)).toBe(3);
+    expect(contestacoesVencidas(contestado)).toBe(1);
+  });
+
+  it('anular um Desafio que o Jogador já tinha acertado não conta o acerto duas vezes', () => {
+    const acertou = responderDesafio(iniciarExpedicao('api', cinco), ['certa']);
+    const contestado = contestarDesafio(acertou, 'Desconfio do comentário.', anulado);
+    expect(vidasDoGuardiao(contestado)).toBe(3);
+    expect(contestacoesVencidas(contestado)).toBe(1);
+  });
+
+  it('o anulado pode ser o golpe que derruba o Guardião', () => {
+    const tres = jogar(iniciarExpedicao('api', cinco), ['certa', 'certa', 'certa']);
+    const ultimo = contestarDesafio(responderDesafio(tres, ['errada']), 'Mente!', anulado);
+    expect(guardiaoDerrotado(ultimo)).toBe(true);
+    expect(avancar(ultimo).fase).toBe('encerrada');
+  });
+
+  it('o resumo soma o bônus de Caçador de Slop e conta as Contestações vencidas', () => {
+    const contestado = contestarDesafio(errou, 'O comentário mente.', anulado);
+    const fim = jogar(avancar(contestado), ['certa', 'errada', 'errada', 'errada']);
+    expect(resultadoDaExpedicao(fim)).toMatchObject({
+      venceu: false,
+      acertos: 2,
+      contestacoesVencidas: 1,
+      xp: 2 * 20 + 50,
+    });
+    const calibragem = { ...CALIBRAGEM_PADRAO, xpPorAcerto: 10, xpCacadorDeSlop: 99 };
+    expect(resultadoDaExpedicao(fim, calibragem).xp).toBe(2 * 10 + 99);
   });
 });
 
@@ -245,6 +330,22 @@ describe('escolherDesafios', () => {
       const soMultipla = misturado.filter((d) => d.formato === 'multipla_escolha');
       const escolhidos = escolherDesafios(soMultipla, [], { temLigacoes: true });
       expect(formatos(escolhidos)).toEqual(Array(5).fill('multipla_escolha'));
+    });
+
+    it('o Desafio-isca ainda não visto sempre entra na Expedição', () => {
+      const comIsca = [...misturado, { ...desafio('isca', 'f', 3), isca: true }];
+      for (const aleatorio of [naOrdem, () => 0, () => 0.5]) {
+        const escolhidos = escolherDesafios(comIsca, [], { aleatorio, temLigacoes: true });
+        expect(ids(escolhidos)).toContain('isca');
+        expect(formatos(escolhidos)).toContain('apontar');
+        expect(formatos(escolhidos)).toContain('tracar_fluxo');
+      }
+    });
+
+    it('a isca já vista volta ao sorteio como qualquer outro', () => {
+      const comIsca = [{ ...desafio('isca', 'f', 3), isca: true }, ...misturado];
+      const escolhidos = escolherDesafios(comIsca, ['isca'], { aleatorio: naOrdem });
+      expect(ids(escolhidos)).not.toContain('isca');
     });
 
     it('a troca não tira o único representante de outro Formato exigido', () => {

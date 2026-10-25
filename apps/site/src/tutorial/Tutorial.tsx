@@ -70,6 +70,7 @@ export function Tutorial() {
         heroi={classe?.sprite ?? 'heroi'}
         onResponder={(resposta) => despachar({ tipo: 'responder', resposta })}
         onAvancar={() => despachar({ tipo: 'avancar' })}
+        onContestar={(argumento) => despachar({ tipo: 'contestar', argumento })}
       />
     );
   } else if (expedicao) {

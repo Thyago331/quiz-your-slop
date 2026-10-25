@@ -5,7 +5,8 @@ Decidido em [Qual é o contrato de dados de cada chamada ao Mestre](https://gith
 ## Princípios
 
 - **O Jogo conduz.** Cada chamada é uma sessão nova da CLI da IA (Claude Code ou Codex), headless e somente leitura, na pasta do Projeto. Entrada = instruções do papel de Mestre + JSON de contexto. Saída = JSON validado contra o schema da chamada (`--json-schema` / `--output-schema`).
-- **A memória mora no Jogo.** O Mestre não lembra de nada entre chamadas; tudo que ele precisa vem na entrada.
+  - **Codex**: o `--output-schema` usa o modo estrito da OpenAI (todo campo em `required`, `additionalProperties: false`). O adaptador manda o mesmo schema com cada campo opcional obrigatório e anulável, e tira os `null` desses campos antes da validação; a saída é a última mensagem (`--output-last-message`), o JSON puro. O `--add-dir` do Codex é de escrita, então não é usado: o sandbox `read-only` já lê os outros repositórios do Projeto.
+- **A memória mora no Jogo.** O Mestre não lembra de nada entre chamadas; tudo que ele precisa vem na entrada. Por isso trocar de Mestre no meio da Aventura só muda o campo `mestre` dela.
 - **O Jogo cria os ids.** Regiões, Territórios, Ligações e Desafios recebem ids gerados pelo Jogo. O Mestre só referencia ids que recebeu na entrada; algo novo vem sem id e o Jogo atribui.
 - **Caminhos são relativos à raiz do repositório**, prefixados pelo repositório quando o Projeto tem mais de um (`loja-api:src/orders/service.ts`).
 - **Idioma do Jogador.** Toda entrada leva `idioma` (`"pt" | "en" | "es"`); todo texto que o Mestre devolve (nomes, resumos, enunciados, explicações) vem nesse idioma. Caminhos, símbolos e trechos de código ficam como estão no repositório.

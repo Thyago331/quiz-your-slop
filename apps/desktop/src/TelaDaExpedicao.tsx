@@ -30,7 +30,7 @@ import {
   type ArquivoAberto,
 } from '@quiz/ui';
 import { ListaDeLinhas, type Linha } from './Linhas.tsx';
-import { leitorDoProjeto, lerArquivosDoProjeto, transporteClaudeCode } from './mestre.ts';
+import { leitorDoProjeto, lerArquivosDoProjeto, transporteDoMestre } from './mestre.ts';
 import { mensagemDoErro } from './NovaAventura.tsx';
 import { useEsc } from './TelaProvisoria.tsx';
 
@@ -103,7 +103,7 @@ export function TelaDaExpedicao({
       const arquivos = await lerArquivosDoProjeto(atual.current.repositorios);
       if (vale()) setTodos([...arquivos.arquivos]);
       const r = await prepararNaAventura(
-        transporteClaudeCode(atual.current.repositorios),
+        transporteDoMestre(atual.current.mestre, atual.current.repositorios),
         atual.current,
         regiaoId,
         {

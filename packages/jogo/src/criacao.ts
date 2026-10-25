@@ -128,6 +128,19 @@ export function montarAventura(dados: {
   };
 }
 
+/**
+ * Trocar de Mestre no meio da Aventura (spec §7): só a IA muda. A memória (mapa, regiões, XP,
+ * Ligações) é do Jogo, então a próxima chamada já sai com o contexto inteiro para o outro Mestre.
+ */
+export function trocarMestre(
+  aventura: AventuraNoProjeto,
+  mestre: IaDoMestre,
+  agora: string,
+): AventuraNoProjeto {
+  if (aventura.mestre === mestre) return aventura;
+  return { ...aventura, mestre, atualizada_em: agora };
+}
+
 /** As regiões conhecidas (fora da Névoa), como o Jogo as descreve ao Mestre. */
 export function regioesConhecidas(aventura: AventuraNoProjeto): RegiaoConhecida[] {
   return aventura.regioes.flatMap((r) => {

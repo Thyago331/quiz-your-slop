@@ -1,10 +1,12 @@
-// O Mestre Claude Code atrás da interface única (@quiz/jogo): o transporte roda a CLI pela camada
-// Rust (somente leitura, argumentos fixos lá) e tira a saída do envelope JSON.
+// O Mestre da Aventura (Claude Code ou Codex) atrás da interface única (@quiz/jogo): o transporte
+// roda a CLI pela camada Rust (somente leitura, argumentos fixos lá) e o adaptador da IA ajusta o
+// schema e tira a saída do que a CLI devolveu.
 import {
+  adaptadorDoMestre,
   arquivosDoProjeto,
-  desembrulharClaudeCode,
   normalizarCaminho,
   type ArquivosDoProjeto,
+  type IaDoMestre,
   type LerArquivoDoProjeto,
   type Repositorio,
   type Transporte,
@@ -12,12 +14,14 @@ import {
 import { lerArquivo, rodarGit, rodarMestre } from './sistema.ts';
 
 /** A CLI roda na pasta do primeiro repositório; os outros entram só para leitura. */
-export function transporteClaudeCode(repositorios: readonly Repositorio[]): Transporte {
+export function transporteDoMestre(
+  ia: IaDoMestre,
+  repositorios: readonly Repositorio[],
+): Transporte {
   const [raiz = '', ...extras] = repositorios.map((r) => r.caminho_local);
-  return async ({ prompt, schema }) =>
-    desembrulharClaudeCode(
-      await rodarMestre({ ia: 'claude_code', raiz, prompt, schema, raizes_extras: extras }),
-    );
+  return adaptadorDoMestre(ia, ({ prompt, schema }) =>
+    rodarMestre({ ia, raiz, prompt, schema, raizes_extras: extras }),
+  );
 }
 
 /** Os arquivos commitados de cada repositório (`git ls-files`), para conferir os caminhos do Mestre. */

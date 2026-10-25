@@ -9,6 +9,7 @@ import {
   type AventuraNoProjeto,
   type Classe,
   type EventoDoMestre,
+  type IaDoMestre,
   type SaidaCriarAventura,
 } from '@quiz/jogo';
 import { emMaiusculas, formatar, type Mensagens } from '@quiz/i18n';
@@ -22,16 +23,9 @@ import {
   useMensagens,
   type ItemMenu,
 } from '@quiz/ui';
-import { lerArquivosDoProjeto, transporteClaudeCode } from './mestre.ts';
-import {
-  comandoDoMestre,
-  detectarMestre,
-  ehErroDoSistema,
-  escolherPasta,
-  rodarGit,
-  salvarAventura,
-  type DeteccaoDoMestre,
-} from './sistema.ts';
+import { EscolhaDoMestre, estaPronta, primeiraPronta, useMestres } from './EscolhaDoMestre.tsx';
+import { lerArquivosDoProjeto, transporteDoMestre } from './mestre.ts';
+import { ehErroDoSistema, escolherPasta, rodarGit, salvarAventura } from './sistema.ts';
 import { useEsc } from './TelaProvisoria.tsx';
 
 const PASSOS = ['projeto', 'mestre', 'classe', 'leitura', 'entrada'] as const;
@@ -66,7 +60,7 @@ export function mensagemDoErro(e: unknown, t: Erros): string {
     if (e.codigo === 'mestre_ausente') return t.mestre_ausente;
     if (e.codigo === 'falhou') {
       return formatar(t.falhou, {
-        detalhe: e.detalhe.stderr.trim().slice(0, 300) || String(e.detalhe.codigo),
+        detalhe: linhaDoErro(e.detalhe.stderr).slice(0, 300) || String(e.detalhe.codigo),
       });
     }
     if (e.codigo === 'tempo_esgotado')
@@ -76,6 +70,17 @@ export function mensagemDoErro(e: unknown, t: Erros): string {
     });
   }
   return formatar(t.outro, { detalhe: e instanceof Error ? e.message : String(e) });
+}
+
+/** O Codex abre o stderr com um cabeçalho: a linha que importa é a última `ERROR`. */
+export function linhaDoErro(stderr: string): string {
+  const linhas = stderr.trim().split(/\r?\n/);
+  return (
+    linhas
+      .filter((l) => /^error\b/i.test(l.trim()))
+      .at(-1)
+      ?.trim() ?? stderr.trim()
+  );
 }
 
 const nomeDaPasta = (caminho: string) =>
@@ -98,8 +103,8 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
   const [pastas, setPastas] = useState<Pasta[]>([]);
   const [aviso, setAviso] = useState<string | null>(null);
   const [conferindo, setConferindo] = useState<string | null>(null);
-  const [deteccao, setDeteccao] = useState<DeteccaoDoMestre | 'procurando'>('procurando');
-  const [comando, setComando] = useState<string | null>(null);
+  // A IA que o Jogador marcou no passo 2; vale só se estiver pronta.
+  const [ia, setIa] = useState<IaDoMestre | null>(null);
   const [classe, setClasse] = useState<Classe | null>(null);
   const [leitura, setLeitura] = useState<Leitura>({ estado: 'lendo', linhas: [] });
   const [detalhe, setDetalhe] = useState<Detalhe>({ estado: 'escolhendo' });
@@ -107,6 +112,10 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
   const geracao = useRef(0);
 
   const repositorios = nomearRepositorios(pastas.map((p) => p.caminho));
+  const mestres = useMestres(passo === 2 ? pastas.map((p) => p.caminho) : null);
+  const escolhida = ia && estaPronta(mestres, ia) ? ia : (primeiraPronta(mestres) ?? null);
+  // O Mestre que segue para a Leitura e fica na Aventura.
+  const [mestre, setMestre] = useState<IaDoMestre>('claude_code');
 
   const voltar = useCallback(() => {
     geracao.current++;
@@ -135,19 +144,6 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
     }
   }
 
-  async function irParaOMestre() {
-    setPasso(2);
-    setDeteccao('procurando');
-    setComando(null);
-    const [raiz = '', ...extras] = pastas.map((p) => p.caminho);
-    const [d, c] = await Promise.allSettled([
-      detectarMestre('claude_code'),
-      comandoDoMestre('claude_code', raiz, extras),
-    ]);
-    setDeteccao(d.status === 'fulfilled' ? d.value : { estado: 'ausente' });
-    setComando(c.status === 'fulfilled' ? c.value : null);
-  }
-
   async function ler(classeEscolhida: Classe) {
     const minha = ++geracao.current;
     const atual = () => geracao.current === minha;
@@ -162,7 +158,7 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
       const arquivos = await lerArquivosDoProjeto(repositorios);
       mostrar({ tipo: 'ok', texto: formatar(t.leitura.arquivos, { n: arquivos.arquivos.size }) });
       const saida = await criarAventura(
-        transporteClaudeCode(repositorios),
+        transporteDoMestre(mestre, repositorios),
         { idioma, repositorios, classe: classeEscolhida },
         {
           repositorios,
@@ -196,7 +192,7 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
     const criada = montarAventura({
       id: crypto.randomUUID(),
       agora,
-      mestre: 'claude_code',
+      mestre,
       classe,
       repositorios: repositorios.map((r, k) => ({ ...r, commit: pastas[k]?.commit ?? '' })),
       saida: leitura.saida,
@@ -213,7 +209,7 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
     };
     try {
       const aventura = await detalharNaAventura(
-        transporteClaudeCode(repositorios),
+        transporteDoMestre(mestre, repositorios),
         criada,
         criada.regioes[0]!.id,
         {
@@ -270,7 +266,7 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
           autoFoco
           onEscolher={(id) => {
             if (id === 'adicionar') void adicionarPasta();
-            else if (id === 'proximo') void irParaOMestre();
+            else if (id === 'proximo') setPasso(2);
             else if (id === 'menu') onVoltar();
             else if (id.startsWith('remover:')) {
               const caminho = id.slice('remover:'.length);
@@ -282,51 +278,26 @@ export function NovaAventura({ onVoltar, onCriada }: NovaAventuraProps) {
       </>
     );
   } else if (passo === 2) {
-    const pronta = deteccao !== 'procurando' && deteccao.estado === 'pronta';
-    const estado =
-      deteccao === 'procurando'
-        ? t.mestre.procurando
-        : deteccao.estado === 'pronta'
-          ? formatar(t.mestre.encontrado, { versao: deteccao.versao })
-          : deteccao.estado === 'ausente'
-            ? t.mestre.ausente
-            : formatar(t.mestre.semModoRestrito, { opcoes: deteccao.faltando.join(' ') });
     corpo = (
       <>
         <h3 className="nova-pergunta">{t.mestre.pergunta}</h3>
-        <Menu
-          key={pronta ? 'pronta' : 'esperando'}
+        <EscolhaDoMestre
+          mestres={mestres}
+          escolhida={escolhida}
+          onEscolhida={setIa}
           rotulo={t.passos.mestre}
-          autoFoco
-          itens={[
-            {
-              id: 'claude_code',
-              rotulo: (
-                <>
-                  {t.mestre.claude_code}{' '}
-                  <span className={pronta ? 'nova-ok' : 'nova-aviso'}>{estado}</span>
-                </>
-              ),
-              desabilitado: !pronta,
-            },
-            { id: 'codex', rotulo: `${t.mestre.codex} ${t.mestre.emBreve}`, desabilitado: true },
-            { id: 'proximo', rotulo: t.proximo, desabilitado: !pronta },
+          acoes={[
+            { id: 'proximo', rotulo: t.proximo, desabilitado: !escolhida },
             { id: 'voltar', rotulo: t.voltar },
           ]}
-          inicial={pronta ? 'claude_code' : 'voltar'}
-          onEscolher={(id) => (id === 'voltar' ? voltar() : setPasso(3))}
+          onAcao={(id) => {
+            if (id === 'voltar') voltar();
+            else if (escolhida) {
+              setMestre(escolhida);
+              setPasso(3);
+            }
+          }}
         />
-        {deteccao !== 'procurando' && !pronta && <p className="nova-aviso">{t.mestre.nenhum}</p>}
-        <div className="nova-so-ler">
-          <p className="nova-so-ler-titulo">{t.mestre.soLer}</p>
-          <p>{formatar(t.mestre.explicacao, { provedor: 'Anthropic' })}</p>
-          {comando && (
-            <>
-              <p className="nova-apagado">{t.mestre.comando}</p>
-              <code className="nova-comando">{comando}</code>
-            </>
-          )}
-        </div>
       </>
     );
   } else if (passo === 3) {

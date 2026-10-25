@@ -12,12 +12,13 @@ import { ITEM_DA_CONTA, ResumoDaConta, TelaDeEntrada, itemDaConta, useConta } fr
 import { idiomaSalvo, salvarIdioma } from './idioma.ts';
 import { NovaAventura } from './NovaAventura.tsx';
 import type { Linha } from './Linhas.tsx';
-import { lerArquivosDoProjeto, transporteClaudeCode } from './mestre.ts';
+import { lerArquivosDoProjeto, transporteDoMestre } from './mestre.ts';
 import { carregarAventuras, salvarAventura } from './sistema.ts';
 import { TelaDaExpedicao } from './TelaDaExpedicao.tsx';
 import { nomeDoProjeto, TelaDoMapa } from './TelaDoMapa.tsx';
 import { TelaDeIdioma } from './TelaDeIdioma.tsx';
 import { TelaProvisoria } from './TelaProvisoria.tsx';
+import { TrocaDeMestre } from './TrocaDeMestre.tsx';
 
 /** As telas do hub (spec §13, Título); `inicio` é o próprio hub. */
 export type Tela = 'inicio' | 'continuar' | 'nova' | 'tutorial' | 'perfil' | 'enviado' | 'idioma';
@@ -50,6 +51,7 @@ export function Jogo() {
     linhas: [],
   });
   const voltarAoMapa = useCallback(() => setExpedicao(null), []);
+  const [trocandoMestre, setTrocandoMestre] = useState(false);
 
   /** Toda mudança de uma Aventura vai para o disco na hora (o estado inteiro mora no arquivo). */
   const atualizar = useCallback((aventura: AventuraNoProjeto) => {
@@ -70,25 +72,30 @@ export function Jogo() {
       setDetalhes({ ocupado: true, linhas: [] });
       try {
         const arquivos = await lerArquivosDoProjeto(aventura.repositorios);
-        await detalharVizinhas(transporteClaudeCode(aventura.repositorios), aventura, ids, {
-          idioma,
-          arquivos,
-          gerarId: () => crypto.randomUUID(),
-          aoAvancar: (e) => {
-            const regiao = nome(e.regiaoId);
-            if (e.tipo === 'detalhando') {
-              mostrar({
-                tipo: 'andamento',
-                texto: formatar(t.detalhando, { regiao, n: e.indice + 1, total: e.total }),
-              });
-            } else if (e.tipo === 'detalhada') {
-              atualizar(e.aventura);
-              mostrar({ tipo: 'ok', texto: formatar(t.detalhada, { regiao }) });
-            } else {
-              mostrar({ tipo: 'recusada', texto: formatar(t.detalheFalhou, { regiao }) });
-            }
+        await detalharVizinhas(
+          transporteDoMestre(aventura.mestre, aventura.repositorios),
+          aventura,
+          ids,
+          {
+            idioma,
+            arquivos,
+            gerarId: () => crypto.randomUUID(),
+            aoAvancar: (e) => {
+              const regiao = nome(e.regiaoId);
+              if (e.tipo === 'detalhando') {
+                mostrar({
+                  tipo: 'andamento',
+                  texto: formatar(t.detalhando, { regiao, n: e.indice + 1, total: e.total }),
+                });
+              } else if (e.tipo === 'detalhada') {
+                atualizar(e.aventura);
+                mostrar({ tipo: 'ok', texto: formatar(t.detalhada, { regiao }) });
+              } else {
+                mostrar({ tipo: 'recusada', texto: formatar(t.detalheFalhou, { regiao }) });
+              }
+            },
           },
-        });
+        );
       } catch {
         for (const id of ids) {
           mostrar({ tipo: 'recusada', texto: formatar(t.detalheFalhou, { regiao: nome(id) }) });
@@ -182,6 +189,29 @@ export function Jogo() {
         onVoltar={voltarAoMapa}
       />
     );
+  } else if (tela === 'continuar' && recente && trocandoMestre) {
+    conteudo = (
+      <TrocaDeMestre
+        key={recente.id}
+        aventura={recente}
+        onTrocada={(trocada) => {
+          atualizar(trocada);
+          setDetalhes({
+            ocupado: false,
+            linhas: [
+              {
+                tipo: 'ok',
+                texto: formatar(MENSAGENS[idioma].ui.aventura.troca.trocado, {
+                  mestre: MENSAGENS[idioma].ui.nova.mestre[trocada.mestre],
+                }),
+              },
+            ],
+          });
+          setTrocandoMestre(false);
+        }}
+        onVoltar={() => setTrocandoMestre(false)}
+      />
+    );
   } else if (tela === 'continuar' && recente) {
     conteudo = (
       <TelaDoMapa
@@ -196,6 +226,7 @@ export function Jogo() {
           setExpedicao(id);
         }}
         onDetalhar={(id) => void detalhar(recente, [id])}
+        onTrocarMestre={() => setTrocandoMestre(true)}
         onVoltar={voltar}
       />
     );

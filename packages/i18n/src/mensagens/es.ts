@@ -94,9 +94,10 @@ export const es: Mensagens = {
         encontrado: '· encontrado {versao}',
         ausente: '· no encontrado',
         semModoRestrito: '· sin modo de solo lectura (faltan {opcoes}): rechazado',
-        emBreve: '· próximamente',
+        escolhido: '◆',
+        naoEscolhido: '◇',
         nenhum:
-          'Instala Claude Code e inicia sesión para jugar en tu Proyecto. Mientras tanto, el Tutorial está en el menú.',
+          'Instala Claude Code o Codex CLI e inicia sesión para jugar en tu Proyecto. Mientras tanto, el Tutorial está en el menú.',
         soLer: '🛡 El Máster solo puede LEER.',
         explicacao:
           'No se editará nada, no se ejecutará ningún comando aparte de lectura y no hay acceso a la red más allá del proveedor de tu IA. Tu código lo lee tu IA y va a su proveedor ({provedor}), como en tu uso normal.',
@@ -142,6 +143,17 @@ export const es: Mensagens = {
       voltar: 'Volver al menú',
       acoes: 'Acciones',
       ajuda: '← ↑ → ↓ eligen la Región · Esc vuelve al menú',
+      trocarMestre: '⇄ Cambiar Máster ({mestre})',
+      troca: {
+        titulo: 'Cambiar Máster',
+        atual: 'El Máster de esta Aventura: {mestre}.',
+        memoria:
+          'La memoria de la Aventura vive en el Juego: el mapa, las Regiones reveladas, los Enlaces y el XP siguen iguales. Solo las próximas llamadas van al otro Máster.',
+        marcaAtual: '· actual',
+        confirmar: 'Cambiar a {mestre} ▶',
+        voltar: '◀ Volver al mapa',
+        trocado: '✔ Ahora el Máster es {mestre}.',
+      },
     },
     expedicao: {
       preparando: 'El Máster prepara la Expedición…',

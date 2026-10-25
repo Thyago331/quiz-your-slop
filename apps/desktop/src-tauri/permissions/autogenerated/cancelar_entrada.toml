@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-cancelar-entrada"
+description = "Enables the cancelar_entrada command without any pre-configured scope."
+commands.allow = ["cancelar_entrada"]
+
+[[permission]]
+identifier = "deny-cancelar-entrada"
+description = "Denies the cancelar_entrada command without any pre-configured scope."
+commands.deny = ["cancelar_entrada"]

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { invoke } from '@tauri-apps/api/core';
 import { atualizar, ehErroDoSistema, lerArquivo, rodarGit, rodarMestre } from './sistema.ts';
+import { cancelarEntrada, ehErroDeLogin, entrar, sair, sessaoAtual } from './sistema.ts';
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn(async () => '') }));
 const chamada = () => vi.mocked(invoke).mock.calls.at(-1);
@@ -28,5 +29,26 @@ describe('sistema', () => {
     expect(ehErroDoSistema({ codigo: 'caminho_recusado', detalhe: '../x' })).toBe(true);
     expect(ehErroDoSistema({ codigo: 'outro' })).toBe(false);
     expect(ehErroDoSistema('falhou')).toBe(false);
+  });
+});
+
+describe('sistema: login', () => {
+  beforeEach(() => vi.mocked(invoke).mockClear());
+
+  it('cada função chama o seu comando de login', async () => {
+    await entrar('es');
+    expect(chamada()).toEqual(['entrar', { idioma: 'es' }]);
+    await cancelarEntrada();
+    expect(chamada()).toEqual(['cancelar_entrada']);
+    await sessaoAtual();
+    expect(chamada()).toEqual(['sessao_atual']);
+    await sair();
+    expect(chamada()).toEqual(['sair']);
+  });
+
+  it('reconhece os erros do login', () => {
+    expect(ehErroDeLogin({ codigo: 'cancelado' })).toBe(true);
+    expect(ehErroDeLogin({ codigo: 'site', detalhe: { status: 401 } })).toBe(true);
+    expect(ehErroDeLogin({ codigo: 'nao_implementado' })).toBe(false);
   });
 });

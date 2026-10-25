@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { IDIOMAS, chavesDe, textosVazios, type PorIdioma } from '@quiz/i18n';
 import { COMO_FUNCIONA, PAGINA as PAGINA_COMO_FUNCIONA } from './como-funciona';
 import { ENTRAR } from './entrar';
+import { ENTRAR_DESKTOP } from './entrar-desktop';
 import { PAGINA as PAGINA_FAQ, PERGUNTAS } from './faq';
 import { INICIO, PAGINA as PAGINA_INICIO } from './inicio';
 import { LISTA } from './lista-de-espera';
@@ -25,6 +26,7 @@ const TEXTOS: Record<string, PorIdioma<unknown>> = {
   PERFIL,
   ENVIADO,
   ENTRAR,
+  ENTRAR_DESKTOP,
   TUTORIAL,
   'PAGINA /': PAGINA_INICIO.textos,
   'PAGINA /como-funciona': PAGINA_COMO_FUNCIONA.textos,

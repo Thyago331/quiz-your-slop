@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AUTONIMO, ETIQUETA, formatar, MENSAGENS } from '@quiz/i18n';
 import { IdiomaDaInterface, TelaInicial } from '@quiz/ui';
+import { ITEM_DA_CONTA, ResumoDaConta, TelaDeEntrada, itemDaConta, useConta } from './Conta.tsx';
 import { idiomaSalvo, salvarIdioma } from './idioma.ts';
 import { TelaDeIdioma } from './TelaDeIdioma.tsx';
 import { TelaProvisoria } from './TelaProvisoria.tsx';
@@ -22,8 +23,9 @@ export function Jogo({ haAventura = false }: JogoProps) {
   const [idioma, setIdioma] = useState(idiomaSalvo);
   const [tela, setTela] = useState<Tela>('inicio');
   // Ao voltar ao hub, o cursor fica no item que levou à tela.
-  const [ultima, setUltima] = useState<TelaDoHub | undefined>();
+  const [ultima, setUltima] = useState<string | undefined>();
   const voltar = useCallback(() => setTela('inicio'), []);
+  const conta = useConta(idioma);
 
   useEffect(() => {
     document.documentElement.lang = ETIQUETA[idioma];
@@ -47,17 +49,28 @@ export function Jogo({ haAventura = false }: JogoProps) {
   }
 
   let conteudo;
-  if (tela === 'inicio') {
+  if (conta.entrando) {
+    conteudo = <TelaDeEntrada onCancelar={conta.cancelar} />;
+  } else if (tela === 'inicio') {
     conteudo = (
       <TelaInicial
-        itens={DO_HUB.map((id) => ({
-          id,
-          rotulo: nomes[id],
-          desabilitado: id === 'continuar' && !haAventura,
-        }))}
+        itens={[
+          ...DO_HUB.map((id) => ({
+            id,
+            rotulo: nomes[id],
+            desabilitado: id === 'continuar' && !haAventura,
+          })),
+          itemDaConta(conta, idioma),
+        ]}
         inicial={ultima}
-        onEscolher={abrir}
-      />
+        onEscolher={(id) => {
+          if (id !== ITEM_DA_CONTA) return abrir(id);
+          setUltima(id);
+          conta.alternar();
+        }}
+      >
+        <ResumoDaConta {...conta} />
+      </TelaInicial>
     );
   } else if (tela === 'idioma') {
     conteudo = (

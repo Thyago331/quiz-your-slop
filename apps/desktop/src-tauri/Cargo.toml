@@ -20,6 +20,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # canonicalize sem o prefixo \\?\ no Windows (cmd.exe e as CLIs não aceitam esse caminho).
 dunce = "1.0.5"
+# Login no desktop (src/login): HTTP ao site, chaveiro do sistema, navegador e PKCE.
+ureq = { version = "3.5.0", features = ["json"] }
+keyring = { version = "3.6.3", features = ["windows-native", "async-secret-service", "async-io", "crypto-rust"] }
+open = "5.4.5"
+getrandom = "0.3.4"
+sha2 = "0.10"
+base64 = "0.22"
 
 [profile.release]
 codegen-units = 1

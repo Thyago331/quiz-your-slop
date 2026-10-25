@@ -100,6 +100,10 @@ export const PRIVACIDADE: PorIdioma<Privacidade> = {
             'repositórios.',
           'A sessão fica num cookie cifrado, usado só para saber quem está jogando. O idioma ' +
             'escolhido fica num cookie à parte (NEXT_LOCALE), só para o site abrir nele.',
+          'No Jogo desktop, o login acontece neste site, pelo navegador, e o Jogo recebe um token ' +
+            'de acesso que fica no chaveiro do seu sistema (Secret Service no Linux, Gerenciador ' +
+            'de Credenciais no Windows) e só serve para o progresso. O servidor guarda só um hash ' +
+            'dele; o token vence em 90 dias, e Sair no Jogo o revoga.',
           'Se você entrar na lista de espera por IA, guardamos também a IA que escolheu (e o nome ' +
             'que escreveu, se for "outra"), ligada à sua conta.',
         ],
@@ -173,6 +177,11 @@ export const PRIVACIDADE: PorIdioma<Privacidade> = {
           'The session lives in an encrypted cookie, used only to know who is playing. The ' +
             'language you pick lives in a separate cookie (NEXT_LOCALE), only so the site opens ' +
             'in it.',
+          'In the desktop Game, sign-in happens on this site, in the browser, and the Game ' +
+            "receives an access token that lives in your system's keychain (Secret Service on " +
+            'Linux, Credential Manager on Windows) and is used only for progress. The server ' +
+            'keeps only a hash of it; the token expires in 90 days, and Sign out in the Game ' +
+            'revokes it.',
           'If you join the AI waitlist, we also keep the AI you picked (and the name you typed, ' +
             'if it is "other"), tied to your account.',
         ],
@@ -245,6 +254,11 @@ export const PRIVACIDADE: PorIdioma<Privacidade> = {
           'La sesión vive en una cookie cifrada, usada solo para saber quién está jugando. El ' +
             'idioma elegido vive en otra cookie (NEXT_LOCALE), solo para que el sitio se abra en ' +
             'él.',
+          'En el Juego de escritorio, el inicio de sesión ocurre en este sitio, en el navegador, y ' +
+            'el Juego recibe un token de acceso que vive en el llavero de tu sistema (Secret ' +
+            'Service en Linux, Administrador de credenciales en Windows) y solo sirve para el ' +
+            'progreso. El servidor guarda solo un hash de él; el token vence en 90 días, y Salir ' +
+            'en el Juego lo revoca.',
           'Si te unes a la lista de espera por IA, guardamos también la IA que elegiste (y el ' +
             'nombre que escribiste, si es "otra"), ligada a tu cuenta.',
         ],

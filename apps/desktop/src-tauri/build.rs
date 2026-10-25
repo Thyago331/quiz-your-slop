@@ -11,6 +11,11 @@ const COMANDOS: &[&str] = &[
     "comando_do_mestre",
     "salvar_aventura",
     "carregar_aventuras",
+    // Login no desktop (src/login).
+    "entrar",
+    "cancelar_entrada",
+    "sessao_atual",
+    "sair",
 ];
 
 fn main() {

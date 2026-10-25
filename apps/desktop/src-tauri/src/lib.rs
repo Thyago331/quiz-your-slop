@@ -1,11 +1,13 @@
 //! A camada fina em Rust do Jogo desktop (spec §11): uma lista fechada de comandos e nada mais.
 //! A interface não tem plugin de sistema de arquivos, shell, rede ou abertura de URLs; tudo o que
-//! ela pode pedir ao sistema está nos comandos abaixo e em nova_aventura.rs (e em
-//! capabilities/principal.json). O plugin de diálogo só é usado do Rust, pelo `escolher_pasta`.
+//! ela pode pedir ao sistema está nos comandos abaixo, em nova_aventura.rs e nos de login
+//! (src/login), listados em capabilities/principal.json. O plugin de diálogo só é usado do Rust,
+//! pelo `escolher_pasta`; o login abre o navegador só na página do próprio site.
 
 mod aventuras;
 mod erro;
 mod git;
+mod login;
 mod mestre;
 mod nova_aventura;
 mod processo;
@@ -63,6 +65,10 @@ pub fn rodar() {
             nova_aventura::comando_do_mestre,
             nova_aventura::salvar_aventura,
             nova_aventura::carregar_aventuras,
+            login::entrar,
+            login::cancelar_entrada,
+            login::sessao_atual,
+            login::sair
         ])
         .run(tauri::generate_context!())
         .expect("falha ao abrir o Jogo");

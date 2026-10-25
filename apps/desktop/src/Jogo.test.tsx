@@ -38,13 +38,19 @@ function guardada() {
   return { ...a, regioes: a.regioes.map((r) => ({ ...r, arquivos: ['src/pedidos.ts'] })) };
 }
 
+// Ninguém conectado; o login tem os testes dele em Conta.test.tsx.
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: vi.fn(async () => ({ estado: 'desconectado' })),
+}));
+
 const item = (nome: string) => screen.getByRole('menuitem', { name: nome });
 
 describe('Jogo', () => {
   beforeEach(() => localStorage.setItem('quiz-your-slop:idioma', 'pt'));
 
-  it('abre no hub com Continuar desabilitado sem Aventura', () => {
+  it('abre no hub com Continuar desabilitado sem Aventura', async () => {
     render(<Jogo />);
+    await screen.findByRole('menuitem', { name: 'Entrar com GitHub' });
     expect(screen.getByRole('menu', { name: 'Menu principal' })).toBeTruthy();
     const nomes = screen.getAllByRole('menuitem').map((el) => el.textContent);
     expect(nomes).toEqual([
@@ -54,6 +60,7 @@ describe('Jogo', () => {
       'Perfil',
       'O que é enviado',
       'Idioma: Português',
+      'Entrar com GitHub',
     ]);
     expect((item('Continuar') as HTMLButtonElement).disabled).toBe(true);
     expect(document.activeElement).toBe(item('Nova Aventura'));

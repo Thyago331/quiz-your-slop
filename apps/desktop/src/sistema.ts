@@ -3,6 +3,7 @@
 // recusado lá.
 import { invoke } from '@tauri-apps/api/core';
 import type { IaDoMestre } from '@quiz/jogo';
+import type { Idioma } from '@quiz/i18n';
 
 /** As IAs que podem ser o Mestre (spec §7). */
 export type Ia = IaDoMestre;
@@ -97,3 +98,56 @@ export const salvarAventura = (id: string, json: string) =>
 
 /** O conteúdo de cada Aventura guardada, para o Jogo conferir. */
 export const carregarAventuras = () => invoke<string[]>('carregar_aventuras');
+
+// --- Login no desktop (src-tauri/src/login) ---
+// O token fica na camada Rust, no chaveiro do sistema: daqui só se vê se há sessão e o perfil mínimo.
+
+export type Perfil = { login: string; nome: string | null; avatar_url: string | null };
+
+/** `sem_rede`: há um token guardado, mas o site não respondeu agora. */
+export type Sessao =
+  { estado: 'desconectado' } | { estado: 'conectado'; perfil: Perfil } | { estado: 'sem_rede' };
+
+/** O que os comandos de login devolvem ao recusar ou falhar (src-tauri/src/login/mod.rs). */
+export type ErroDeLogin =
+  | { codigo: 'cancelado' }
+  | { codigo: 'recusado' }
+  | { codigo: 'tempo_esgotado'; detalhe: { segundos: number } }
+  | { codigo: 'site'; detalhe: { status: number } }
+  | {
+      codigo: 'argumento_recusado' | 'configuracao' | 'navegador' | 'rede' | 'cofre' | 'io';
+      detalhe: string;
+    };
+
+const CODIGOS_DE_LOGIN: readonly ErroDeLogin['codigo'][] = [
+  'cancelado',
+  'recusado',
+  'tempo_esgotado',
+  'site',
+  'argumento_recusado',
+  'configuracao',
+  'navegador',
+  'rede',
+  'cofre',
+  'io',
+];
+
+export function ehErroDeLogin(e: unknown): e is ErroDeLogin {
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    CODIGOS_DE_LOGIN.includes((e as { codigo?: unknown }).codigo as ErroDeLogin['codigo'])
+  );
+}
+
+/** Abre o navegador no login do site e espera o retorno (até 5 minutos). */
+export const entrar = (idioma: Idioma) => invoke<Sessao>('entrar', { idioma });
+
+/** Interrompe o `entrar` em andamento. */
+export const cancelarEntrada = () => invoke<null>('cancelar_entrada');
+
+/** Confere no site o token guardado; vencido ou revogado vira `desconectado`. */
+export const sessaoAtual = () => invoke<Sessao>('sessao_atual');
+
+/** Revoga o token no site e o apaga do chaveiro. */
+export const sair = () => invoke<Sessao>('sair');

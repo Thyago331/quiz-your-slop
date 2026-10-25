@@ -179,3 +179,10 @@
 .tela-expedicao--resumo > .janela {
   width: min(760px, 100%);
 }
+.conta-resumo {
+  margin: 12px 0 0;
+  color: var(--px-apagado);
+}
+.conta-espera {
+  max-width: 640px;
+}

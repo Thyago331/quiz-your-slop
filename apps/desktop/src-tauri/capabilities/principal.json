@@ -12,6 +12,10 @@
     "allow-detectar-mestre",
     "allow-comando-do-mestre",
     "allow-salvar-aventura",
-    "allow-carregar-aventuras"
+    "allow-carregar-aventuras",
+    "allow-entrar",
+    "allow-cancelar-entrada",
+    "allow-sessao-atual",
+    "allow-sair"
   ]
 }

@@ -22,6 +22,13 @@ serde_json = "1"
 dunce = "1.0.5"
 # Só o seletor de pastas, chamado do Rust (escolher_pasta); a janela não recebe permissão dialog:*.
 tauri-plugin-dialog = "2.8.3"
+# Login no desktop (src/login): HTTP ao site, chaveiro do sistema, navegador e PKCE.
+ureq = { version = "3.5.0", features = ["json"] }
+keyring = { version = "3.6.3", features = ["windows-native", "async-secret-service", "async-io", "crypto-rust"] }
+open = "5.4.5"
+getrandom = "0.3.4"
+sha2 = "0.10"
+base64 = "0.22"
 
 [profile.release]
 codegen-units = 1

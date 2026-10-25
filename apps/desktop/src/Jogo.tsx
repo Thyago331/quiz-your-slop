@@ -8,6 +8,7 @@ import {
 } from '@quiz/jogo';
 import { AUTONIMO, ETIQUETA, formatar, MENSAGENS } from '@quiz/i18n';
 import { IdiomaDaInterface, TelaInicial } from '@quiz/ui';
+import { ITEM_DA_CONTA, ResumoDaConta, TelaDeEntrada, itemDaConta, useConta } from './Conta.tsx';
 import { idiomaSalvo, salvarIdioma } from './idioma.ts';
 import { NovaAventura } from './NovaAventura.tsx';
 import type { Linha } from './Linhas.tsx';
@@ -38,8 +39,9 @@ export function Jogo() {
   const recente = aventuraMaisRecente(aventuras);
   const [tela, setTela] = useState<Tela>('inicio');
   // Ao voltar ao hub, o cursor fica no item que levou à tela.
-  const [ultima, setUltima] = useState<TelaDoHub | undefined>();
+  const [ultima, setUltima] = useState<string | undefined>();
   const voltar = useCallback(() => setTela('inicio'), []);
+  const conta = useConta(idioma);
   // A Expedição em curso (região) e a última, onde o cursor volta no mapa.
   const [expedicao, setExpedicao] = useState<string | null>(null);
   const [ultimaRegiao, setUltimaRegiao] = useState<string | undefined>();
@@ -133,17 +135,28 @@ export function Jogo() {
   }
 
   let conteudo;
-  if (tela === 'inicio') {
+  if (conta.entrando) {
+    conteudo = <TelaDeEntrada onCancelar={conta.cancelar} />;
+  } else if (tela === 'inicio') {
     conteudo = (
       <TelaInicial
-        itens={DO_HUB.map((id) => ({
-          id,
-          rotulo: nomes[id],
-          desabilitado: id === 'continuar' && !recente,
-        }))}
+        itens={[
+          ...DO_HUB.map((id) => ({
+            id,
+            rotulo: nomes[id],
+            desabilitado: id === 'continuar' && !recente,
+          })),
+          itemDaConta(conta, idioma),
+        ]}
         inicial={ultima}
-        onEscolher={abrir}
-      />
+        onEscolher={(id) => {
+          if (id !== ITEM_DA_CONTA) return abrir(id);
+          setUltima(id);
+          conta.alternar();
+        }}
+      >
+        <ResumoDaConta {...conta} />
+      </TelaInicial>
     );
   } else if (tela === 'idioma') {
     conteudo = (

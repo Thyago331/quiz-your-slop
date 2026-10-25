@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sessao-atual"
+description = "Enables the sessao_atual command without any pre-configured scope."
+commands.allow = ["sessao_atual"]
+
+[[permission]]
+identifier = "deny-sessao-atual"
+description = "Denies the sessao_atual command without any pre-configured scope."
+commands.deny = ["sessao_atual"]

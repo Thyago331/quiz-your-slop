@@ -46,6 +46,23 @@ export const pt = {
   },
   ui: {
     idioma: 'Idioma',
+    inicio: {
+      menu: 'Menu principal',
+      lema: 'aprenda · jogue · tire o slop do seu código',
+      continuar: 'Continuar',
+      novaAventura: 'Nova Aventura',
+      tutorial: 'Tutorial',
+      perfil: 'Perfil',
+      enviado: 'O que é enviado',
+      idioma: 'Idioma: {idioma}',
+      ajuda: '↑ ↓ movem · Enter escolhe',
+      privacidade: 'Seu código nunca sai da sua máquina.',
+    },
+    provisoria: {
+      emBreve: 'Esta tela chega numa próxima versão do Jogo.',
+      voltar: 'Voltar ao menu',
+      ajuda: 'Enter ou Esc voltam.',
+    },
     classe: {
       titulo: 'Escolha a sua Classe',
       ajuda: '▶ ← → escolhem · Enter confirma · ou clique.',

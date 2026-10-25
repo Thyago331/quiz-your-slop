@@ -43,6 +43,23 @@ export const en: Mensagens = {
   },
   ui: {
     idioma: 'Language',
+    inicio: {
+      menu: 'Main menu',
+      lema: 'learn · play · unslop your code',
+      continuar: 'Continue',
+      novaAventura: 'New Adventure',
+      tutorial: 'Tutorial',
+      perfil: 'Profile',
+      enviado: 'What is sent',
+      idioma: 'Language: {idioma}',
+      ajuda: '↑ ↓ move · Enter selects',
+      privacidade: 'Your code never leaves your machine.',
+    },
+    provisoria: {
+      emBreve: 'This screen arrives in a future version of the Game.',
+      voltar: 'Back to the menu',
+      ajuda: 'Enter or Esc go back.',
+    },
     classe: {
       titulo: 'Choose your Class',
       ajuda: '▶ ← → choose · Enter confirms · or click.',

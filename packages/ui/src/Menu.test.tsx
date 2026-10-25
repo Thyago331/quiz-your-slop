@@ -93,4 +93,17 @@ describe('Menu', () => {
     render(<Menu rotulo="Menu" itens={itens} autoFoco onEscolher={() => {}} />);
     expect(document.activeElement).toBe(screen.getByRole('menuitem', { name: 'Continuar' }));
   });
+
+  it('começa no item inicial e, se ele está desabilitado, no primeiro disponível', () => {
+    const { unmount } = render(
+      <Menu rotulo="Menu" itens={itens} inicial="tutorial" onEscolher={() => {}} />,
+    );
+    expect(cursor()?.textContent).toBe('Tutorial');
+    unmount();
+    const semContinuar = itens.map((i) =>
+      i.id === 'continuar' ? { ...i, desabilitado: true } : i,
+    );
+    render(<Menu rotulo="Menu" itens={semContinuar} inicial="continuar" onEscolher={() => {}} />);
+    expect(cursor()?.textContent).toBe('Nova Aventura');
+  });
 });

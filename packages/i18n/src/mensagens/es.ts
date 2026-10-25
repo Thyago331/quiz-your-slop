@@ -43,6 +43,23 @@ export const es: Mensagens = {
   },
   ui: {
     idioma: 'Idioma',
+    inicio: {
+      menu: 'Menú principal',
+      lema: 'aprende · juega · quita el slop de tu código',
+      continuar: 'Continuar',
+      novaAventura: 'Nueva Aventura',
+      tutorial: 'Tutorial',
+      perfil: 'Perfil',
+      enviado: 'Lo que se envía',
+      idioma: 'Idioma: {idioma}',
+      ajuda: '↑ ↓ mueven · Enter elige',
+      privacidade: 'Tu código nunca sale de tu máquina.',
+    },
+    provisoria: {
+      emBreve: 'Esta pantalla llega en una próxima versión del Juego.',
+      voltar: 'Volver al menú',
+      ajuda: 'Enter o Esc vuelven.',
+    },
     classe: {
       titulo: 'Elige tu Clase',
       ajuda: '▶ ← → eligen · Enter confirma · o haz clic.',

@@ -1,0 +1,14 @@
+/* Telas só do desktop; a base pixel vem de @quiz/ui/estilo.css. */
+.tela-provisoria {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+.tela-provisoria .janela {
+  min-width: min(420px, 100%);
+}
+.tela-provisoria-ajuda {
+  margin: 12px 0 0;
+  color: var(--px-apagado);
+}

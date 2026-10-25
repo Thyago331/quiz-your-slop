@@ -6,6 +6,7 @@ docs
 CONTEXT.md
 CLAUDE.md
 apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
 packages/taverna/codigo
 packages/taverna/src/arquivos.gerado.ts
 .claude

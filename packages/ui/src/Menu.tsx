@@ -12,6 +12,8 @@ type MenuProps = {
   horizontal?: boolean;
   /** O item sob o cursor recebe o foco ao aparecer, para o teclado já funcionar. */
   autoFoco?: boolean;
+  /** O item onde o cursor começa (ao voltar a um menu, o último escolhido). */
+  inicial?: string;
   className?: string;
 };
 
@@ -22,9 +24,15 @@ export function Menu({
   onEscolher,
   horizontal = false,
   autoFoco = false,
+  inicial,
   className,
 }: MenuProps) {
-  const [cursor, setCursor] = useState(0);
+  const [cursor, setCursor] = useState(() =>
+    Math.max(
+      0,
+      itens.findIndex((i) => i.id === inicial),
+    ),
+  );
   const botoes = useRef<(HTMLButtonElement | null)[]>([]);
   // Se o item sob o cursor sumiu ou foi desabilitado, o cursor vai para o primeiro disponível.
   const disponivel = (k: number) => itens[k] !== undefined && !itens[k].desabilitado;

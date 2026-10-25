@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-rodar-git"
+description = "Enables the rodar_git command without any pre-configured scope."
+commands.allow = ["rodar_git"]
+
+[[permission]]
+identifier = "deny-rodar-git"
+description = "Denies the rodar_git command without any pre-configured scope."
+commands.deny = ["rodar_git"]

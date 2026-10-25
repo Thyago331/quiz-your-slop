@@ -32,4 +32,5 @@ export {
 } from './realce.ts';
 export { SeletorDeIdioma, type OpcaoDeIdioma } from './SeletorDeIdioma.tsx';
 export { Pixels, Sprite } from './Sprite.tsx';
+export { TelaInicial } from './TelaInicial.tsx';
 export { PALETA, SPRITES, type NomeSprite } from './sprites.ts';

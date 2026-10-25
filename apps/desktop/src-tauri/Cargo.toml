@@ -1,0 +1,27 @@
+[package]
+name = "quiz-your-slop"
+version = "0.1.0"
+description = "Quiz your slop: o Jogo desktop."
+edition = "2021"
+rust-version = "1.85"
+publish = false
+
+[lib]
+# O sufixo _lib evita colisão com o binário de mesmo nome no Windows.
+name = "quiz_your_slop_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.7.4", features = [] }
+
+[dependencies]
+tauri = { version = "2.12.5", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# canonicalize sem o prefixo \\?\ no Windows (cmd.exe e as CLIs não aceitam esse caminho).
+dunce = "1.0.5"
+
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true

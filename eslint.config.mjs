@@ -24,6 +24,24 @@ export default tseslint.config(
     rules: reactHooks.configs.recommended.rules,
   },
   {
+    // Fronteira: só src/sistema.ts fala com a camada Rust (a lista fechada de comandos).
+    files: ['apps/desktop/src/**/*.{ts,tsx}'],
+    ignores: ['apps/desktop/src/sistema.ts', 'apps/desktop/src/sistema.test.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@tauri-apps/*'],
+              message: 'Chame a camada Rust por src/sistema.ts.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Scripts de build rodam no Node.
     files: ['packages/*/scripts/**/*.mjs'],
     languageOptions: { globals: { process: 'readonly', console: 'readonly' } },

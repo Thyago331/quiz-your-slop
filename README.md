@@ -24,6 +24,18 @@ pnpm dev:desktop    # frontend do desktop em http://localhost:1420
 pnpm typecheck && pnpm lint && pnpm test && pnpm build
 ```
 
+### Jogo desktop (Tauri 2)
+
+Requer Rust estável e, no Linux, o WebKitGTK 4.1 (`libwebkit2gtk-4.1-dev` ou `webkit2gtk4.1-devel`; lista completa no job `desktop` da CI).
+
+```sh
+pnpm --filter @quiz/desktop tauri dev            # abre a janela do Jogo
+pnpm --filter @quiz/desktop tauri build --debug  # binário e pacotes em src-tauri/target
+cd apps/desktop/src-tauri && cargo test && cargo clippy -- -D warnings
+```
+
+A camada Rust expõe só `rodar_mestre`, `rodar_git`, `ler_arquivo` e `atualizar` (`src-tauri/src/lib.rs`); a interface os chama por `apps/desktop/src/sistema.ts`.
+
 ### Conta (login com GitHub) e Postgres
 
 Tudo no site exige conta, inclusive o Tutorial. Para o login funcionar localmente:

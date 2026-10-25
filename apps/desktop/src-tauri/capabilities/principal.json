@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "principal",
+  "description": "A janela do Jogo: só os quatro comandos da camada Rust, nenhuma API de sistema do Tauri.",
+  "windows": ["principal"],
+  "permissions": ["allow-rodar-mestre", "allow-rodar-git", "allow-ler-arquivo", "allow-atualizar"]
+}

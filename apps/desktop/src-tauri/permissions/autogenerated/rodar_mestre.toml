@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-rodar-mestre"
+description = "Enables the rodar_mestre command without any pre-configured scope."
+commands.allow = ["rodar_mestre"]
+
+[[permission]]
+identifier = "deny-rodar-mestre"
+description = "Denies the rodar_mestre command without any pre-configured scope."
+commands.deny = ["rodar_mestre"]

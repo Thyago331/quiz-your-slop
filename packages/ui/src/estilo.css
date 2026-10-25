@@ -178,6 +178,49 @@
   gap: 14px;
 }
 
+/* Tela de título (hub) */
+.tela-inicial {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  text-align: center;
+}
+.tela-inicial-herois {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+.pixel .tela-inicial-logo {
+  font-size: 30px;
+  line-height: 1.5;
+  color: var(--px-ouro);
+  text-shadow: 4px 4px 0 var(--px-ouro-sombra);
+  margin: 0;
+}
+.tela-inicial-lema {
+  margin: 10px 0 24px;
+  color: var(--px-apagado);
+}
+.tela-inicial-hub {
+  text-align: left;
+  min-width: min(360px, 100%);
+}
+.tela-inicial-ajuda {
+  margin: 22px 0 0;
+  font-family: var(--px-fonte-titulo);
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--px-apagado);
+}
+.tela-inicial-rodape {
+  margin: 8px 0 0;
+  color: var(--px-apagado);
+}
+
 /* Seleção de personagem (Classe) */
 .escolha-classe {
   max-width: 900px;

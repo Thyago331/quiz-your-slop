@@ -5,5 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   server: { port: 1420, strictPort: true },
+  // Nada vira data: URI (fontes pequenas viravam): a CSP do Tauri só aceita arquivos do próprio app.
+  build: { assetsInlineLimit: 0 },
   clearScreen: false,
 });

@@ -29,7 +29,15 @@ jobs:
   deploy:
     name: Imagem · GHCR · compose up
     # Antes de existir a variável SITE_URL o deploy automático só pula; disparado à mão, falha avisando.
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && vars.SITE_URL != '')
+    # Só a CI de um push neste repositório: o `branches: [main]` do workflow_run compara só o nome,
+    # e um PR de fork vindo de um branch chamado main também passaria (e o checkout pegaria o
+    # código do fork).
+    if: >-
+      github.event_name == 'workflow_dispatch' || (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_repository.full_name == github.repository &&
+        vars.SITE_URL != '')
     runs-on: ubuntu-latest
     environment: production
     permissions:

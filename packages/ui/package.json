@@ -1,6 +1,7 @@
 {
   "name": "@quiz/ui",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "description": "Interface compartilhada entre o Tutorial do site e o Jogo desktop (React).",
   "type": "module",

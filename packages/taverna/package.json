@@ -1,6 +1,7 @@
 {
   "name": "@quiz/taverna",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "description": "A Taverna do Slop: o código do Projeto fictício do Tutorial (conteúdo, nunca executado) e os dados do seu mapa.",
   "type": "module",

@@ -1,6 +1,7 @@
 {
   "name": "@quiz/jogo",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "description": "Regras do Jogo: estados de região, Expedição, correção de Desafios, XP e validação do contrato com o Mestre. Puro: sem DOM, sem framework.",
   "type": "module",

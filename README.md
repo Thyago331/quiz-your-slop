@@ -60,3 +60,7 @@ Os testes de banco rodam só com `DATABASE_URL` definida (cada execução usa um
 ```sh
 DATABASE_URL=postgres://quiz:quiz@localhost:5433/quiz pnpm test
 ```
+
+## Licença
+
+[MIT](LICENSE).

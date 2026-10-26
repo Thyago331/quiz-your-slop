@@ -1,6 +1,7 @@
 {
   "name": "@quiz/i18n",
   "version": "0.0.0",
+  "license": "MIT",
   "private": true,
   "description": "Idiomas da interface (pt, en, es): as mensagens compartilhadas entre o site e o Jogo desktop e uma busca sem framework.",
   "type": "module",

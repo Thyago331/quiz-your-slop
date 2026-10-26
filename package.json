@@ -1,5 +1,6 @@
 {
   "name": "quiz-your-slop",
+  "license": "MIT",
   "private": true,
   "description": "Um game show/RPG em que o Jogador aprende como o próprio projeto funciona, com a IA dele como Mestre.",
   "packageManager": "pnpm@12.14.0",

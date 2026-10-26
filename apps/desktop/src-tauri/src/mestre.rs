@@ -388,6 +388,7 @@ impl Deteccoes {
 mod testes {
     use super::*;
     use crate::projeto;
+    #[cfg(unix)]
     use std::sync::atomic::{AtomicU32, Ordering};
 
     /// As raízes dadas, como se o Jogador as tivesse escolhido.

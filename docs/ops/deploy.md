@@ -4,10 +4,11 @@ Spec §11: uma VPS (Hostinger), tudo em Docker, no padrão do `transito-analyzer
 termina o TLS para todos os sites da máquina; o Compose publica o site e o Umami só em portas de
 loopback.
 
-Testado localmente em 2026-10-26: a imagem, o Compose com o override (as quatro peças saudáveis,
-migrações aplicadas na subida), o backup e a restauração da seção 8 e o smoke de produção contra
-o stack local. O DNS, o Nginx, o Certbot e o workflow no GitHub dependem do domínio e da VPS e
-ainda não foram exercitados.
+Domínio: `quizyourslop.com` (registrado na Hostinger), VPS `200.141.27.76` /
+`2a02:4780:6e:b313::1`, a mesma do `transito-analyzer`. Primeira subida em 2026-10-26: seções 2 a
+5 feitas à mão (a imagem foi carregada com `docker save | ssh vps docker load`, antes de existir
+no GHCR) e o smoke de produção passou contra o domínio. O workflow de deploy pelo GitHub (seção 6)
+ainda não rodou.
 
 O que roda (`deploy/docker-compose.yml`, projeto `quiz`):
 
@@ -50,8 +51,8 @@ Para a release do desktop (`.github/workflows/release.yml`, no nível do reposit
 
 ## 2. Primeira vez na VPS
 
-1. DNS: registros `A` (e `AAAA`, se houver IPv6) para `<domínio>` e `stats.<domínio>` apontando
-   para a VPS.
+1. DNS: registros `A` e `AAAA` para `<domínio>`, `www` e `stats` apontando para a VPS (o
+   `www` só redireciona para o domínio sem `www`).
 2. Usuário e pasta (se a VPS já roda o `transito-analyzer`, o usuário `deploy` e o Docker já
    existem; pule o que já estiver feito):
 
@@ -128,8 +129,19 @@ server {
 }
 ```
 
-`/etc/nginx/sites-available/stats.<domínio>`: igual, com `server_name stats.<domínio>;` e
-`proxy_pass http://127.0.0.1:3102;`.
+No mesmo arquivo, o `www` só redireciona:
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name www.<domínio>;
+    return 301 https://<domínio>$request_uri;
+}
+```
+
+`/etc/nginx/sites-available/stats.<domínio>`: igual ao primeiro bloco, com
+`server_name stats.<domínio>;` e `proxy_pass http://127.0.0.1:3102;`.
 
 O `$connection_upgrade` precisa do `map` no bloco `http` (em `/etc/nginx/conf.d/upgrade.conf`,
 se ainda não existir por causa de outro site):
@@ -147,7 +159,7 @@ Depois:
 sudo ln -s /etc/nginx/sites-available/<domínio> /etc/nginx/sites-enabled/
 sudo ln -s /etc/nginx/sites-available/stats.<domínio> /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d <domínio> -d stats.<domínio>
+sudo certbot --nginx -d <domínio> -d www.<domínio> -d stats.<domínio>
 ```
 
 O Certbot acrescenta o `server` 443 e o redirecionamento HTTP→HTTPS; o `certbot.timer` renova.
@@ -161,7 +173,8 @@ Docker e ufw: portas publicadas passam por fora do ufw. Por isso o override publ
 ## 4. Umami
 
 1. Abra `https://stats.<domínio>`, entre com `admin` / `umami` e troque a senha na hora
-   (Settings → Profile).
+   (Settings → Profile): o Umami fica exposto com a senha padrão até isso. Na VPS do projeto, a
+   senha gerada está em `/opt/quiz/umami-admin.txt` (só o `deploy` lê).
 2. Settings → Websites → Add website: nome `Quiz your slop`, domínio `<domínio>`. Copie o
    Website ID.
 3. No `app.env`: `UMAMI_WEBSITE_ID=<id>` e `UMAMI_SCRIPT_URL=https://stats.<domínio>/script.js`;

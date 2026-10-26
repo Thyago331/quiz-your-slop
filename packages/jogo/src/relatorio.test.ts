@@ -119,6 +119,23 @@ describe('sanitizar', () => {
       'token <segredo> e <segredo>',
     );
     expect(limpo('fale com maria.souza@empresa.com.br')).toBe('fale com <email>');
+  });
+
+  it('JWTs, chaves da AWS e atribuições de segredo', () => {
+    const jwt =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U';
+    expect(limpo(`sessão ${jwt} vencida`)).toBe('sessão <segredo> vencida');
+    expect(limpo('chave AKIAIOSFODNN7EXAMPLE e ASIAABCDEFGHIJKLMNOP')).toBe(
+      'chave <segredo> e <segredo>',
+    );
+    expect(limpo('api_key=abc123XYZ falhou')).toBe('api_key=<segredo> falhou');
+    expect(limpo('APIKEY: abc123 e token=t0k3n.v4l0r e password = hunter2')).toBe(
+      'APIKEY: <segredo> e token=<segredo> e password = <segredo>',
+    );
+    expect(limpo('secret="s3gr3do com espaço" e access_token: \'x-y-z\'')).toBe(
+      'secret=<segredo> e access_token: <segredo>',
+    );
+    expect(limpo('{"api_key": "abc123"}')).toBe('{"<texto>": <segredo>}');
     expect(limpo('falhou https://git.empresa.com/loja-api/pull/3?x=1 ok')).toBe('falhou <url> ok');
   });
 
@@ -162,24 +179,21 @@ describe('detalhesDoErro', () => {
     expect(d.mensagem).toBe('preparar_expedicao: só 2 Desafios válidos depois de 5 pedidos');
   });
 
-  it('erro da camada Rust: código e só os detalhes conhecidos, com o stderr limpo', () => {
+  it('erro da camada Rust: só o código e os números conhecidos; stderr e stdout nunca entram', () => {
     const d = detalhesDoErro(
       {
         codigo: 'falhou',
         detalhe: {
           codigo: 1,
-          stderr: 'Error: cannot open /home/maria/projetos/loja-api/.env\n  SECRET=1',
+          stderr: 'ERROR: cannot open /home/maria/projetos/loja-api/.env\n  SECRET=1',
+          stdout: 'STDOUT-DO-MESTRE',
           prompt: 'Você é o Mestre... conteúdo do Projeto',
         },
       },
       CONTEXTO,
     );
-    expect(d).toEqual({
-      tipo: 'falhou',
-      mensagem: 'codigo: 1',
-      sistema: 'Error: cannot open <projeto>/...\n<trecho de código>',
-      problemas: [],
-    });
+    expect(d).toEqual({ tipo: 'falhou', mensagem: 'codigo: 1', problemas: [] });
+    expect(JSON.stringify(d)).not.toMatch(/ERROR|SECRET|STDOUT|cannot open/);
   });
 
   it('prompts, saídas e qualquer campo desconhecido ficam de fora', () => {

@@ -2,16 +2,18 @@
 //! mostrar o comando exato e guardar a Aventura no arquivo local. Ficam num módulo próprio para a
 //! lista fechada continuar fácil de ler em lib.rs.
 
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
 
 use crate::aventuras;
-use crate::em_segundo_plano;
+use crate::comum::{em_segundo_plano, pasta_de_dados};
 use crate::erro::{Erro, Resultado};
 use crate::mestre::{self, Deteccao, Ia};
+use crate::raizes::RAIZES;
 
 /// O seletor de pastas do sistema. A janela não pode abrir diálogos por conta própria (nenhuma
-/// permissão `dialog:*`): só pede uma pasta, e o Jogo recebe o caminho escolhido ou nada.
+/// permissão `dialog:*`): só pede uma pasta, e o Jogo recebe o caminho escolhido ou nada. A pasta
+/// escolhida passa a ser uma raiz permitida (raizes.rs).
 #[tauri::command]
 pub async fn escolher_pasta(app: AppHandle) -> Resultado<Option<String>> {
     em_segundo_plano(move || {
@@ -19,7 +21,9 @@ pub async fn escolher_pasta(app: AppHandle) -> Resultado<Option<String>> {
             return Ok(None);
         };
         let caminho = escolhida.into_path().map_err(|e| Erro::Io(e.to_string()))?;
-        Ok(Some(caminho.to_string_lossy().into_owned()))
+        let caminho = caminho.to_string_lossy().into_owned();
+        RAIZES.permitir(&caminho);
+        Ok(Some(caminho))
     })
     .await
 }
@@ -37,25 +41,29 @@ pub async fn comando_do_mestre(
     raiz: String,
     raizes_extras: Vec<String>,
 ) -> Resultado<String> {
-    em_segundo_plano(move || mestre::comando_para_exibir(ia, &raiz, &raizes_extras)).await
+    em_segundo_plano(move || mestre::comando_para_exibir(&RAIZES, ia, &raiz, &raizes_extras)).await
 }
 
-fn pasta_de_dados(app: &AppHandle) -> Resultado<std::path::PathBuf> {
-    app.path()
-        .app_data_dir()
-        .map_err(|e| Erro::Io(e.to_string()))
-}
-
-/// Grava a Aventura `id` (UUID) na pasta de dados do app.
+/// Grava a Aventura `id` (UUID) na pasta de dados do app, se toda pasta que ela cita é permitida.
 #[tauri::command]
 pub async fn salvar_aventura(app: AppHandle, id: String, json: String) -> Resultado<()> {
-    let base = pasta_de_dados(&app)?;
-    em_segundo_plano(move || aventuras::salvar(&base, &id, &json)).await
+    let base = pasta_de_dados::<Erro>(&app)?;
+    em_segundo_plano(move || {
+        RAIZES.conferir_aventura(&json)?;
+        aventuras::salvar(&base, &id, &json)
+    })
+    .await
 }
 
-/// O conteúdo de todas as Aventuras guardadas (o Jogo confere cada uma).
+/// O conteúdo de todas as Aventuras guardadas (o Jogo confere cada uma). As pastas delas passam a
+/// ser raízes permitidas.
 #[tauri::command]
 pub async fn carregar_aventuras(app: AppHandle) -> Resultado<Vec<String>> {
-    let base = pasta_de_dados(&app)?;
-    em_segundo_plano(move || aventuras::carregar(&base)).await
+    let base = pasta_de_dados::<Erro>(&app)?;
+    em_segundo_plano(move || {
+        let aventuras = aventuras::carregar(&base)?;
+        RAIZES.permitir_das_aventuras(&aventuras);
+        Ok(aventuras)
+    })
+    .await
 }

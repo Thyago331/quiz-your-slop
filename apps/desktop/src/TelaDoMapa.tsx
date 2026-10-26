@@ -20,6 +20,7 @@ import {
   type LigacaoNoMapa,
 } from '@quiz/ui';
 import { ListaDeLinhas, type Linha } from './Linhas.tsx';
+import { TelaDoRelatorio, itemDoRelatorio } from './Relatorio.tsx';
 import { useEsc } from './TelaProvisoria.tsx';
 
 /** O nome do Projeto na tela (só nesta máquina): os repositórios, juntos. */
@@ -32,8 +33,11 @@ type TelaDoMapaProps = {
   mudancas?: Readonly<Record<string, MudancaDaRegiao>>;
   /** O XP do Jogador, somado em todas as Aventuras. */
   xp: number;
-  /** O detalhe das vizinhas em andamento: enquanto houver, ninguém parte em Expedição. */
-  detalhes: { ocupado: boolean; linhas: readonly Linha[] };
+  /**
+   * O detalhe das vizinhas em andamento: enquanto houver, ninguém parte em Expedição. `falha`: o
+   * erro do último detalhe que falhou, para o relatório opcional.
+   */
+  detalhes: { ocupado: boolean; linhas: readonly Linha[]; falha?: { erro: unknown } };
   /** Região onde o cursor começa (a da última Expedição, por exemplo). */
   inicial?: string;
   onPartir: (regiaoId: string) => void;
@@ -57,7 +61,9 @@ export function TelaDoMapa({
   const idioma = useIdioma();
   const m = useMensagens();
   const t = m.ui.aventura;
-  useEsc(onVoltar);
+  // O relatório de erro aberto (opcional, Relatorio.tsx), depois de um detalhe que falhou.
+  const [relatando, setRelatando] = useState(false);
+  useEsc(relatando ? () => {} : onVoltar);
   const disposicao = disporMapa(
     aventura.territorios,
     aventura.regioes.map((r) => ({ ...r, estado: aventura.mapa.estados[r.id] ?? 'nevoa' })),
@@ -85,6 +91,22 @@ export function TelaDoMapa({
   const situacao =
     estado === 'revelada' ? t.jaRevelada : estado === 'desatualizada' ? t.desatualizada : undefined;
   const mudanca = regiao && estado === 'desatualizada' ? mudancas[regiao.id] : undefined;
+  const falha = detalhes.ocupado ? undefined : detalhes.falha;
+
+  if (relatando && falha) {
+    return (
+      <TelaDoRelatorio
+        pedido={{
+          erro: falha.erro,
+          onde: 'vizinha',
+          mestre: aventura.mestre,
+          repositorios: aventura.repositorios,
+          nomes: [...aventura.regioes, ...aventura.territorios].map((x) => x.nome),
+        }}
+        onVoltar={() => setRelatando(false)}
+      />
+    );
+  }
 
   return (
     <main className="tela-mapa">
@@ -164,11 +186,13 @@ export function TelaDoMapa({
                 // Um detalhe em andamento ainda é do Mestre atual.
                 desabilitado: detalhes.ocupado,
               },
+              ...(falha ? [itemDoRelatorio(idioma)] : []),
               { id: 'voltar', rotulo: t.voltar },
             ]}
             onEscolher={(id) => {
               if (id === 'voltar') onVoltar();
               else if (id === 'trocar-mestre') onTrocarMestre();
+              else if (id === 'relatorio') setRelatando(true);
               else if (selecionada && id === 'partir') partir(selecionada);
               else if (selecionada && id === 'detalhar') onDetalhar(selecionada);
             }}

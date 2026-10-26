@@ -59,6 +59,10 @@ export function mensagemDoErro(e: unknown, t: Erros): string {
   }
   if (ehErroDoSistema(e)) {
     if (e.codigo === 'mestre_ausente') return t.mestre_ausente;
+    if (e.codigo === 'sem_modo_restrito')
+      return formatar(t.sem_modo_restrito, { faltando: e.detalhe.faltando.join(', ') });
+    if (e.codigo === 'raiz_nao_permitida')
+      return formatar(t.raiz_nao_permitida, { pasta: e.detalhe });
     if (e.codigo === 'falhou') {
       return formatar(t.falhou, {
         detalhe: linhaDoErro(e.detalhe.stderr).slice(0, 300) || String(e.detalhe.codigo),

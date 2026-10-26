@@ -28,6 +28,8 @@ keyring = { version = "3.6.3", features = ["windows-native", "async-secret-servi
 open = "5.4.5"
 getrandom = "0.3.4"
 sha2 = "0.10"
+# Pasta temporária privada do Codex (mestre.rs): nome aleatório, criada com exclusividade e 0700.
+tempfile = "3.27.0"
 base64 = "0.22"
 # Atualização automática (src/atualizacao.rs): como o diálogo, só chamado do Rust; a janela não
 # recebe nenhuma permissão updater:*. O reinício é o AppHandle::restart do próprio Tauri.

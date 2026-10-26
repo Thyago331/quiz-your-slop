@@ -241,7 +241,17 @@ Detalhe: [Qual é a stack técnica do Jogo, do site e do servidor](https://githu
   - `packages/jogo`: regras, XP, validação do contrato.
 - **Desktop**:
   - Lógica em TypeScript.
-  - **Camada fina em Rust** com lista fechada de comandos: rodar a CLI do Mestre, rodar `git`, ler arquivos para conferir Evidências, auto-update.
+  - **Camada fina em Rust** com lista fechada de comandos (a interface não tem plugin de sistema de arquivos, shell, rede ou abertura de URLs; tudo passa por estes):
+    - Mestre: `rodar_mestre` (a CLI headless e somente leitura), `detectar_mestre` (se a CLI está instalada e tem o modo restrito), `comando_do_mestre` (o comando exato, para o aviso "O Mestre só pode LER").
+    - `git`: `rodar_git` (só as leituras permitidas: `rev-parse HEAD`, `diff`, `diff --numstat`, `ls-files`).
+    - Arquivos do Projeto: `ler_arquivo` (para conferir Evidências, com teto de tamanho e sem sair da raiz).
+    - Aventuras guardadas: `salvar_aventura`, `carregar_aventuras` (só em `<dados do app>/aventuras/<uuid>.json`).
+    - Seletor de pastas: `escolher_pasta`.
+    - Login e sessão: `entrar`, `cancelar_entrada`, `sessao_atual`, `sair`.
+    - Sync do progresso: `sincronizar_progresso`, `estado_do_envio` (a tela "O que é enviado").
+    - Relatório de erro: `abrir_relatorio` (só abre a issue nova do repositório do Jogo no navegador).
+    - Atualização: `verificar_atualizacao`, `instalar_atualizacao`.
+  - `rodar_mestre`, `rodar_git`, `ler_arquivo` e `comando_do_mestre` só aceitam raízes de Projeto que o Jogador escolheu no `escolher_pasta` ou que vêm das Aventuras guardadas (uma lista em memória, no Rust); qualquer outra pasta é recusada. `rodar_mestre` confere de novo, a cada sessão, se a CLI tem o modo restrito, e recusa se não tiver.
   - Compilado na CI, publicado no GitHub Releases.
 - **Site + backend**: Next.js numa imagem Docker. Serve as páginas públicas, o Tutorial, a API de progresso (`/api/progresso`, `/api/health`) e o login via **Auth.js**. Banco: **Postgres**.
 - **Infra**: VPS Hostinger, tudo em Docker, no padrão do `transito-analyzer`.

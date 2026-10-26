@@ -125,6 +125,9 @@ export const pt = {
       },
       erros: {
         mestre_ausente: 'A CLI do Mestre não foi encontrada no PATH.',
+        sem_modo_restrito:
+          'Esta versão da CLI do Mestre não tem o modo somente leitura que o Jogo exige (faltam {faltando}). Atualize a CLI.',
+        raiz_nao_permitida: 'Esta pasta não foi escolhida por você no seletor de pastas: {pasta}',
         falhou: 'A CLI terminou com erro: {detalhe}',
         tempo_esgotado: 'O Mestre demorou demais (mais de {segundos} s).',
         saida_invalida:

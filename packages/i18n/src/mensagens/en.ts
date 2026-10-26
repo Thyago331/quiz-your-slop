@@ -122,6 +122,9 @@ export const en: Mensagens = {
       },
       erros: {
         mestre_ausente: "The Master's CLI was not found in the PATH.",
+        sem_modo_restrito:
+          "This version of the Master's CLI lacks the read-only mode the Game requires (missing {faltando}). Update the CLI.",
+        raiz_nao_permitida: 'You did not pick this folder in the folder picker: {pasta}',
         falhou: 'The CLI ended with an error: {detalhe}',
         tempo_esgotado: 'The Master took too long (more than {segundos} s).',
         saida_invalida: "After {n} attempts, the Master's answer was still invalid: {detalhe}",

@@ -1,13 +1,14 @@
 //! A raiz do Projeto e os arquivos dentro dela.
 //!
-//! Cada comando recebe a raiz do Projeto (a pasta de um repositório). Ela virá do seletor de
-//! pastas da Nova Aventura, num ticket seguinte; aqui só se confere que é uma pasta que existe.
+//! Cada comando recebe a raiz do Projeto (a pasta de um repositório), que precisa estar entre as
+//! permitidas (raizes.rs: escolhida no seletor ou de uma Aventura guardada).
 
 use std::fs;
 use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 
 use crate::erro::{Erro, Resultado};
+use crate::raizes::Raizes;
 
 /// Teto de leitura: o bastante para conferir Evidências, pouco para virar cópia do repositório.
 pub const LIMITE_DE_LEITURA: u64 = 2 * 1024 * 1024;
@@ -57,8 +58,8 @@ pub fn resolver_arquivo(raiz: &Path, caminho: &str) -> Resultado<PathBuf> {
 }
 
 /// O conteúdo (texto UTF-8) de um arquivo do Projeto, até `limite` bytes.
-pub fn ler_arquivo(raiz: &str, caminho: &str, limite: u64) -> Resultado<String> {
-    let raiz = validar_raiz(raiz)?;
+pub fn ler_arquivo(raizes: &Raizes, raiz: &str, caminho: &str, limite: u64) -> Resultado<String> {
+    let raiz = raizes.conferir(raiz)?;
     let arquivo = resolver_arquivo(&raiz, caminho)?;
     // Lê no máximo limite + 1 bytes: o arquivo pode crescer entre o metadata e a leitura.
     let mut bytes = Vec::new();
@@ -75,6 +76,23 @@ pub fn ler_arquivo(raiz: &str, caminho: &str, limite: u64) -> Resultado<String> 
 mod testes {
     use super::*;
 
+    /// `ler_arquivo` com a raiz já permitida (como se o Jogador a tivesse escolhido).
+    fn le(raiz: &str, caminho: &str, limite: u64) -> Resultado<String> {
+        let raizes = Raizes::nova();
+        raizes.permitir(raiz);
+        ler_arquivo(&raizes, raiz, caminho, limite)
+    }
+
+    #[test]
+    fn recusa_raiz_que_o_jogador_nao_escolheu() {
+        let raiz = projeto("nao-escolhida");
+        let r = raiz.to_str().unwrap();
+        assert!(matches!(
+            ler_arquivo(&Raizes::nova(), r, "src/pedidos.ts", 100),
+            Err(Erro::RaizNaoPermitida(_))
+        ));
+    }
+
     /// Uma pasta descartável com um Projeto mínimo.
     fn projeto(nome: &str) -> PathBuf {
         let raiz = std::env::temp_dir().join(format!("quiz-projeto-{nome}-{}", std::process::id()));
@@ -87,9 +105,9 @@ mod testes {
     #[test]
     fn le_arquivo_do_projeto() {
         let raiz = projeto("le");
-        let texto = ler_arquivo(raiz.to_str().unwrap(), "src/pedidos.ts", LIMITE_DE_LEITURA);
+        let texto = le(raiz.to_str().unwrap(), "src/pedidos.ts", LIMITE_DE_LEITURA);
         assert_eq!(texto.unwrap(), "export const x = 1;\n");
-        let com_ponto = ler_arquivo(raiz.to_str().unwrap(), "./src/pedidos.ts", 100);
+        let com_ponto = le(raiz.to_str().unwrap(), "./src/pedidos.ts", 100);
         assert!(com_ponto.is_ok());
     }
 
@@ -134,14 +152,8 @@ mod testes {
     fn recusa_pasta_e_arquivo_inexistente() {
         let raiz = projeto("pasta");
         let r = raiz.to_str().unwrap();
-        assert!(matches!(
-            ler_arquivo(r, "src", 100),
-            Err(Erro::CaminhoRecusado(_))
-        ));
-        assert!(matches!(
-            ler_arquivo(r, "src/nada.ts", 100),
-            Err(Erro::Io(_))
-        ));
+        assert!(matches!(le(r, "src", 100), Err(Erro::CaminhoRecusado(_))));
+        assert!(matches!(le(r, "src/nada.ts", 100), Err(Erro::Io(_))));
     }
 
     #[test]
@@ -149,11 +161,11 @@ mod testes {
         let raiz = projeto("limite");
         let r = raiz.to_str().unwrap();
         assert_eq!(
-            ler_arquivo(r, "src/pedidos.ts", 5),
+            le(r, "src/pedidos.ts", 5),
             Err(Erro::ArquivoGrande { limite: 5 })
         );
         fs::write(raiz.join("imagem.bin"), [0xff, 0xfe, 0x00]).unwrap();
-        assert_eq!(ler_arquivo(r, "imagem.bin", 100), Err(Erro::NaoEhTexto));
+        assert_eq!(le(r, "imagem.bin", 100), Err(Erro::NaoEhTexto));
     }
 
     #[cfg(unix)]
@@ -167,14 +179,14 @@ mod testes {
         symlink(raiz.join("src/pedidos.ts"), raiz.join("atalho-dentro.ts")).unwrap();
         let r = raiz.to_str().unwrap();
         assert!(matches!(
-            ler_arquivo(r, "atalho.ts", 100),
+            le(r, "atalho.ts", 100),
             Err(Erro::CaminhoRecusado(_))
         ));
         assert!(matches!(
-            ler_arquivo(r, "pasta-de-fora/pedidos.ts", 100),
+            le(r, "pasta-de-fora/pedidos.ts", 100),
             Err(Erro::CaminhoRecusado(_))
         ));
         // Symlink que continua dentro do Projeto vale.
-        assert!(ler_arquivo(r, "atalho-dentro.ts", 100).is_ok());
+        assert!(le(r, "atalho-dentro.ts", 100).is_ok());
     }
 }

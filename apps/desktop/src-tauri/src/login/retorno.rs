@@ -2,10 +2,16 @@
 //! `GET /retorno?codigo=...&estado=...` que o site manda o navegador fazer. É HTTP mínimo e estrito:
 //! só GET, só esse caminho, cabeçalho limitado, um pedido por conexão; o resto recebe erro e o
 //! servidor continua esperando, até o prazo ou o cancelamento.
+//!
+//! Cada conexão é atendida numa thread curta (no máximo `MAXIMO_DE_CONEXOES` ao mesmo tempo), com
+//! um segundo para mandar o cabeçalho: um processo local que abre conexões e fica parado não
+//! segura o retorno de verdade do navegador.
 
 use std::io::{ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::mpsc::{self, RecvTimeoutError};
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -13,10 +19,12 @@ use super::ErroDeLogin;
 
 /// Maior pedido aceito (linha + cabeçalhos); um navegador manda bem menos que isso.
 pub const LIMITE_DO_PEDIDO: usize = 8 * 1024;
-/// Quanto cada conexão tem para mandar o pedido inteiro.
-const ESPERA_DA_CONEXAO: Duration = Duration::from_secs(5);
-/// De quanto em quanto tempo o laço olha o prazo e o cancelamento.
-const PASSO: Duration = Duration::from_millis(100);
+/// Quanto cada conexão tem para mandar o pedido inteiro (o navegador manda tudo de uma vez).
+const ESPERA_DA_CONEXAO: Duration = Duration::from_secs(1);
+/// Conexões atendidas ao mesmo tempo; as que passam disso são fechadas na hora.
+const MAXIMO_DE_CONEXOES: usize = 8;
+/// De quanto em quanto tempo o laço olha conexões novas, o prazo e o cancelamento.
+const PASSO: Duration = Duration::from_millis(50);
 
 /// O que o site mandou de volta.
 #[derive(Debug, PartialEq, Eq)]
@@ -107,11 +115,16 @@ fn julgar(bruto: &[u8], estado: &str) -> Julgamento {
 /// Lê o cabeçalho do pedido, sem passar do limite nem do tempo da conexão.
 fn ler_pedido(conexao: &mut TcpStream) -> std::io::Result<Vec<u8>> {
     conexao.set_nonblocking(false)?;
-    conexao.set_read_timeout(Some(ESPERA_DA_CONEXAO))?;
     let mut bruto = Vec::with_capacity(1024);
     let mut bloco = [0u8; 1024];
-    let inicio = Instant::now();
-    while bruto.len() <= LIMITE_DO_PEDIDO && inicio.elapsed() < ESPERA_DA_CONEXAO {
+    let fim = Instant::now() + ESPERA_DA_CONEXAO;
+    while bruto.len() <= LIMITE_DO_PEDIDO {
+        // O prazo vale para o pedido inteiro, não para cada pedaço.
+        let resta = fim.saturating_duration_since(Instant::now());
+        if resta.is_zero() {
+            break;
+        }
+        conexao.set_read_timeout(Some(resta))?;
         let n = conexao.read(&mut bloco)?;
         if n == 0 {
             break;
@@ -147,6 +160,28 @@ pub fn responder(mut conexao: TcpStream, status: u16, html: &str) {
     let _ = conexao.flush();
 }
 
+/// Atende uma conexão: um pedido recusado recebe o erro aqui; o aceito vai para `esperar`.
+fn atender(mut conexao: TcpStream, estado: &str, aceitos: &mpsc::Sender<(Desfecho, TcpStream)>) {
+    let Ok(bruto) = ler_pedido(&mut conexao) else {
+        return;
+    };
+    match julgar(&bruto, estado) {
+        Julgamento::Aceito(desfecho) => {
+            let _ = aceitos.send((desfecho, conexao));
+        }
+        Julgamento::Recusado(status) => responder(conexao, status, ""),
+    }
+}
+
+/// Desconta a conexão ao terminar (mesmo se a thread cair).
+struct Vaga(Arc<AtomicUsize>);
+
+impl Drop for Vaga {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
 /// Espera o retorno com o `estado` certo. Devolve o desfecho e a conexão dele, para a resposta
 /// final ao navegador sair depois da troca do código.
 pub fn esperar(
@@ -157,6 +192,9 @@ pub fn esperar(
 ) -> Result<(Desfecho, TcpStream), ErroDeLogin> {
     ouvinte.set_nonblocking(true)?;
     let fim = Instant::now() + prazo;
+    let estado: Arc<str> = estado.into();
+    let ativas = Arc::new(AtomicUsize::new(0));
+    let (envia, aceitos) = mpsc::channel();
     loop {
         if cancelado.load(Ordering::SeqCst) {
             return Err(ErroDeLogin::Cancelado);
@@ -167,17 +205,27 @@ pub fn esperar(
             });
         }
         match ouvinte.accept() {
-            Ok((mut conexao, _)) => {
-                let Ok(bruto) = ler_pedido(&mut conexao) else {
+            Ok((conexao, _)) => {
+                if ativas.fetch_add(1, Ordering::SeqCst) >= MAXIMO_DE_CONEXOES {
+                    ativas.fetch_sub(1, Ordering::SeqCst);
+                    drop(conexao);
                     continue;
-                };
-                match julgar(&bruto, estado) {
-                    Julgamento::Aceito(desfecho) => return Ok((desfecho, conexao)),
-                    Julgamento::Recusado(status) => responder(conexao, status, ""),
                 }
+                let vaga = Vaga(ativas.clone());
+                let (estado, envia) = (estado.clone(), envia.clone());
+                thread::spawn(move || {
+                    let _vaga = vaga;
+                    atender(conexao, &estado, &envia);
+                });
             }
-            Err(e) if e.kind() == ErrorKind::WouldBlock => thread::sleep(PASSO),
+            Err(e) if e.kind() == ErrorKind::WouldBlock => match aceitos.recv_timeout(PASSO) {
+                Ok(aceito) => return Ok(aceito),
+                Err(RecvTimeoutError::Timeout | RecvTimeoutError::Disconnected) => {}
+            },
             Err(e) => return Err(e.into()),
+        }
+        if let Ok(aceito) = aceitos.try_recv() {
+            return Ok(aceito);
         }
     }
 }
@@ -314,6 +362,61 @@ mod testes {
         );
         assert!(final_.starts_with("HTTP/1.1 200 OK\r\n"), "{final_}");
         assert!(final_.ends_with("<p>pode voltar</p>"));
+    }
+
+    /// Um processo local que abre conexões e não manda nada não segura o retorno de verdade.
+    #[test]
+    fn conexao_parada_nao_trava_o_retorno() {
+        let (ouvinte, endereco) = ouvinte();
+        let cancelado = AtomicBool::new(false);
+        let paradas: Vec<TcpStream> = (0..3)
+            .map(|_| TcpStream::connect(endereco).unwrap())
+            .collect();
+        // Uma que manda meio cabeçalho e para.
+        let mut meia = TcpStream::connect(endereco).unwrap();
+        meia.write_all(b"GET /retorno?codigo=").unwrap();
+        let cliente = thread::spawn(move || {
+            thread::sleep(Duration::from_millis(150));
+            let inicio = Instant::now();
+            let mut certo = TcpStream::connect(endereco).unwrap();
+            certo
+                .write_all(&get(&format!("/retorno?codigo={CODIGO}&estado={ESTADO}")))
+                .unwrap();
+            inicio
+        });
+        let (desfecho, conexao) =
+            esperar(&ouvinte, ESTADO, Duration::from_secs(10), &cancelado).unwrap();
+        let inicio = cliente.join().unwrap();
+        assert_eq!(desfecho, Desfecho::Codigo(CODIGO.into()));
+        assert!(
+            inicio.elapsed() < Duration::from_millis(700),
+            "{:?}",
+            inicio.elapsed()
+        );
+        drop(conexao);
+        drop((paradas, meia));
+    }
+
+    /// Cada conexão tem no máximo um segundo para mandar o cabeçalho.
+    #[test]
+    fn conexao_lenta_cai_em_um_segundo() {
+        assert!(ESPERA_DA_CONEXAO <= Duration::from_secs(1));
+        let (ouvinte, endereco) = ouvinte();
+        let lenta = thread::spawn(move || {
+            let mut c = TcpStream::connect(endereco).unwrap();
+            let inicio = Instant::now();
+            let mut resposta = String::new();
+            let _ = c.read_to_string(&mut resposta);
+            (inicio.elapsed(), resposta)
+        });
+        let cancelado = AtomicBool::new(false);
+        let _ = esperar(&ouvinte, ESTADO, Duration::from_millis(2500), &cancelado);
+        let (tempo, resposta) = lenta.join().unwrap();
+        assert!(tempo < Duration::from_millis(2000), "{tempo:?}");
+        assert!(
+            resposta.is_empty() || resposta.starts_with("HTTP/1.1 400"),
+            "{resposta}"
+        );
     }
 
     #[test]

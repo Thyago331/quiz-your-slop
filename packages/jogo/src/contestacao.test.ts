@@ -171,6 +171,21 @@ describe('contestar (Contestação real com o Mestre)', () => {
     });
   });
 
+  it('mantido sem nenhuma Evidência válida: a explicação do Mestre, as Evidências do Desafio', async () => {
+    const { transporte, pedidos } = falso({
+      veredito: 'mantido',
+      explicacao: 'O gabarito está certo.',
+      evidencias: [provaInventada],
+    });
+    const r = await contestar(transporte, entrada, opcoesDaContestacao);
+    expect(pedidos).toHaveLength(1);
+    expect(r).toEqual({
+      veredito: 'mantido',
+      explicacao: 'O gabarito está certo.',
+      evidencias: desafio.evidencias,
+    });
+  });
+
   it('saída fora do schema tenta de novo; depois das tentativas, erro claro', async () => {
     const certo = falso('não é JSON', { veredito: 'anulado' }, anulado(provaBoa));
     expect((await contestar(certo.transporte, entrada, opcoesDaContestacao)).veredito).toBe(

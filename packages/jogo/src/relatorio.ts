@@ -5,8 +5,13 @@
 //   caminho absoluto fora do Projeto      → <caminho>        Região ou Território       → <nome>
 //   usuário (das pastas pessoais)         → <usuário>        trecho de código           → <trecho de código>
 //   texto entre aspas (saída do Mestre)   → "<texto>"        URL que não é do Jogo      → <url>
-//   e-mail → <email>; token, chave ou Bearer → <segredo>.
+//   e-mail → <email>; token, chave ou Bearer → <segredo>; JWT (eyJ...), chave da AWS (AKIA/ASIA...)
+//   e o valor de `api_key=`, `token:`, `password=`, `secret=`... → <segredo>.
 // Prompts e saídas do Mestre nunca entram: `detalhesDoErro` só lê campos conhecidos do erro.
+// Decisão: o stderr e o stdout da CLI também nunca entram, nem a última linha `ERROR:` (no Codex,
+// o stderr traz o prompt e a saída das ferramentas, isto é, código do Projeto; nenhum filtro de
+// "linha segura" garante que um pedaço dele não passe). Do erro da camada Rust ficam só o código
+// (a categoria fixa, como `falhou`) e os números conhecidos (código de saída, segundos...).
 import type { NomeDaChamada } from './mestre.ts';
 
 export type ContextoDoRelatorio = {
@@ -101,6 +106,14 @@ export function sanitizar(texto: string, contexto: ContextoDoRelatorio = {}): st
     .replace(/\bBearer\s+\S+/gi, () => `Bearer ${marcar('<segredo>')}`)
     .replace(/\b(?:qys|gh[pousr]|github_pat)_[A-Za-z0-9_]+/g, () => marcar('<segredo>'))
     .replace(/\bsk-[A-Za-z0-9_-]{8,}/g, () => marcar('<segredo>'))
+    .replace(/\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}/g, () =>
+      marcar('<segredo>'),
+    )
+    .replace(/\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/g, () => marcar('<segredo>'))
+    .replace(
+      /\b([\w-]*(?:api[_-]?key|token|password|passwd|secret)"?\s*[:=]\s*)(?:"[^"\n]*"|'[^'\n]*'|[^\s,;}"']+)/gi,
+      (_, chave: string) => `${chave}${marcar('<segredo>')}`,
+    )
     .replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, () => marcar('<email>'));
 
   // URLs: as do próprio Jogo (o código dele, na pilha) ficam; as outras somem.
@@ -178,8 +191,6 @@ export type DetalhesDoErro = {
   /** O nome do erro (ErroDoMestre, PoucosDesafios...) ou o código da camada Rust. */
   tipo: string;
   mensagem: string;
-  /** O stderr da CLI, quando a camada Rust o trouxe. */
-  sistema?: string;
   /** Os problemas da última tentativa do Mestre (no máximo 10). */
   problemas: string[];
   /** Até 15 linhas da pilha. */
@@ -196,8 +207,8 @@ const ehObjeto = (x: unknown): x is Record<string, unknown> =>
 
 /**
  * O que o relatório conta de um erro, já limpo. Só campos conhecidos: nome, mensagem, pilha e
- * problemas de um Error; código, stderr e números de um erro da camada Rust. Prompt, saída do
- * Mestre ou qualquer outro campo pendurado no erro não entra.
+ * problemas de um Error; código e números de um erro da camada Rust. Prompt, saída do Mestre,
+ * stderr/stdout da CLI ou qualquer outro campo pendurado no erro não entra.
  */
 export function detalhesDoErro(erro: unknown, contexto: ContextoDoRelatorio = {}): DetalhesDoErro {
   const limpo = (texto: string) => sanitizar(texto, contexto);
@@ -225,20 +236,13 @@ export function detalhesDoErro(erro: unknown, contexto: ContextoDoRelatorio = {}
   if (ehObjeto(erro) && typeof erro.codigo === 'string') {
     const { detalhe } = erro;
     let mensagem = '';
-    let sistema: string | undefined;
     if (typeof detalhe === 'string') mensagem = limpo(detalhe);
     else if (ehObjeto(detalhe)) {
       mensagem = NUMEROS_CONHECIDOS.filter((k) => typeof detalhe[k] === 'number')
         .map((k) => `${k}: ${detalhe[k] as number}`)
         .join(', ');
-      if (typeof detalhe.stderr === 'string') sistema = limpo(detalhe.stderr);
     }
-    return {
-      tipo: limpo(erro.codigo),
-      mensagem,
-      ...(sistema !== undefined && { sistema }),
-      problemas: [],
-    };
+    return { tipo: limpo(erro.codigo), mensagem, problemas: [] };
   }
   return { tipo: 'erro', mensagem: typeof erro === 'string' ? limpo(erro) : '', problemas: [] };
 }

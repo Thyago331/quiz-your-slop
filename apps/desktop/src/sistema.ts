@@ -10,7 +10,7 @@ export type Ia = IaDoMestre;
 
 export type PedidoMestre = {
   ia: Ia;
-  /** A pasta do Projeto (virá do seletor de pastas da Nova Aventura). */
+  /** A pasta do Projeto (escolhida no seletor de pastas ou de uma Aventura guardada). */
   raiz: string;
   /** Instruções do papel de Mestre + JSON de contexto (docs/contrato-mestre.md). */
   prompt: string;
@@ -31,11 +31,13 @@ export type ComandoGit =
 export type ErroDoSistema =
   | { codigo: 'atualizacao'; detalhe: string }
   | { codigo: 'raiz_invalida'; detalhe: string }
+  | { codigo: 'raiz_nao_permitida'; detalhe: string }
   | { codigo: 'caminho_recusado'; detalhe: string }
   | { codigo: 'argumento_recusado'; detalhe: string }
   | { codigo: 'arquivo_grande'; detalhe: { limite: number } }
   | { codigo: 'nao_eh_texto' }
   | { codigo: 'mestre_ausente'; detalhe: string }
+  | { codigo: 'sem_modo_restrito'; detalhe: { faltando: string[] } }
   | { codigo: 'falhou'; detalhe: { codigo: number | null; stderr: string } }
   | { codigo: 'tempo_esgotado'; detalhe: { segundos: number } }
   | { codigo: 'io'; detalhe: string };
@@ -43,11 +45,13 @@ export type ErroDoSistema =
 const CODIGOS: readonly ErroDoSistema['codigo'][] = [
   'atualizacao',
   'raiz_invalida',
+  'raiz_nao_permitida',
   'caminho_recusado',
   'argumento_recusado',
   'arquivo_grande',
   'nao_eh_texto',
   'mestre_ausente',
+  'sem_modo_restrito',
   'falhou',
   'tempo_esgotado',
   'io',

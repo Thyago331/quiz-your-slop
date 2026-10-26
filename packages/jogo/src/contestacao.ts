@@ -114,7 +114,9 @@ export type OpcoesDaContestacao = OpcoesDaChamada & { lerArquivo: LerArquivoDoPr
  * `contestar`: o Mestre relê o código e reavalia o gabarito. Das Evidências do veredito ficam as
  * que batem com o arquivo. Anular exige prova: um "anulado" sem nenhuma Evidência válida é
  * recusado e pedido de novo (até 2 vezes); se ainda assim não vier prova, o gabarito fica mantido
- * (`semProva`), com a explicação e as Evidências do próprio Desafio. Saída quebrada nas tentativas
+ * (`semProva`), com a explicação e as Evidências do próprio Desafio. Um "mantido" sem nenhuma
+ * Evidência válida vale (manter não exige prova nova), com a explicação do Mestre e as Evidências
+ * do próprio Desafio no lugar das dele, que não bateram com o código. Saída quebrada nas tentativas
  * é ErroDoMestre; erro do transporte sobe como está.
  */
 export async function contestar(
@@ -160,7 +162,11 @@ export async function contestar(
         }
         return {
           ok: true,
-          valor: { veredito: saida.veredito, explicacao: saida.explicacao.trim(), evidencias },
+          valor: {
+            veredito: saida.veredito,
+            explicacao: saida.explicacao.trim(),
+            evidencias: evidencias.length > 0 ? evidencias : entrada.desafio.evidencias,
+          },
         };
       },
       opcoes.aoAcompanhar,

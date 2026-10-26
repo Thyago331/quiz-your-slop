@@ -5,10 +5,15 @@
 //! relatório de erro (src/relatorio.rs), listados em capabilities/principal.json. Os plugins de
 //! diálogo e de atualização só são usados do Rust (`escolher_pasta`, atualizacao.rs); o login abre
 //! o navegador só na página do próprio site, e o relatório só na issue nova do repositório do Jogo.
-//! Rede, só três destinos: o site (login e /api/progresso, em login/site.rs) e o updater.
+//! Os comandos que tocam o Projeto só aceitam pastas que o Jogador escolheu ou que estão nas
+//! Aventuras guardadas (raizes.rs).
+//! Rede, a do próprio Jogo, só dois destinos: o site (login e /api/progresso, em login/site.rs) e o
+//! `latest.json` das Releases do Jogo no GitHub (o updater, em tauri.conf.json). As CLIs do Mestre
+//! rodam com a rede delas, fora do controle do Jogo.
 
 mod atualizacao;
 mod aventuras;
+mod comum;
 mod envio;
 mod erro;
 mod git;
@@ -17,38 +22,34 @@ mod mestre;
 mod nova_aventura;
 mod processo;
 mod projeto;
+mod raizes;
 mod relatorio;
 
-use erro::{Erro, Resultado};
+use comum::em_segundo_plano;
+use erro::Resultado;
 use git::ComandoGit;
 use mestre::PedidoMestre;
-
-/// Processos e disco ficam fora da thread da interface.
-async fn em_segundo_plano<T: Send + 'static>(
-    tarefa: impl FnOnce() -> Resultado<T> + Send + 'static,
-) -> Resultado<T> {
-    tauri::async_runtime::spawn_blocking(tarefa)
-        .await
-        .map_err(|e| Erro::Io(e.to_string()))?
-}
+use raizes::RAIZES;
 
 /// Roda a CLI do Mestre (Claude Code ou Codex) somente leitura na pasta do Projeto.
 #[tauri::command]
 async fn rodar_mestre(pedido: PedidoMestre) -> Resultado<String> {
-    em_segundo_plano(move || mestre::rodar(&pedido)).await
+    em_segundo_plano(move || mestre::rodar(&pedido, &RAIZES)).await
 }
 
 /// Roda um dos `git` de leitura permitidos na pasta do Projeto.
 #[tauri::command]
 async fn rodar_git(raiz: String, comando: ComandoGit) -> Resultado<String> {
-    em_segundo_plano(move || git::rodar(&raiz, &comando)).await
+    em_segundo_plano(move || git::rodar(&RAIZES, &raiz, &comando)).await
 }
 
 /// Lê um arquivo do Projeto (para conferir Evidências), pelo caminho relativo à raiz.
 #[tauri::command]
 async fn ler_arquivo(raiz: String, caminho: String) -> Resultado<String> {
-    em_segundo_plano(move || projeto::ler_arquivo(&raiz, &caminho, projeto::LIMITE_DE_LEITURA))
-        .await
+    em_segundo_plano(move || {
+        projeto::ler_arquivo(&RAIZES, &raiz, &caminho, projeto::LIMITE_DE_LEITURA)
+    })
+    .await
 }
 
 pub fn rodar() {

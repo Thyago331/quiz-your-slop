@@ -82,6 +82,13 @@ jobs:
       # Sem cache de build: o binário publicado sai sempre de uma compilação limpa.
       - run: pnpm install --frozen-lockfile
 
+      # O frontend (o beforeBuildCommand do tauri.conf.json) compila aqui, sem a chave do updater
+      # no ambiente: nenhum script de build do npm a enxerga.
+      - name: Frontend
+        run: pnpm build
+
+      # Com a chave, só o tauri build: o beforeBuildCommand é desligado (null apaga a chave no
+      # merge do --config), então rodam só o cargo, o bundler e a assinatura.
       - name: Build assinado para o updater
         env:
           QUIZ_SITE_URL: ${{ vars.QUIZ_SITE_URL }}
@@ -94,7 +101,9 @@ jobs:
             https://*) ;;
             *) echo "::error::a variável QUIZ_SITE_URL (https://...) não está definida"; exit 1 ;;
           esac
-          pnpm tauri build --ci --bundles "$BUNDLES" --config "{\"version\":\"$VERSAO\"}"
+          pnpm tauri build --ci --bundles "$BUNDLES" \
+            --config '{"build":{"beforeBuildCommand":null}}' \
+            --config "{\"version\":\"$VERSAO\"}"
 
       - name: Nomes fixos
         env:

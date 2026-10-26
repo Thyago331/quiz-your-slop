@@ -56,7 +56,11 @@ export function Jogo() {
   // A Expedição em curso (região) e a última, onde o cursor volta no mapa.
   const [expedicao, setExpedicao] = useState<string | null>(null);
   const [ultimaRegiao, setUltimaRegiao] = useState<string | undefined>();
-  const [detalhes, setDetalhes] = useState<{ ocupado: boolean; linhas: Linha[] }>({
+  const [detalhes, setDetalhes] = useState<{
+    ocupado: boolean;
+    linhas: Linha[];
+    falha?: { erro: unknown };
+  }>({
     ocupado: false,
     linhas: [],
   });
@@ -87,6 +91,8 @@ export function Jogo() {
       const t = MENSAGENS[idioma].ui.expedicao;
       const nome = (id: string) => aventura.regioes.find((r) => r.id === id)?.nome ?? '???';
       const linhas: Linha[] = [];
+      // O erro do último detalhe que falhou: o mapa oferece o relatório opcional.
+      let falha: { erro: unknown } | undefined;
       const mostrar = (linha: Linha, ocupado = true) => {
         linhas.push(linha);
         setDetalhes({ ocupado, linhas: [...linhas] });
@@ -113,17 +119,19 @@ export function Jogo() {
                 atualizar(e.aventura);
                 mostrar({ tipo: 'ok', texto: formatar(t.detalhada, { regiao }) });
               } else {
+                falha = { erro: e.erro };
                 mostrar({ tipo: 'recusada', texto: formatar(t.detalheFalhou, { regiao }) });
               }
             },
           },
         );
-      } catch {
+      } catch (erro) {
+        falha = { erro };
         for (const id of ids) {
           mostrar({ tipo: 'recusada', texto: formatar(t.detalheFalhou, { regiao: nome(id) }) });
         }
       }
-      setDetalhes({ ocupado: false, linhas: [...linhas] });
+      setDetalhes({ ocupado: false, linhas: [...linhas], ...(falha && { falha }) });
     },
     [atualizar, idioma],
   );

@@ -17,6 +17,7 @@ use base64::Engine;
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
+use crate::comum::em_segundo_plano;
 use retorno::Desfecho;
 use site::Perfil;
 
@@ -169,14 +170,6 @@ fn sair_bloqueando() -> Result<Sessao, ErroDeLogin> {
         cofre::apagar(origem)?;
     }
     Ok(Sessao::Desconectado)
-}
-
-async fn em_segundo_plano<T: Send + 'static>(
-    tarefa: impl FnOnce() -> Result<T, ErroDeLogin> + Send + 'static,
-) -> Result<T, ErroDeLogin> {
-    tauri::async_runtime::spawn_blocking(tarefa)
-        .await
-        .map_err(|e| ErroDeLogin::Io(e.to_string()))?
 }
 
 /// Abre o navegador no login do site e espera o retorno (até 5 minutos).

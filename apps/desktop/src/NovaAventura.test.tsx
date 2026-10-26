@@ -2,7 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AventuraNoProjeto, IaDoMestre } from '@quiz/jogo';
-import { NovaAventura, linhaDoErro } from './NovaAventura.tsx';
+import { MENSAGENS } from '@quiz/i18n';
+import { NovaAventura, linhaDoErro, mensagemDoErro } from './NovaAventura.tsx';
 import * as sistema from './sistema.ts';
 
 vi.mock('./sistema.ts', async (original) => ({
@@ -240,5 +241,24 @@ describe('linhaDoErro', () => {
       'ERROR: {"type":"error","status":400,"error":{"message":"model not supported"}}',
     );
     expect(linhaDoErro('  algo deu errado\n')).toBe('algo deu errado');
+  });
+});
+
+describe('mensagemDoErro', () => {
+  const t = MENSAGENS.pt.ui.nova.erros;
+
+  it('CLI sem modo restrito na hora de rodar: diz o que falta', () => {
+    const texto = mensagemDoErro(
+      { codigo: 'sem_modo_restrito', detalhe: { faltando: ['--tools', '--json-schema'] } },
+      t,
+    );
+    expect(texto).toContain('somente leitura');
+    expect(texto).toContain('--tools, --json-schema');
+  });
+
+  it('pasta que o Jogador não escolheu', () => {
+    expect(mensagemDoErro({ codigo: 'raiz_nao_permitida', detalhe: '/home/u' }, t)).toContain(
+      '/home/u',
+    );
   });
 });

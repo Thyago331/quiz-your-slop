@@ -81,13 +81,15 @@ entrada: {
   classe: Classe;
 }
 saida: {
-  territorios: { nome: string; resumo: string; raizes: string[] }[];
+  territorios: { nome: string; resumo: string; raizes: string[] }[];   // ≥1, nomes sem repetição
   candidatas_entrada: (RegiaoNova & { motivo: string })[];   // 1–3, a primeira é a sugestão da Classe
   aviso_classe?: string;   // ex.: "Projeto não tem front; sugerindo a entrada mais próxima"
 }
 ```
 
-O Jogador confirma uma candidata; o Jogo cria Territórios e a região de entrada e chama `detalhar_regiao`.
+Os Territórios ainda não têm id nesta chamada, então toda candidata vem com `territorio_id: null` e `territorio_novo` **obrigatório**, cujo `nome` é exatamente o de um dos `territorios` propostos na mesma saída (o schema exige os dois campos; candidata que aponta um nome fora da lista é recusada). O Jogo liga a candidata a esse Território pelo nome e usa as `raizes` dele.
+
+O Jogador confirma uma candidata; o Jogo cria Territórios (com ids) e a região de entrada e chama `detalhar_regiao`.
 
 ### 2. `detalhar_regiao`
 
@@ -98,13 +100,16 @@ entrada: {
   regiao: RegiaoConhecida & { arquivos_semente: string[] };
   mapa: RegiaoConhecida[];      // regiões conhecidas, para evitar sobreposição
   classe: Classe;
+  territorios: { id: string; nome: string; resumo: string; raizes: string[] }[];   // além do rascunho original
 }
 saida: {
   resumo: string;
   arquivos: string[];           // lista completa de arquivos da região
-  dividir?: RegiaoNova[];       // se grande demais: substitui a região por estas
+  dividir?: RegiaoNova[];       // se grande demais (≥2): substitui a região por estas
 }
 ```
+
+`territorios` traz os Territórios da Aventura com id, para cada região de `dividir` apontar o seu em `territorio_id` (ou `null` com `territorio_novo`, se for de um Território que ainda não existe). Um `territorio_id` fora desses ids (ou dos Territórios das regiões do `mapa`) é recusado.
 
 ### 3. `preparar_expedicao`
 
@@ -122,6 +127,7 @@ entrada: {
     arquivos_alterados: string[];     // sempre presente; diff omitido se grande demais
   };
   quantidade: number;                 // normalmente 5; menos ao repor Desafios descartados
+  territorios: { id: string; nome: string; resumo: string; raizes: string[] }[];   // além do rascunho original
 }
 saida: {
   desafios: Desafio[];
@@ -129,6 +135,8 @@ saida: {
   arquivos_atualizados?: string[];    // só em Região desatualizada
 }
 ```
+
+`territorios` serve às Ligações com `destino: { nova }`: a região nova aponta um desses ids em `territorio_id` (ou `null` com `territorio_novo`). Como em `detalhar_regiao`, id desconhecido é recusado.
 
 O Jogo guarda as Ligações escondidas; ao vencer a Expedição, revela-as sem nova chamada.
 

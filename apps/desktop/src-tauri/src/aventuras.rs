@@ -50,10 +50,7 @@ pub fn salvar(base: &Path, id: &str, json: &str) -> Resultado<()> {
     if !valor.is_object() {
         return Err(Erro::ArgumentoRecusado("json".into()));
     }
-    fs::create_dir_all(base.join(PASTA))?;
-    let temporario = destino.with_extension("json.tmp");
-    fs::write(&temporario, json)?;
-    fs::rename(&temporario, &destino)?;
+    crate::comum::gravar_atomico(&destino, json)?;
     Ok(())
 }
 

@@ -274,8 +274,10 @@
   font: 15px/1.5 var(--px-fonte-codigo);
   padding: 10px;
   margin: 6px 3px 12px;
-  overflow-x: auto;
-  white-space: pre;
+  /* O JSON exato, sem recuo novo: as linhas quebram na tela, os bytes são os enviados. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-all;
   box-shadow: 0 0 0 3px var(--px-janela-borda);
 }
 .relatorio-texto {

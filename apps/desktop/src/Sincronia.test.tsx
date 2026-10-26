@@ -201,7 +201,7 @@ describe('O que é enviado (desktop)', () => {
   const item = (nome: string) => screen.findByRole('menuitem', { name: nome });
 
   it('sem envio ainda: a lista clara e "nada enviado"', async () => {
-    ponteFalsa({ conta: false });
+    const p = ponteFalsa({ conta: false });
     const user = userEvent.setup();
     render(<Jogo />);
     await user.click(await item('O que é enviado'));
@@ -213,7 +213,9 @@ describe('O que é enviado (desktop)', () => {
     expect(screen.queryByTestId('ultimo-envio')).toBeNull();
     // Sem conta, o resumo espera o login.
     expect(screen.getByRole('status').textContent).toMatch(/entre com o GitHub/);
-    expect(screen.getByTestId('envio-pendente').textContent).toContain('"xp": 0');
+    // Os bytes guardados, como estão: nada de recuo novo.
+    expect(screen.getByTestId('envio-pendente').textContent).toBe(p.pendente);
+    expect(p.pendente).toContain('"xp":0');
   });
 
   it('mostra o JSON exato do último envio, e o XP do site chega ao hub', async () => {
@@ -244,9 +246,7 @@ describe('O que é enviado (desktop)', () => {
     };
     await user.click(await item('O que é enviado'));
     expect(await screen.findByText('Último envio ao servidor · 25/10/2026, 12:00')).toBeTruthy();
-    expect(JSON.parse(screen.getByTestId('ultimo-envio').textContent!)).toEqual(
-      JSON.parse(p.ultimo.json),
-    );
+    expect(screen.getByTestId('ultimo-envio').textContent).toBe(p.ultimo.json);
     expect(screen.queryByTestId('envio-pendente')).toBeNull();
   });
 

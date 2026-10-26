@@ -122,6 +122,9 @@ export const es: Mensagens = {
       },
       erros: {
         mestre_ausente: 'No se encontró la CLI del Máster en el PATH.',
+        sem_modo_restrito:
+          'Esta versión de la CLI del Máster no tiene el modo de solo lectura que el Juego exige (faltan {faltando}). Actualiza la CLI.',
+        raiz_nao_permitida: 'No elegiste esta carpeta en el selector de carpetas: {pasta}',
         falhou: 'La CLI terminó con un error: {detalhe}',
         tempo_esgotado: 'El Máster tardó demasiado (más de {segundos} s).',
         saida_invalida:

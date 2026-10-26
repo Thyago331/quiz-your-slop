@@ -10,6 +10,7 @@ use serde::Deserialize;
 use crate::erro::{Erro, Resultado};
 use crate::processo;
 use crate::projeto;
+use crate::raizes::Raizes;
 
 const LIMITE: Duration = Duration::from_secs(60);
 
@@ -88,8 +89,8 @@ impl ComandoGit {
 }
 
 /// Roda o comando com `current_dir` = raiz do Projeto e devolve o stdout.
-pub fn rodar(raiz: &str, comando: &ComandoGit) -> Resultado<String> {
-    let raiz = projeto::validar_raiz(raiz)?;
+pub fn rodar(raizes: &Raizes, raiz: &str, comando: &ComandoGit) -> Resultado<String> {
+    let raiz = raizes.conferir(raiz)?;
     let args = comando.argumentos()?;
     let saida = processo::executar(Path::new("git"), &args, &raiz, None, LIMITE)?;
     Ok(saida.stdout)
@@ -240,6 +241,13 @@ mod testes {
         git(&["commit", "-q", "-m", "um"]);
 
         let r = raiz.to_str().unwrap();
+        let raizes = Raizes::nova();
+        assert!(matches!(
+            rodar(&raizes, r, &ComandoGit::RevParseHead {}),
+            Err(Erro::RaizNaoPermitida(_))
+        ));
+        raizes.permitir(r);
+        let rodar = |r: &str, c: &ComandoGit| rodar(&raizes, r, c);
         let head = rodar(r, &ComandoGit::RevParseHead {}).unwrap();
         assert_eq!(head.trim().len(), 40);
         let ls = rodar(r, &ComandoGit::LsFiles { caminhos: vec![] }).unwrap();

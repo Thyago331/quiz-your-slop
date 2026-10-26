@@ -18,7 +18,9 @@ use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
+
+use crate::comum::{em_segundo_plano, gravar_atomico, pasta_de_dados};
 
 use crate::login::{cofre, site, ErroDeLogin};
 
@@ -125,14 +127,8 @@ fn caminho(base: &Path, nome: &str) -> PathBuf {
     base.join(PASTA).join(nome)
 }
 
-/// Escreve num temporário ao lado e renomeia: uma queda no meio não deixa meio arquivo.
 fn gravar(base: &Path, nome: &str, conteudo: &str) -> Result<(), ErroDeLogin> {
-    fs::create_dir_all(base.join(PASTA))?;
-    let destino = caminho(base, nome);
-    let temporario = destino.with_extension("json.tmp");
-    fs::write(&temporario, conteudo)?;
-    fs::rename(&temporario, &destino)?;
-    Ok(())
+    Ok(gravar_atomico(&caminho(base, nome), conteudo)?)
 }
 
 fn ler_arquivo(base: &Path, nome: &str) -> Result<Option<String>, ErroDeLogin> {
@@ -264,27 +260,13 @@ pub fn sincronizar(
 /// Uma sincronia de cada vez: a do fim da Expedição e a periódica não se atropelam na fila.
 static TRAVA: Mutex<()> = Mutex::new(());
 
-fn pasta_de_dados(app: &AppHandle) -> Result<PathBuf, ErroDeLogin> {
-    app.path()
-        .app_data_dir()
-        .map_err(|e| ErroDeLogin::Io(e.to_string()))
-}
-
-async fn em_segundo_plano<T: Send + 'static>(
-    tarefa: impl FnOnce() -> Result<T, ErroDeLogin> + Send + 'static,
-) -> Result<T, ErroDeLogin> {
-    tauri::async_runtime::spawn_blocking(tarefa)
-        .await
-        .map_err(|e| ErroDeLogin::Io(e.to_string()))?
-}
-
 /// Envia o resumo de progresso (o JSON de `montarEnvio`) ou o deixa pendente.
 #[tauri::command]
 pub async fn sincronizar_progresso(
     app: AppHandle,
     envio: String,
 ) -> Result<Sincronia, ErroDeLogin> {
-    let base = pasta_de_dados(&app)?;
+    let base = pasta_de_dados::<ErroDeLogin>(&app)?;
     em_segundo_plano(move || {
         let _vez = TRAVA.lock().unwrap_or_else(|e| e.into_inner());
         let origem = site::origem_valida(site::ORIGEM_PADRAO)?;
@@ -303,7 +285,7 @@ pub async fn sincronizar_progresso(
 /// O último envio, o pendente e o último progresso do site, para "O que é enviado".
 #[tauri::command]
 pub async fn estado_do_envio(app: AppHandle) -> Result<EstadoDoEnvio, ErroDeLogin> {
-    let base = pasta_de_dados(&app)?;
+    let base = pasta_de_dados::<ErroDeLogin>(&app)?;
     em_segundo_plano(move || estado(&base)).await
 }
 

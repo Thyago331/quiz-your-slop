@@ -384,6 +384,60 @@ describe('Expedição no Projeto (desktop)', () => {
     expect(ultimo.prompt).toContain('"argumento": "De novo"');
   });
 
+  it('a Contestação falha: o relatório opcional abre e volta à batalha', async () => {
+    preparar();
+    const user = userEvent.setup();
+    await partir(user);
+    const responder = vi.mocked(sistema.rodarMestre).getMockImplementation()!;
+    vi.mocked(sistema.rodarMestre).mockImplementation(async (pedido) => {
+      if (pedido.prompt.includes('Call: contestar'))
+        throw { codigo: 'falhou', detalhe: { codigo: 1, stderr: 'ERROR: /home/a/loja/src/x.ts' } };
+      return responder(pedido);
+    });
+    await contestarOPrimeiro(user);
+    await screen.findByRole('alert');
+    await user.click(item('Enviar relatório (opcional)'));
+    const texto = screen.getByLabelText('Texto do relatório') as HTMLTextAreaElement;
+    expect(texto.value).toContain('**Erro:** falhou — codigo: 1');
+    expect(texto.value).toContain('Expedição — Contestação do gabarito');
+    expect(texto.value).not.toMatch(/ERROR|\/home\/a|loja|Rotas|orders/);
+    await user.click(item('Voltar'));
+    // De volta à batalha, com a falha e as opções de antes.
+    expect((await screen.findByRole('alert')).textContent).toMatch(/não conseguiu reavaliar/);
+    expect(item('Tentar de novo')).toBeTruthy();
+  });
+
+  it('o detalhe de uma vizinha falha: o mapa oferece o relatório opcional', async () => {
+    preparar();
+    const responder = vi.mocked(sistema.rodarMestre).getMockImplementation()!;
+    vi.mocked(sistema.rodarMestre).mockImplementation(async (pedido) => {
+      if (pedido.prompt.includes('Call: detalhar_regiao'))
+        throw { codigo: 'tempo_esgotado', detalhe: { segundos: 1200 } };
+      return responder(pedido);
+    });
+    const user = userEvent.setup();
+    await partir(user);
+    await user.click(item('POST /orders 1'));
+    await user.click(item('Próximo Desafio'));
+    await user.click(item(/src\/pedidos\.ts → criarPedido/));
+    await user.click(item('Próximo Desafio'));
+    await user.click(item('POST /orders 3'));
+    await user.click(item('Próximo Desafio'));
+    await user.click(item('POST /orders 4'));
+    await user.click(item('Fim da batalha'));
+    expect(
+      await screen.findByText(/O Mestre não conseguiu detalhar Serviço de pedidos/),
+    ).toBeTruthy();
+    await user.click(item('Voltar ao mapa'));
+    await user.click(item('Enviar relatório (opcional)'));
+    const texto = screen.getByLabelText('Texto do relatório') as HTMLTextAreaElement;
+    expect(texto.value).toContain('**Erro:** tempo_esgotado — segundos: 1200');
+    expect(texto.value).toContain('Mapa — detalhe de uma região vizinha');
+    expect(texto.value).not.toMatch(/\/home\/a|loja|Rotas|Servidor|pedidos/);
+    await user.click(item('Voltar'));
+    expect(screen.getByRole('button', { name: 'Serviço de pedidos, desbloqueada' })).toBeTruthy();
+  });
+
   it('com menos de 3 Desafios conferidos, erro claro e tentar de novo', async () => {
     const quebrado = { ...multipla(9, 1), evidencias: [{ ...evidencia, trecho: 'inventado' }] };
     preparar({ desafios: [multipla(1, 1), multipla(2, 2), quebrado], ligacoes: [] });

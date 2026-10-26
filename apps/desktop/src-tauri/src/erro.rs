@@ -9,6 +9,8 @@ pub enum Erro {
     Atualizacao(String),
     /// A raiz do Projeto não existe ou não é uma pasta.
     RaizInvalida(String),
+    /// A pasta não foi escolhida pelo Jogador nem está numa Aventura guardada (raizes.rs).
+    RaizNaoPermitida(String),
     /// Caminho absoluto, com `..` ou que sai da raiz do Projeto.
     CaminhoRecusado(String),
     /// Argumento fora do formato permitido (ref de commit, schema...).
@@ -19,6 +21,10 @@ pub enum Erro {
     NaoEhTexto,
     /// A CLI do Mestre não foi encontrada no PATH.
     MestreAusente(String),
+    /// A CLI do Mestre não tem todas as opções do modo restrito (somente leitura): o Jogo não a roda.
+    SemModoRestrito {
+        faltando: Vec<String>,
+    },
     /// O processo terminou com código diferente de zero.
     Falhou {
         codigo: Option<i32>,

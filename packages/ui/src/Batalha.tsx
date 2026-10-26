@@ -103,6 +103,8 @@ type BatalhaProps = {
   onTentarContestarDeNovo?: () => void;
   /** Depois de uma falha: desistir de contestar, sem perder nada. */
   onDesistirDeContestar?: () => void;
+  /** Depois de uma falha: o item que abre o relatório de erro opcional (no desktop). */
+  relatorioDaContestacao?: { rotulo: string; onAbrir: () => void };
   /** O texto do Caçador de Slop no veredito anulado (o padrão é o do Tutorial). */
   textoDoCacador?: string;
   /** O bônus que a tela anuncia no GOLPE CRÍTICO. */
@@ -123,6 +125,7 @@ export function Batalha({
   pedidoDeContestacao,
   onTentarContestarDeNovo,
   onDesistirDeContestar,
+  relatorioDaContestacao,
   textoDoCacador,
   xpCacadorDeSlop = CALIBRAGEM_PADRAO.xpCacadorDeSlop,
   onAbrirEvidencia,
@@ -262,6 +265,7 @@ export function Batalha({
                 pedido={pedidoDeContestacao}
                 onTentarDeNovo={() => onTentarContestarDeNovo?.()}
                 onDesistir={() => onDesistirDeContestar?.()}
+                {...(relatorioDaContestacao && { relatorio: relatorioDaContestacao })}
               />
             ) : escrevendo ? (
               <FormularioDeContestacao
@@ -352,10 +356,12 @@ function ContestacaoPendente({
   pedido,
   onTentarDeNovo,
   onDesistir,
+  relatorio,
 }: {
   pedido: PedidoDeContestacao;
   onTentarDeNovo: () => void;
   onDesistir: () => void;
+  relatorio?: { rotulo: string; onAbrir: () => void };
 }) {
   const t = useMensagens().ui.batalha;
   return (
@@ -380,9 +386,16 @@ function ContestacaoPendente({
             autoFoco
             itens={[
               { id: 'de-novo', rotulo: t.tentarDeNovo },
+              ...(relatorio ? [{ id: 'relatorio', rotulo: relatorio.rotulo }] : []),
               { id: 'desistir', rotulo: t.desistir },
             ]}
-            onEscolher={(id) => (id === 'desistir' ? onDesistir() : onTentarDeNovo())}
+            onEscolher={(id) =>
+              id === 'desistir'
+                ? onDesistir()
+                : id === 'relatorio'
+                  ? relatorio?.onAbrir()
+                  : onTentarDeNovo()
+            }
           />
         </>
       )}

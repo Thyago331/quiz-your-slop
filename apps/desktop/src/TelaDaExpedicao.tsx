@@ -42,7 +42,7 @@ import { gitDoProjeto } from './desatualizacao.ts';
 import { ListaDeLinhas, type Linha } from './Linhas.tsx';
 import { leitorDoProjeto, lerArquivosDoProjeto, transporteDoMestre } from './mestre.ts';
 import { mensagemDoErro } from './NovaAventura.tsx';
-import { TelaDoRelatorio, itemDoRelatorio } from './Relatorio.tsx';
+import { TelaDoRelatorio, itemDoRelatorio, type PedidoDeRelatorio } from './Relatorio.tsx';
 import { useEsc } from './TelaProvisoria.tsx';
 
 type Fase =
@@ -96,6 +96,8 @@ export function TelaDaExpedicao({
   const iniciou = useRef(false);
   // O relatório de erro aberto (opcional, Relatorio.tsx).
   const [relatando, setRelatando] = useState(false);
+  // A causa da última Contestação que falhou, para o relatório (a fase só guarda o texto).
+  const [causaDaContestacao, setCausaDaContestacao] = useState<unknown>(null);
   const atual = useRef(aventura);
   useEffect(() => {
     atual.current = aventura;
@@ -223,6 +225,7 @@ export function TelaDaExpedicao({
           : f,
       );
     } catch (e) {
+      setCausaDaContestacao(e);
       const erro = mensagemDoErro(e, m.ui.nova.erros);
       setFase((f) => (mesma(f) ? { ...f, contestacao: { estado: 'falhou', argumento, erro } } : f));
     }
@@ -245,6 +248,27 @@ export function TelaDaExpedicao({
     if (concluida.novas.length > 0) onVitoria(concluida);
   }
 
+  /** O relatório de um erro com o que o limpa: as pastas e os nomes que o Mestre deu. */
+  const pedidoDeRelatorio = (
+    erro: unknown,
+    onde: PedidoDeRelatorio['onde'],
+  ): PedidoDeRelatorio => ({
+    erro,
+    onde,
+    mestre: aventura.mestre,
+    repositorios: aventura.repositorios,
+    nomes: [...aventura.regioes, ...aventura.territorios].map((x) => x.nome),
+  });
+
+  if (fase.tipo === 'batalha' && fase.contestacao?.estado === 'falhou' && relatando) {
+    return (
+      <TelaDoRelatorio
+        pedido={pedidoDeRelatorio(causaDaContestacao, 'contestacao')}
+        onVoltar={() => setRelatando(false)}
+      />
+    );
+  }
+
   if (fase.tipo === 'batalha') {
     return (
       <main className="tela-expedicao">
@@ -265,6 +289,7 @@ export function TelaDaExpedicao({
             fase.contestacao && void contestarNoMestre(fase.expedicao, fase.contestacao.argumento)
           }
           onDesistirDeContestar={() => setFase({ tipo: 'batalha', expedicao: fase.expedicao })}
+          onRelatarContestacao={() => setRelatando(true)}
         />
       </main>
     );
@@ -297,13 +322,7 @@ export function TelaDaExpedicao({
   if (fase.tipo === 'erro' && relatando) {
     return (
       <TelaDoRelatorio
-        pedido={{
-          erro: fase.causa,
-          onde: 'expedicao',
-          mestre: aventura.mestre,
-          repositorios: aventura.repositorios,
-          nomes: [...aventura.regioes, ...aventura.territorios].map((x) => x.nome),
-        }}
+        pedido={pedidoDeRelatorio(fase.causa, 'expedicao')}
         onVoltar={() => setRelatando(false)}
       />
     );
@@ -365,6 +384,7 @@ type BatalhaNoProjetoProps = {
   onContestar: (argumento: string) => void;
   onTentarContestarDeNovo: () => void;
   onDesistirDeContestar: () => void;
+  onRelatarContestacao: () => void;
 };
 
 /**
@@ -384,8 +404,10 @@ function BatalhaNoProjeto({
   onContestar,
   onTentarContestarDeNovo,
   onDesistirDeContestar,
+  onRelatarContestacao,
 }: BatalhaNoProjetoProps) {
   const m = useMensagens();
+  const idioma = useIdioma();
   const semente = aventura.regioes.find((r) => r.id === expedicao.regiaoId)?.arquivos_semente[0];
   const [aberto, setAberto] = useState<ArquivoAberto | null>(semente ? { caminho: semente } : null);
   const [aba, setAba] = useState<'principal' | 'codigo'>('principal');
@@ -445,6 +467,7 @@ function BatalhaNoProjeto({
           {...(contestacao && { pedidoDeContestacao: contestacao })}
           onTentarContestarDeNovo={onTentarContestarDeNovo}
           onDesistirDeContestar={onDesistirDeContestar}
+          relatorioDaContestacao={{ ...itemDoRelatorio(idioma), onAbrir: onRelatarContestacao }}
           textoDoCacador={m.ui.batalha.cacadorNoProjeto}
           onAbrirEvidencia={(ev) => {
             setAberto({ caminho: ev.caminho, inicio: ev.linha_inicio, fim: ev.linha_fim });

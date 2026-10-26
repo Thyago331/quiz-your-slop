@@ -177,6 +177,7 @@ describe('sem telemetria: a camada Rust', () => {
       'tauri',
       'tauri-plugin-dialog',
       'tauri-plugin-updater',
+      'tempfile',
       'ureq',
     ]);
   });

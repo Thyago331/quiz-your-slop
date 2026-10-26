@@ -17,7 +17,7 @@ import { useEsc } from './TelaProvisoria.tsx';
 // aqui, e "Abrir no GitHub" só abre o navegador numa issue nova do repositório do Jogo com o texto;
 // quem decide enviar é ele, lá.
 
-export type OndeDoErro = 'leitura' | 'entrada' | 'expedicao';
+export type OndeDoErro = 'leitura' | 'entrada' | 'expedicao' | 'contestacao' | 'vizinha';
 
 /** O erro que o Jogador pode relatar, com o que o limpa (os nomes e as pastas do Projeto). */
 export type PedidoDeRelatorio = {
@@ -49,13 +49,14 @@ const pt = {
     leitura: 'Nova Aventura — leitura do Projeto',
     entrada: 'Nova Aventura — detalhe da região de entrada',
     expedicao: 'Expedição — preparação dos Desafios',
+    contestacao: 'Expedição — Contestação do gabarito',
+    vizinha: 'Mapa — detalhe de uma região vizinha',
   },
   rotulos: {
     aconteceu: 'O que aconteceu',
     onde: 'Onde',
     erro: 'Erro',
     problemas: 'Problemas da última tentativa',
-    sistema: 'Saída de erro da CLI do Mestre',
     pilha: 'Pilha',
     ambiente: 'Ambiente',
     rodape:
@@ -86,13 +87,14 @@ const TEXTOS: PorIdioma<typeof pt> = {
       leitura: 'New Adventure — reading the Project',
       entrada: 'New Adventure — detailing the entrance region',
       expedicao: 'Expedition — preparing the Challenges',
+      contestacao: 'Expedition — Contesting the answer key',
+      vizinha: 'Map — detailing a neighbouring region',
     },
     rotulos: {
       aconteceu: 'What happened',
       onde: 'Where',
       erro: 'Error',
       problemas: 'Problems in the last attempt',
-      sistema: "Error output of the Game Master's CLI",
       pilha: 'Stack',
       ambiente: 'Environment',
       rodape:
@@ -120,13 +122,14 @@ const TEXTOS: PorIdioma<typeof pt> = {
       leitura: 'Nueva Aventura — lectura del Proyecto',
       entrada: 'Nueva Aventura — detalle de la región de entrada',
       expedicao: 'Expedición — preparación de los Desafíos',
+      contestacao: 'Expedición — Impugnación de la respuesta',
+      vizinha: 'Mapa — detalle de una región vecina',
     },
     rotulos: {
       aconteceu: 'Qué pasó',
       onde: 'Dónde',
       erro: 'Error',
       problemas: 'Problemas del último intento',
-      sistema: 'Salida de error de la CLI del Maestro',
       pilha: 'Pila',
       ambiente: 'Entorno',
       rodape:
@@ -173,7 +176,6 @@ export function textoDoRelatorio(
   ];
   if (d.problemas.length > 0)
     partes.push(`**${r.problemas}:**\n${d.problemas.map((p) => `- ${p}`).join('\n')}`);
-  if (d.sistema) partes.push(`**${r.sistema}:**\n${bloco(d.sistema)}`);
   if (d.pilha) partes.push(`**${r.pilha}:**\n${bloco(d.pilha)}`);
   partes.push(
     `### ${r.ambiente}`,

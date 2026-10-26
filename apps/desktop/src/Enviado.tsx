@@ -90,15 +90,6 @@ const TEXTOS: PorIdioma<typeof pt> = {
   },
 };
 
-/** O JSON guardado, com recuo para ler (o conteúdo é o mesmo que saiu). */
-function legivel(json: string): string {
-  try {
-    return JSON.stringify(JSON.parse(json), null, 2);
-  } catch {
-    return json;
-  }
-}
-
 type EnviadoProps = {
   envio: EstadoDoEnvio | null;
   /** Há conta conectada (com ou sem rede agora)? */
@@ -140,7 +131,7 @@ export function Enviado({ envio, comConta, onAbrir, onVoltar }: EnviadoProps) {
           <>
             <p className="enviado-apagado">{t.json}</p>
             <pre className="enviado-json" data-testid="ultimo-envio">
-              {legivel(ultimo.json)}
+              {ultimo.json}
             </pre>
           </>
         )}
@@ -148,7 +139,7 @@ export function Enviado({ envio, comConta, onAbrir, onVoltar }: EnviadoProps) {
           <>
             <p className="enviado-apagado">{t.jsonPendente}</p>
             <pre className="enviado-json" data-testid="envio-pendente">
-              {legivel(pendente)}
+              {pendente}
             </pre>
           </>
         )}

@@ -7,8 +7,8 @@ loopback.
 Domínio: `quizyourslop.com` (registrado na Hostinger), VPS `200.141.27.76` /
 `2a02:4780:6e:b313::1`, a mesma do `transito-analyzer`. Primeira subida em 2026-10-26: seções 2 a
 5 feitas à mão (a imagem foi carregada com `docker save | ssh vps docker load`, antes de existir
-no GHCR) e o smoke de produção passou contra o domínio. O workflow de deploy pelo GitHub (seção 6)
-ainda não rodou.
+no GHCR) e o smoke de produção passou contra o domínio. Desde então o deploy é o da seção 6: cada
+push na `main` que passa na CI vai para a VPS sozinho.
 
 O que roda (`deploy/docker-compose.yml`, projeto `quiz`):
 

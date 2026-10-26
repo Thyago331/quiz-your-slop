@@ -1,0 +1,11 @@
+# O Nginx do host termina o TLS (spec §11): copie para `docker-compose.override.yml` ao lado do
+# docker-compose.yml na VPS, e o Compose junta os dois em todo `up`, inclusive no do workflow de
+# deploy. O site e o Umami saem só no loopback, para o Nginx fazer o proxy (o Docker ignora o ufw
+# nas portas publicadas). 3101/3102 porque o transito-analyzer, na mesma VPS, usa 3001/3002.
+services:
+  app:
+    ports:
+      - '127.0.0.1:3101:3000'
+  umami:
+    ports:
+      - '127.0.0.1:3102:3000'

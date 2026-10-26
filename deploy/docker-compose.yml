@@ -1,0 +1,86 @@
+# Produção (spec §11), no padrão do transito-analyzer: o site, o Postgres das contas, o Umami e o
+# Postgres do Umami, numa VPS só. Nada aqui publica porta: o Nginx do host termina o TLS e fala com
+# o site e o Umami pelas portas de loopback do override (docker-compose.override.host-nginx.yml,
+# copiado como docker-compose.override.yml). Na VPS: esta pasta com `.env` (lido pelo Compose:
+# tag da imagem e senhas) e `app.env` (as variáveis do site), feitos a partir dos exemplos; depois
+# `docker compose up -d`. O workflow de deploy roda `pull` + `up -d` por SSH (docs/ops/deploy.md).
+name: quiz
+
+services:
+  app:
+    image: ghcr.io/thyago331/quiz-your-slop-site:${APP_TAG:-latest}
+    restart: unless-stopped
+    env_file: app.env
+    environment:
+      # A senha fica num lugar só (.env); o resto das variáveis do site vem de app.env.
+      DATABASE_URL: postgres://quiz:${DB_PASSWORD:?defina DB_PASSWORD no .env}@db:5432/quiz
+    # As migrações rodam quando o site sobe: o banco precisa estar aceitando conexões antes.
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [default, bancos]
+    # O healthcheck (GET /api/health) vem do Dockerfile.
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: quiz
+      POSTGRES_USER: quiz
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?defina DB_PASSWORD no .env}
+    volumes:
+      - db:/var/lib/postgresql/data
+    networks: [bancos]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U quiz -d quiz']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  umami:
+    image: ghcr.io/umami-software/umami:3.4.0
+    restart: unless-stopped
+    init: true
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD:?defina UMAMI_DB_PASSWORD no .env}@umami-db:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?defina UMAMI_APP_SECRET no .env}
+      # A página de privacidade promete um salt que muda todo dia.
+      SALT_ROTATION: day
+      DISABLE_TELEMETRY: 1
+      # O Nginx do host chega pelo gateway da rede do Docker; o IP do visitante (para o país) vem
+      # do X-Forwarded-For que ele envia.
+      TRUSTED_PROXIES: 172.16.0.0/12
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    networks: [default, bancos]
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS http://localhost:3000/api/heartbeat']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  umami-db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD:?defina UMAMI_DB_PASSWORD no .env}
+    volumes:
+      - umami_db:/var/lib/postgresql/data
+    networks: [bancos]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U umami -d umami']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  # Os dois Postgres ficam numa rede sem saída para fora e sem porta publicada.
+  bancos:
+    internal: true
+
+volumes:
+  db:
+  umami_db:

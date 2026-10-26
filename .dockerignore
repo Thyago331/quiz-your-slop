@@ -1,0 +1,17 @@
+# Fora do contexto do build da imagem do site (Dockerfile na raiz).
+.git
+**/node_modules
+**/.next
+**/dist
+**/*.tsbuildinfo
+**/test-results
+**/playwright-report
+.claude
+.env*
+!.env.example
+**/.env*
+!**/.env.example
+docs
+deploy
+apps/desktop/src-tauri/target
+apps/desktop/src-tauri/gen
